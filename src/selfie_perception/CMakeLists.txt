@@ -14,7 +14,11 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   visualization_msgs
   selfie_msgs
+  cv_bridge
+  image_transport
 )
+
+find_package(OpenCV 3.3.1 REQUIRED)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -107,8 +111,8 @@ find_package(catkin REQUIRED COMPONENTS
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
   INCLUDE_DIRS include
-#  LIBRARIES selfie_perception
-  CATKIN_DEPENDS geometry_msgs roscpp sensor_msgs std_msgs visualization_msgs selfie_msgs
+  LIBRARIES selfie_perception
+  CATKIN_DEPENDS geometry_msgs roscpp sensor_msgs std_msgs visualization_msgs selfie_msgs cv_bridge image_transport
 #  DEPENDS system_lib
 )
 
@@ -121,6 +125,7 @@ catkin_package(
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
+  ${OpenCV_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -207,6 +212,15 @@ install(DIRECTORY include/${PROJECT_NAME}/
     PATTERN ".svn" EXCLUDE
 )
 
+install(DIRECTORY config/
+    DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/config
+    FILES_MATCHING PATTERN "*.yaml"
+)
+
 add_executable(detect_obstacles src/detect_obstacles.cpp src/obstacles_generator.cpp)
 target_link_libraries(detect_obstacles ${catkin_LIBRARIES})
-add_dependencies(detect_obstacles detect_obstacles_generate_messages_cpp)
+add_dependencies(detect_obstacles ${catkin_EXPORTED_TARGETS})
+
+add_executable(detect_markings src/cam.cpp src/lanedetector.cpp)
+target_link_libraries(detect_markings ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
+add_dependencies(detect_markings ${catkin_EXPORTED_TARGETS})
