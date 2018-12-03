@@ -1,0 +1,11 @@
+<launch>
+  <node pkg="libuvc_camera" type="camera_node" name="selfie_camera" />
+
+  <node pkg="selfie_perception" type="detect_markings" name="selfie_markings_detector">
+    <param name="visualize" value="false" />
+  </node>
+
+  <node pkg="path_planner" type="path_planner_node" name="selfie_path_planner" />
+
+  <include file="$(find selfie_control)/launch/pid-tuning.launch" />
+</launch>
