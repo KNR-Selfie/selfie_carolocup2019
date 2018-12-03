@@ -4,6 +4,9 @@
     <param name="lower_limit" value="-0.785" />
     <param name="windup_limit" value="10" />
 
+    <param name="Kp" value="0.15" />
+    <param name="Kp_scale" value="0.1" />
+
     <remap from="state" to="combined_offset" />
     <remap from="control_effort" to="steering_angle" />
   </node>
