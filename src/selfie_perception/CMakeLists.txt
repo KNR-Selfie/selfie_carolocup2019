@@ -111,8 +111,8 @@ find_package(OpenCV 3.3.1 REQUIRED)
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
   INCLUDE_DIRS include
-  LIBRARIES selfie_perception
-  CATKIN_DEPENDS geometry_msgs roscpp sensor_msgs std_msgs visualization_msgs selfie_msgs cv_bridge image_transport
+#  LIBRARIES selfie_perception
+#  CATKIN_DEPENDS geometry_msgs roscpp sensor_msgs std_msgs visualization_msgs selfie_msgs cv_bridge image_transport
 #  DEPENDS system_lib
 )
 
