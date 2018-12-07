@@ -8,7 +8,7 @@ project(selfie_launch)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  path_planner
+  selfie_path_planner
   selfie_control
   selfie_msgs
   selfie_perception

@@ -5,7 +5,7 @@
     <param name="visualize" value="false" />
   </node>
 
-  <node pkg="path_planner" type="path_planner_node" name="selfie_path_planner" />
+  <node pkg="selfie_path_planner" type="estimate_position" name="selfie_path_planner" />
 
   <include file="$(find selfie_control)/launch/pid-tuning.launch" />
 </launch>

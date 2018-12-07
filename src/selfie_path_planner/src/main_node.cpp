@@ -74,7 +74,7 @@ void road_markingsCallback(const selfie_msgs::RoadMarkings::ConstPtr& msg)
 
 int main(int argc, char **argv)
 {
-    ros::init(argc, argv, "path_planner_node");
+    ros::init(argc, argv, "estimate_position");
     ros::NodeHandle nh;
 
     ros::Subscriber sub = nh.subscribe("road_markings", 1000, road_markingsCallback);

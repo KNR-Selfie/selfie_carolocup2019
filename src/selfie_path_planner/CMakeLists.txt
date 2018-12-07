@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(path_planner)
+project(selfie_path_planner)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 # add_compile_options(-std=c++11)
@@ -200,10 +200,9 @@ include_directories(
 # catkin_add_nosetests(test)
 
 
-add_executable(path_planner_node src/main_node.cpp src/polyfit.cpp src/path_planner.cpp)
-target_link_libraries(path_planner_node ${catkin_LIBRARIES})
-add_dependencies(path_planner_node ${catkin_EXPORTED_TARGETS})
-
+add_executable(estimate_position src/main_node.cpp src/polyfit.cpp src/path_planner.cpp)
+target_link_libraries(estimate_position ${catkin_LIBRARIES})
+add_dependencies(estimate_position ${catkin_EXPORTED_TARGETS})
 
 add_executable(test_node src/test_node.cpp)
 target_link_libraries(test_node ${catkin_LIBRARIES})
