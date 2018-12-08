@@ -32,6 +32,10 @@ class LaneDetector
 	cv::Mat gray_frame_;
 	cv::Mat binary_frame_;
 	cv::Mat mask_;
+	cv::Mat dynamic_mask_;
+	cv::Mat masked_frame_;
+	cv::Mat crossing_ROI_;
+	cv::Mat crossing_frame_;
 	cv::Mat canny_frame_;
 	cv::Mat visualization_frame_;
 	cv::Mat homography_frame_;
@@ -51,6 +55,8 @@ class LaneDetector
 	void drawPoints(cv::Mat &frame);
 	void homography(cv::Mat input_frame, cv::Mat &homography_frame);
 	void printInfoParams();
+	void dynamicMask(cv::Mat input_frame, cv::Mat &output_frame, bool left_lane_detected, bool center_lane_detected, bool right_lane_detected, std::vector<std::vector<cv::Point> > lanes_vector_last_frame);
+	void crossingLane(cv::Mat input_frame, cv::Mat &output_frame, std::vector<std::vector<cv::Point> > lanes_vector);
 
 	float binary_treshold_;
 	bool mask_initialized_;

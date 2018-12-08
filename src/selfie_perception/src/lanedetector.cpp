@@ -24,6 +24,10 @@ LaneDetector::LaneDetector(const ros::NodeHandle &nh, const ros::NodeHandle &pnh
 	gray_frame_(),
 	binary_frame_(),
 	mask_(),
+	dynamic_mask_(),
+	masked_frame_(),
+	crossing_ROI_(),
+	crossing_frame_(),
 	canny_frame_(),
 	visualization_frame_(),
 	homography_frame_()
@@ -81,6 +85,7 @@ void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr &msg)
 	homography(current_frame_, homography_frame_);
 	cv::cvtColor(homography_frame_, gray_frame_, cv::COLOR_BGR2GRAY);
 	cv::threshold(gray_frame_, binary_frame_, binary_treshold_, 255, cv::THRESH_BINARY);
+
 	cv::bitwise_and(binary_frame_, mask_, canny_frame_);
 	cv::medianBlur(binary_frame_, canny_frame_, 5);
 	cv::filter2D(binary_frame_, canny_frame_, -1, kernel_v_, cv::Point(-1, -1), 0, cv::BORDER_DEFAULT);
@@ -91,6 +96,8 @@ void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr &msg)
 		mergeMiddleLane();
 		recognizeLines();
 		publishMarkings();
+		crossingLane(gray_frame_, crossing_frame_, lanes_vector_);
+		dynamicMask(binary_frame_, masked_frame_, false, false, false, lanes_vector_);
 	}
 
 	if (visualize_)
@@ -195,6 +202,12 @@ void LaneDetector::openCVVisualization()
 
 	cv::namedWindow("Binarization", cv::WINDOW_NORMAL);
 	cv::imshow("Binarization", binary_frame_);
+
+	cv::namedWindow("Crossings", cv::WINDOW_NORMAL);
+	cv::imshow("Crossings", crossing_frame_);
+
+	cv::namedWindow("DynMask", cv::WINDOW_NORMAL);
+	cv::imshow("DynMask", masked_frame_);
 
 	//cv::namedWindow("Canny", cv::WINDOW_NORMAL);
 	//cv::imshow("Canny", canny_frame_);
@@ -395,4 +408,167 @@ void LaneDetector::printInfoParams()
     ROS_INFO("max_mid_line_X_gap: %.3f\n",max_mid_line_X_gap_);
 
     ROS_INFO("visualize: %d\n",visualize_);
+}
+
+void LaneDetector::dynamicMask(cv::Mat input_frame, cv::Mat &output_frame, bool left_lane_detected, bool center_lane_detected, bool right_lane_detected, std::vector<std::vector<cv::Point> > lanes_vector_last_frame)
+{
+	dynamic_mask_ = cv::Mat::zeros(cv::Size(input_frame.cols, input_frame.rows), CV_8UC1);
+	int length;
+	output_frame = input_frame;
+
+	// detect all lanes
+	//if(left_lane_detected && right_lane_detected && center_lane_detected)
+	if(!lanes_vector_last_frame[0].empty() && !lanes_vector_last_frame[1].empty() && !lanes_vector_last_frame[2].empty())
+	{
+		int l, k;
+		length = lanes_vector_last_frame[0].size() + lanes_vector_last_frame[2].size();
+		cv::Point points[length];
+		for(l = 0; l < lanes_vector_last_frame[0].size(); l++)
+		{
+			if(lanes_vector_last_frame[0][l].x - 20 < 0)
+			{
+				points[l] = cv::Point(lanes_vector_last_frame[0][l].x, lanes_vector_last_frame[0][l].y);
+			}
+			else
+			{
+				points[l] = cv::Point(lanes_vector_last_frame[0][l].x - 20, lanes_vector_last_frame[0][l].y);
+			}
+		}
+		for(k = lanes_vector_last_frame[2].size() - 1; k >= 0; k--)
+		{
+			if(lanes_vector_last_frame[2][k].x + 20 > input_frame.cols)
+			{
+				l++;
+				points[l] = cv::Point(lanes_vector_last_frame[2][k].x, lanes_vector_last_frame[2][k].y);
+			}
+			else
+			{
+				l++;
+				points[l] = cv::Point(lanes_vector_last_frame[2][k].x + 20, lanes_vector_last_frame[2][k].y);
+			}
+		}
+
+		cv::fillConvexPoly(dynamic_mask_, points, length, cv::Scalar(150, 150, 0));
+	}
+
+	// detect center and right lanes
+	else if(lanes_vector_last_frame[0].empty() && !lanes_vector_last_frame[1].empty() && !lanes_vector_last_frame[2].empty())
+	{
+		int l, k;
+		length = lanes_vector_last_frame[2].size() + 2;
+		cv::Point points[length];
+		for(l = 0; l < lanes_vector_last_frame[2].size(); l++)
+		{
+			if(lanes_vector_last_frame[2][l].x + 30 > input_frame.cols)
+			{
+				points[l] = cv::Point(lanes_vector_last_frame[2][l].x, lanes_vector_last_frame[2][l].y);
+			}
+			else
+			{
+				points[l] = cv::Point(lanes_vector_last_frame[2][l].x + 30, lanes_vector_last_frame[2][l].y);
+			}
+		}
+		points[l + 1] = cv::Point(0, input_frame.rows);
+		points[l + 2] = cv::Point(0, points[l].y);
+
+		cv::fillConvexPoly(dynamic_mask_, points, length, cv::Scalar(150, 150, 0));
+	}
+
+	// detect center and left lanes
+	else if(!lanes_vector_last_frame[0].empty() && !lanes_vector_last_frame[1].empty() && lanes_vector_last_frame[2].empty())
+	{
+		int l, k;
+		length = lanes_vector_last_frame[0].size() + 2;
+		cv::Point points[length];
+		for(l = 0; l < lanes_vector_last_frame[0].size(); l++)
+		{
+			if(lanes_vector_last_frame[0][l].x - 20 < 0)
+			{
+				points[l] = cv::Point(lanes_vector_last_frame[0][l].x, lanes_vector_last_frame[0][l].y);
+			}
+			else
+			{
+				points[l] = cv::Point(lanes_vector_last_frame[0][l].x - 20, lanes_vector_last_frame[0][l].y);
+			}
+		}
+		points[l + 1] = cv::Point(input_frame.cols, input_frame.rows);
+		points[l + 2] = cv::Point(input_frame.cols, points[l].y);
+
+		cv::fillConvexPoly(dynamic_mask_, points, length, cv::Scalar(150, 150, 0));
+	}
+
+	cv::bitwise_and(input_frame, dynamic_mask_, output_frame);
+}
+
+void LaneDetector::crossingLane(cv::Mat input_frame, cv::Mat &output_frame, std::vector<std::vector<cv::Point> > lanes_vector)
+{
+	crossing_ROI_ = cv::Mat::zeros(cv::Size(input_frame.cols, input_frame.rows), CV_8UC1);
+	output_frame = input_frame;
+	int width = 150;
+	int numberOfWhitePixels = 20;
+	cv::Scalar whitePixels;
+	int length;
+
+	if(lanes_vector[2].size() > 0 && lanes_vector[2][lanes_vector[2].size() - 1].x - width > 0 )
+	{
+		int l, k, m = 0;
+		length = 2 * ( lanes_vector[2].size() / 2 );
+		cv::Point points[length];
+		for(l = lanes_vector[2].size() - 1; l > lanes_vector[2].size() - 1 - (lanes_vector[2].size() / 2); l--)
+		{
+			points[m] = cv::Point(lanes_vector[2][l].x - 20, lanes_vector[2][l].y);
+			m++;
+		}
+		for(k = lanes_vector[2].size() - 1 - (lanes_vector[2].size() / 2); k <= lanes_vector[2].size(); k++)
+		{
+			points[m] = cv::Point(lanes_vector[2][k].x - width, lanes_vector[2][k].y);
+			m++;
+		}
+
+		for(int n = 0; n < length - 1; n++)
+		{
+			cv::line(output_frame, points[n], points[n+1], cv::Scalar(0, 0, 255), 2);
+		}
+
+		cv::fillConvexPoly(crossing_ROI_, points, length, cv::Scalar(255, 0, 0));
+	}
+	else
+	{
+		int l, k, m = 0;
+		length = 2 * ( 3 * lanes_vector[2].size() / 4 );
+		cv::Point points[length];
+		for(l = lanes_vector[2].size() - 1; l > lanes_vector[2].size() - 1 - (3 * lanes_vector[2].size() / 4); l--)
+		{
+			points[m] = cv::Point(lanes_vector[2][l].x, lanes_vector[2][l].y);
+			m++;
+		}
+		for(k = lanes_vector[2].size() - 1 - (3 * lanes_vector[2].size() / 4); k <= lanes_vector[2].size(); k++)
+		{
+			if(lanes_vector[2][k].x - 1.2 * width < 0)
+			{
+				points[m] = cv::Point(0, lanes_vector[2][k].y);
+				m++;
+			}
+			else
+			{
+				points[m] = cv::Point(lanes_vector[2][k].x - width, lanes_vector[2][k].y);
+				m++;
+			}
+		}
+
+		for(int n = 0; n < length - 1; n++)
+		{
+			cv::line(output_frame, points[n], points[n+1], cv::Scalar(0, 0, 255), 2);
+		}
+
+		cv::fillConvexPoly(crossing_ROI_, points, length, cv::Scalar(255, 0, 0));
+	}
+	//cv::bitwise_and(input_frame, crossing_ROI_, output_frame);
+	//whitePixels = cv::mean(output_frame);
+
+	//detect crossing lane
+	//if(whitePixels[0] >= numberOfWhitePixels)
+	//{
+		// Detection
+	//}
 }
