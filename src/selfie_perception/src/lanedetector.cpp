@@ -421,7 +421,7 @@ void LaneDetector::dynamicMask(cv::Mat input_frame, cv::Mat &output_frame, bool 
 	if(!lanes_vector_last_frame[0].empty() && !lanes_vector_last_frame[1].empty() && !lanes_vector_last_frame[2].empty())
 	{
 		int l, k;
-		length = lanes_vector_last_frame[0].size() + lanes_vector_last_frame[2].size();
+		length = lanes_vector_last_frame[0].size() + lanes_vector_last_frame[2].size() + 2;
 		cv::Point points[length];
 		for(l = 0; l < lanes_vector_last_frame[0].size(); l++)
 		{
@@ -448,6 +448,8 @@ void LaneDetector::dynamicMask(cv::Mat input_frame, cv::Mat &output_frame, bool 
 			}
 		}
 
+		points[l + 1] = cv::Point(points[l].x, input_frame.rows);
+		points[l + 2] = cv::Point(points[0].x, points[l + 1].y);
 		cv::fillConvexPoly(dynamic_mask_, points, length, cv::Scalar(150, 150, 0));
 	}
 
@@ -512,14 +514,14 @@ void LaneDetector::crossingLane(cv::Mat input_frame, cv::Mat &output_frame, std:
 	if(lanes_vector[2].size() > 0 && lanes_vector[2][lanes_vector[2].size() - 1].x - width > 0 )
 	{
 		int l, k, m = 0;
-		length = 2 * ( lanes_vector[2].size() / 2 );
+		length = 2 * lanes_vector[2].size();
 		cv::Point points[length];
-		for(l = lanes_vector[2].size() - 1; l > lanes_vector[2].size() - 1 - (lanes_vector[2].size() / 2); l--)
+		for(l = lanes_vector[2].size() - 1; l >= 0; l--)
 		{
 			points[m] = cv::Point(lanes_vector[2][l].x - 20, lanes_vector[2][l].y);
 			m++;
 		}
-		for(k = lanes_vector[2].size() - 1 - (lanes_vector[2].size() / 2); k <= lanes_vector[2].size(); k++)
+		for(k = 0; k < lanes_vector[2].size(); k++)
 		{
 			points[m] = cv::Point(lanes_vector[2][k].x - width, lanes_vector[2][k].y);
 			m++;
@@ -535,14 +537,14 @@ void LaneDetector::crossingLane(cv::Mat input_frame, cv::Mat &output_frame, std:
 	else
 	{
 		int l, k, m = 0;
-		length = 2 * ( 3 * lanes_vector[2].size() / 4 );
+		length = 2 * lanes_vector[2].size();
 		cv::Point points[length];
-		for(l = lanes_vector[2].size() - 1; l > lanes_vector[2].size() - 1 - (3 * lanes_vector[2].size() / 4); l--)
+		for(l = lanes_vector[2].size() - 1; l >= 0; l--)
 		{
 			points[m] = cv::Point(lanes_vector[2][l].x, lanes_vector[2][l].y);
 			m++;
 		}
-		for(k = lanes_vector[2].size() - 1 - (3 * lanes_vector[2].size() / 4); k <= lanes_vector[2].size(); k++)
+		for(k = 0; k < lanes_vector[2].size(); k++)
 		{
 			if(lanes_vector[2][k].x - 1.2 * width < 0)
 			{
