@@ -9,7 +9,7 @@ static int Acc_filt_slider = 40;
 static int Alpha_ = 12;
 static int F_ = 500, Dist_ = 500;
 
-LaneDetector::LaneDetector(const ros::NodeHandle &nh, const ros::NodeHandle &pnh) : 
+LaneDetector::LaneDetector(const ros::NodeHandle &nh, const ros::NodeHandle &pnh) :
 	nh_(nh),
 	pnh_(pnh),
 	it_(nh),
@@ -17,7 +17,7 @@ LaneDetector::LaneDetector(const ros::NodeHandle &nh, const ros::NodeHandle &pnh
 	mask_initialized_(false),
 	visualize_(true),
 	max_mid_line_gap_(155),
-	max_mid_line_X_gap_ (80),
+	max_mid_line_X_gap_(80),
 
 	kernel_v_(),
 	current_frame_(),
@@ -43,10 +43,10 @@ bool LaneDetector::init()
 	kernel_v_.at<float>(0, 1) = 0;
 	kernel_v_.at<float>(0, 2) = 1;
 
-	pnh_.getParam("binary_treshold",binary_treshold_);
-	pnh_.getParam("visualize",visualize_);
-    pnh_.getParam("max_mid_line_gap",max_mid_line_gap_);
-    pnh_.getParam("max_mid_line_X_gap",max_mid_line_X_gap_);
+	pnh_.getParam("binary_treshold", binary_treshold_);
+	pnh_.getParam("visualize", visualize_);
+	pnh_.getParam("max_mid_line_gap", max_mid_line_gap_);
+	pnh_.getParam("max_mid_line_X_gap", max_mid_line_X_gap_);
 
 	image_sub_ = it_.subscribe("/image_raw", 1, &LaneDetector::imageCallback, this);
 
@@ -70,11 +70,12 @@ void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr &msg)
 	{
 		mask_ = cv::Mat::zeros(cv::Size(current_frame_.cols, current_frame_.rows), CV_8UC1);
 		cv::Point points[4] =
-			{
-				cv::Point(60, current_frame_.rows),
-				cv::Point(current_frame_.cols - 60, current_frame_.rows),
-				cv::Point(current_frame_.cols - 60, current_frame_.rows / 3),
-				cv::Point(60, current_frame_.rows / 3)};
+		{
+			cv::Point(60, current_frame_.rows),
+			cv::Point(current_frame_.cols - 60, current_frame_.rows),
+			cv::Point(current_frame_.cols - 60, current_frame_.rows / 3),
+			cv::Point(60, current_frame_.rows / 3)
+		};
 		cv::fillConvexPoly(mask_, points, 4, cv::Scalar(255, 0, 0));
 		mask_initialized_ = true;
 	}
@@ -86,7 +87,7 @@ void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr &msg)
 	cv::filter2D(binary_frame_, canny_frame_, -1, kernel_v_, cv::Point(-1, -1), 0, cv::BORDER_DEFAULT);
 
 	detectLines(canny_frame_, lanes_vector_);
-	if(!lanes_vector_.empty())
+	if (!lanes_vector_.empty())
 	{
 		mergeMiddleLane();
 		recognizeLines();
@@ -123,17 +124,17 @@ void LaneDetector::detectLines(cv::Mat &input_frame, std::vector<std::vector<cv:
 void LaneDetector::drawPoints(cv::Mat &frame)
 {
 	frame = cv::Mat::zeros(frame.size(), CV_8UC3);
-	if(!lanes_vector_[2].empty())
+	if (!lanes_vector_[2].empty())
 		for (int i = 0; i < lanes_vector_[2].size(); i++)
 		{
 			cv::circle(frame, lanes_vector_[2][i], 3, cv::Scalar(255, 0, 0), CV_FILLED, cv::LINE_AA);
 		}
-	if(!lanes_vector_[0].empty())
+	if (!lanes_vector_[0].empty())
 		for (int i = 0; i < lanes_vector_[0].size(); i++)
 		{
 			cv::circle(frame, lanes_vector_[0][i], 3, cv::Scalar(0, 0, 255), CV_FILLED, cv::LINE_AA);
 		}
-	if(!lanes_vector_[1].empty())
+	if (!lanes_vector_[1].empty())
 		for (int i = 0; i < lanes_vector_[1].size(); i++)
 		{
 			cv::circle(frame, lanes_vector_[1][i], 3, cv::Scalar(0, 255, 0), CV_FILLED, cv::LINE_AA);
@@ -155,33 +156,33 @@ void LaneDetector::homography(cv::Mat input_frame, cv::Mat &homography_frame)
 
 	// Matrix 2D -> 3D
 	cv::Mat A1 = (cv::Mat_<float>(4, 3) <<
-		1, 0, -w / 2,
-		0, 1, -h / 2,
-		0, 0, 0,
-		0, 0, 1);
-	
+	              1, 0, -w / 2,
+	              0, 1, -h / 2,
+	              0, 0, 0,
+	              0, 0, 1);
+
 	// Rotation matrix
 	cv::Mat RX = (cv::Mat_<float>(4, 4) <<
-		1, 0, 0, 0,
-		0, cos(alpha), -sin(alpha), 0,
-		0, sin(alpha), cos(alpha), 0,
-		0, 0, 0, 1);
-	
+	              1, 0, 0, 0,
+	              0, cos(alpha), -sin(alpha), 0,
+	              0, sin(alpha), cos(alpha), 0,
+	              0, 0, 0, 1);
+
 	cv::Mat R = RX;
 
 	// Translation matrix
 	cv::Mat T = (cv::Mat_<float>(4, 4) <<
-		1, 0, 0, 0,
-		0, 1, 0, 0,
-		0, 0, 1, dist,
-		0, 0, 0, 1);
+	             1, 0, 0, 0,
+	             0, 1, 0, 0,
+	             0, 0, 1, dist,
+	             0, 0, 0, 1);
 
 	// Intrinsic matrix
 	cv::Mat K = (cv::Mat_<float>(3, 4) <<
-		focal_lenth, 0, w / 2, 0,
-		0, focal_lenth, h / 2, 0,
-		0, 0, 1, 0
-		);
+	             focal_lenth, 0, w / 2, 0,
+	             0, focal_lenth, h / 2, 0,
+	             0, 0, 1, 0
+	            );
 
 	cv::Mat transformationMat = K * (T * (R * A1));
 
@@ -227,7 +228,8 @@ void LaneDetector::quickSortLinesY(int left, int right)
 			i++;
 			j--;
 		}
-	} while (i <= j);
+	}
+	while (i <= j);
 
 	if (left < j)
 		LaneDetector::quickSortLinesY(left, j);
@@ -258,7 +260,8 @@ void LaneDetector::quickSortPointsY(std::vector<cv::Point> &vector_in, int left,
 			i++;
 			j--;
 		}
-	} while (i <= j);
+	}
+	while (i <= j);
 
 	if (left < j)
 		LaneDetector::quickSortPointsY(vector_in, left, j);
@@ -364,21 +367,21 @@ void LaneDetector::publishMarkings()
 	road_markings.header.frame_id = "road_markings";
 	geometry_msgs::Point p;
 	p.z = 0;
-	if(!lanes_vector_[2].empty())
+	if (!lanes_vector_[2].empty())
 		for (int i = 0; i < lanes_vector_[2].size(); i++)
 		{
 			p.x = lanes_vector_[2][i].x;
 			p.y = lanes_vector_[2][i].y;
 			road_markings.right_line.push_back(p);
 		}
-	if(!lanes_vector_[0].empty())
+	if (!lanes_vector_[0].empty())
 		for (int i = 0; i < lanes_vector_[0].size(); i++)
 		{
 			p.x = lanes_vector_[0][i].x;
 			p.y = lanes_vector_[0][i].y;
 			road_markings.left_line.push_back(p);
 		}
-	if(!lanes_vector_[1].empty())
+	if (!lanes_vector_[1].empty())
 		for (int i = 0; i < lanes_vector_[1].size(); i++)
 		{
 			p.x = lanes_vector_[1][i].x;
@@ -390,9 +393,9 @@ void LaneDetector::publishMarkings()
 
 void LaneDetector::printInfoParams()
 {
-    ROS_INFO("binary_treshold: %.3f",binary_treshold_);
-    ROS_INFO("max_mid_line_gap: %.3f",max_mid_line_gap_);
-    ROS_INFO("max_mid_line_X_gap: %.3f\n",max_mid_line_X_gap_);
+	ROS_INFO("binary_treshold: %.3f", binary_treshold_);
+	ROS_INFO("max_mid_line_gap: %.3f", max_mid_line_gap_);
+	ROS_INFO("max_mid_line_X_gap: %.3f\n", max_mid_line_X_gap_);
 
-    ROS_INFO("visualize: %d\n",visualize_);
+	ROS_INFO("visualize: %d\n", visualize_);
 }

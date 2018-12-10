@@ -15,12 +15,12 @@
 
 class LaneDetector
 {
-  public:
+public:
 	LaneDetector(const ros::NodeHandle &nh, const ros::NodeHandle &pnh);
 	~LaneDetector();
 	bool init();
 
-  private:
+private:
 	ros::NodeHandle nh_;
 	ros::NodeHandle pnh_;
 	image_transport::ImageTransport it_;

@@ -24,60 +24,60 @@ poly::poly()
 
 */
 
-void poly::polyfit(int nDegree )
+void poly::polyfit(int nDegree)
 {
-    if(x_raw_pts.size() < nDegree)
-        return;
+	if (x_raw_pts.size() < nDegree)
+		return;
 
-    using namespace boost::numeric::ublas;
+	using namespace boost::numeric::ublas;
 
-    if ( x_raw_pts.size() != y_raw_pts.size() )
-        throw std::invalid_argument( "X and Y vector sizes do not match" );
+	if (x_raw_pts.size() != y_raw_pts.size())
+		throw std::invalid_argument("X and Y vector sizes do not match");
 
-    // more intuative this way
-    nDegree++;
+	// more intuative this way
+	nDegree++;
 
-    size_t nCount =  x_raw_pts.size();
-    matrix<float> oXMatrix( nCount, nDegree );
-    matrix<float> oYMatrix( nCount, 1 );
+	size_t nCount =  x_raw_pts.size();
+	matrix<float> oXMatrix(nCount, nDegree);
+	matrix<float> oYMatrix(nCount, 1);
 
-    // copy y matrix
-    for ( size_t i = 0; i < nCount; i++ )
-    {
-        oYMatrix(i, 0) = y_raw_pts[i];
-    }
+	// copy y matrix
+	for (size_t i = 0; i < nCount; i++)
+	{
+		oYMatrix(i, 0) = y_raw_pts[i];
+	}
 
-    // create the X matrix
-    for ( size_t nRow = 0; nRow < nCount; nRow++ )
-    {
-        float nVal = 1.0f;
-        for ( int nCol = 0; nCol < nDegree; nCol++ )
-        {
-            oXMatrix(nRow, nCol) = nVal;
-            nVal *= x_raw_pts[nRow];
-        }
-    }
-    // transpose X matrix
-    matrix<float> oXtMatrix( trans(oXMatrix) );
-    // multiply transposed X matrix with X matrix
-    matrix<float> oXtXMatrix( prec_prod(oXtMatrix, oXMatrix) );
-    // multiply transposed X matrix with Y matrix
-    matrix<float> oXtYMatrix( prec_prod(oXtMatrix, oYMatrix) );
+	// create the X matrix
+	for (size_t nRow = 0; nRow < nCount; nRow++)
+	{
+		float nVal = 1.0f;
+		for (int nCol = 0; nCol < nDegree; nCol++)
+		{
+			oXMatrix(nRow, nCol) = nVal;
+			nVal *= x_raw_pts[nRow];
+		}
+	}
+	// transpose X matrix
+	matrix<float> oXtMatrix(trans(oXMatrix));
+	// multiply transposed X matrix with X matrix
+	matrix<float> oXtXMatrix(prec_prod(oXtMatrix, oXMatrix));
+	// multiply transposed X matrix with Y matrix
+	matrix<float> oXtYMatrix(prec_prod(oXtMatrix, oYMatrix));
 
-    // lu decomposition
-    permutation_matrix<int> pert(oXtXMatrix.size1());
-    const std::size_t singular = lu_factorize(oXtXMatrix, pert);
+	// lu decomposition
+	permutation_matrix<int> pert(oXtXMatrix.size1());
+	const std::size_t singular = lu_factorize(oXtXMatrix, pert);
 
-    // must be singular
-    BOOST_ASSERT( singular == 0 );
+	// must be singular
+	BOOST_ASSERT(singular == 0);
 
-    // backsubstitution
-    lu_substitute(oXtXMatrix, pert, oXtYMatrix);
+	// backsubstitution
+	lu_substitute(oXtXMatrix, pert, oXtYMatrix);
 
-    // copy the result to coeff
+	// copy the result to coeff
 
-    std::vector<float>vec( oXtYMatrix.data().begin(), oXtYMatrix.data().end() );
-    coeff=vec;
+	std::vector<float>vec(oXtYMatrix.data().begin(), oXtYMatrix.data().end());
+	coeff = vec;
 }
 
 /*
@@ -96,132 +96,132 @@ void poly::polyfit(int nDegree )
 
 void poly::polyval()
 {
-    size_t nCount =  x_raw_pts.size();
-    size_t nDegree = coeff.size();
-    std::vector<float>output( nCount );
+	size_t nCount =  x_raw_pts.size();
+	size_t nDegree = coeff.size();
+	std::vector<float>output(nCount);
 
-    for ( size_t i = 0; i < nCount; i++ )
-    {
-        double nY = 0;
-        double nXdouble = 1;
-        double nX = x_raw_pts[i];
-        for ( size_t j = 0; j < nDegree; j++ )
-        {
-            // multiply current x by a coefficient
-            nY += coeff[j] * nXdouble;
-            // power up the X
-            nXdouble *= nX;
-        }
-        output[i] = nY;
-    }
-    y_output_pts = output;
+	for (size_t i = 0; i < nCount; i++)
+	{
+		double nY = 0;
+		double nXdouble = 1;
+		double nX = x_raw_pts[i];
+		for (size_t j = 0; j < nDegree; j++)
+		{
+			// multiply current x by a coefficient
+			nY += coeff[j] * nXdouble;
+			// power up the X
+			nXdouble *= nX;
+		}
+		output[i] = nY;
+	}
+	y_output_pts = output;
 }
 
 
 float poly::polyval(float x)
 {
-    size_t nDegree = coeff.size();
-    float output;
+	size_t nDegree = coeff.size();
+	float output;
 
-    double nY = 0;
-    double nXdouble = 1;
-    double nX = x;
+	double nY = 0;
+	double nXdouble = 1;
+	double nX = x;
 
-    for ( size_t j = 0; j < nDegree; j++ )
-    {
-        // multiply current x by a coefficient
-        nY += coeff[j] * nXdouble;
-        // power up the X
-        nXdouble *= nX;
-    }
-    output = nY;
-    return nY;
+	for (size_t j = 0; j < nDegree; j++)
+	{
+		// multiply current x by a coefficient
+		nY += coeff[j] * nXdouble;
+		// power up the X
+		nXdouble *= nX;
+	}
+	output = nY;
+	return nY;
 }
 
 void poly::get_row_pts(const std::vector<geometry_msgs::Point> point_vec)
 {
-    x_raw_pts.clear();
-    y_raw_pts.clear();
+	x_raw_pts.clear();
+	y_raw_pts.clear();
 
-    for(int i = 0;i<point_vec.size();i++)
-    {
-        x_raw_pts.push_back(MAT_HEIGHT - point_vec[i].y);
-        y_raw_pts.push_back(MAT_WIDTH - point_vec[i].x);
-    }
+	for (int i = 0; i < point_vec.size(); i++)
+	{
+		x_raw_pts.push_back(MAT_HEIGHT - point_vec[i].y);
+		y_raw_pts.push_back(MAT_WIDTH - point_vec[i].x);
+	}
 }
 
 void poly::fit_middle(poly left, poly right, int degree)
 {
-    this->x_raw_pts.clear();
-    this->y_raw_pts.clear();
-    float avg = 0;
+	this->x_raw_pts.clear();
+	this->y_raw_pts.clear();
+	float avg = 0;
 
-    if(left.x_raw_pts.empty() || right.x_raw_pts.empty())
-        return;
+	if (left.x_raw_pts.empty() || right.x_raw_pts.empty())
+		return;
 
-    float min_size = 0;
-    float left_size = left.x_raw_pts[left.x_raw_pts.size()-1];
-    float right_size = right.x_raw_pts[right.x_raw_pts.size()-1];
+	float min_size = 0;
+	float left_size = left.x_raw_pts[left.x_raw_pts.size() - 1];
+	float right_size = right.x_raw_pts[right.x_raw_pts.size() - 1];
 
-    if(left_size>=right_size)
-        min_size = right_size;
-    else
-        min_size = left_size;
+	if (left_size >= right_size)
+		min_size = right_size;
+	else
+		min_size = left_size;
 
-    for(int i = 0;i<(int)min_size;i+=4)
-    {
-        avg = (left.polyval(i) - right.polyval(i))/2 + right.polyval(i);
-        this->x_raw_pts.push_back(i);
-        this->y_raw_pts.push_back(avg);
-    }
+	for (int i = 0; i < (int)min_size; i += 4)
+	{
+		avg = (left.polyval(i) - right.polyval(i)) / 2 + right.polyval(i);
+		this->x_raw_pts.push_back(i);
+		this->y_raw_pts.push_back(avg);
+	}
 
-    this->polyfit(degree);
+	this->polyfit(degree);
 }
 
 std_msgs::Float64 poly::get_pos_offset(float x, float y)
 {
-    std_msgs::Float64 message;
-    message.data = y - polyval(x);
+	std_msgs::Float64 message;
+	message.data = y - polyval(x);
 
-    return message;
+	return message;
 }
 
 //TANGENT METHODS/////////////////////
-tangent::tangent(float a,float b)
+tangent::tangent(float a, float b)
 {
-    this->coeff[1] = a;
-    this->coeff[0] = b;
+	this->coeff[1] = a;
+	this->coeff[0] = b;
 }
 
-void tangent::calc_coeff(poly polynom,float x)
+void tangent::calc_coeff(poly polynom, float x)
 {
-    double derive = 0;
-    int degree = polynom.coeff.size();
-    double nXdouble = 1;
-    double nX = x;
+	double derive = 0;
+	int degree = polynom.coeff.size();
+	double nXdouble = 1;
+	double nX = x;
 
-    for ( size_t j = 1; j < degree; j++ )
-    {
-        // multiply current x by a coefficient
-        derive += j*polynom.coeff[j] * nXdouble;
-        // power up the X
-        nXdouble *= nX;
-    }
+	for (size_t j = 1; j < degree; j++)
+	{
+		// multiply current x by a coefficient
+		derive += j * polynom.coeff[j] * nXdouble;
+		// power up the X
+		nXdouble *= nX;
+	}
 
-    this->coeff[1] = derive; //a
-    this->coeff[0] = - derive*x+polynom.polyval(x); //b
+	this->coeff[1] = derive; //a
+	this->coeff[0] = - derive * x + polynom.polyval(x); //b
 }
 
 void tangent::set_coeff(float a, float b)
 {
-    this->coeff[0] = b;
-    this->coeff[1] = a;
+	this->coeff[0] = b;
+	this->coeff[1] = a;
 }
 
 std_msgs::Float64 tangent::get_head_offset(tangent tg)
 {
-    std_msgs::Float64 message;
-    message.data = atan((this->coeff[1]-tg.coeff[1])/(1+this->coeff[1]*tg.coeff[1]));
-    return message;
+	std_msgs::Float64 message;
+	message.data = atan((this->coeff[1] - tg.coeff[1]) / (1 + this->coeff[1] * tg.coeff[1]));
+	return message;
 
 }

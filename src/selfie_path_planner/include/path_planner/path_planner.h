@@ -9,11 +9,11 @@
 #define KUROKESU 1
 
 #if KUROKESU
-    #define MAT_HEIGHT 480
-    #define MAT_WIDTH 640
+#define MAT_HEIGHT 480
+#define MAT_WIDTH 640
 #endif
 
 void RoadMarkings_to_cloud(const selfie_msgs::RoadMarkings::ConstPtr& msg, sensor_msgs::PointCloud& points_preview);
-void poly_to_path(poly polyline,nav_msgs::Path& path);
+void poly_to_path(poly polyline, nav_msgs::Path& path);
 
 #endif // PATH_PLANNER_H
