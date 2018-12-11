@@ -1,19 +1,23 @@
 #include <selfie_perception/lanedetector.h>
 
-#define PI 3.1415926
+#define TOPVIEW_ROWS 480
+#define TOPVIEW_COLS 640
+
+#define TOPVIEW_MIN_X  0.0
+#define TOPVIEW_MAX_X  3.0
+#define TOPVIEW_MIN_Y -1.5
+#define TOPVIEW_MAX_Y  1.5
 
 static int Acc_slider = 1;
 static int Acc_value = 1;
 static int Acc_filt = 5;
 static int Acc_filt_slider = 40;
-static int Alpha_ = 12;
-static int F_ = 500, Dist_ = 500;
 
 poly left_line_poly_;
 poly center_line_poly_;
 poly right_line_poly_;
 
-LaneDetector::LaneDetector(const ros::NodeHandle &nh, const ros::NodeHandle &pnh) : 
+LaneDetector::LaneDetector(const ros::NodeHandle &nh, const ros::NodeHandle &pnh) :
 	nh_(nh),
 	pnh_(pnh),
 	it_(nh),
@@ -50,7 +54,7 @@ LaneDetector::LaneDetector(const ros::NodeHandle &nh, const ros::NodeHandle &pnh
 		points_cloud_pub_ = nh_.advertise<sensor_msgs::PointCloud>("new_coordinates", 10);
 		aprox_visualization_pub_ = nh_.advertise<visualization_msgs::Marker>("aprox", 10);
 	}
-	
+
 }
 
 LaneDetector::~LaneDetector()
@@ -77,11 +81,18 @@ bool LaneDetector::init()
 	kernel_v_.at<float>(0, 1) = 0;
 	kernel_v_.at<float>(0, 2) = 1;
 
-	pnh_.getParam("binary_treshold",binary_treshold_);
-	pnh_.getParam("visualize",visualize_);
-    pnh_.getParam("max_mid_line_gap",max_mid_line_gap_);
+	pnh_.getParam("config_file", config_file_);
+	pnh_.getParam("binary_treshold", binary_treshold_);
+	pnh_.getParam("visualize", visualize_);
+	pnh_.getParam("max_mid_line_gap", max_mid_line_gap_);
 
 	image_sub_ = it_.subscribe("/image_raw", 1, &LaneDetector::imageCallback, this);
+
+	cv::FileStorage fs(config_file_, cv::FileStorage::READ);
+	fs["world2cam"] >> world2cam_;
+	fs.release();
+
+	computeTopView();
 
 	printInfoParams();
 	return true;
@@ -119,7 +130,7 @@ void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr &msg)
 	cv::medianBlur(masked_frame_, masked_frame_, 5);
 	cv::filter2D(masked_frame_, canny_frame_, -1, kernel_v_, cv::Point(-1, -1), 0, cv::BORDER_DEFAULT);
 
-	
+
 	detectLines(canny_frame_, lanes_vector_);
 	filterSmallLines();
 
@@ -127,7 +138,7 @@ void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr &msg)
 	{
 		mergeMiddleLane();
 		convertCoordinates();
-		
+
 		if(init_imageCallback_)
 		{
 			initRecognizeLines();
@@ -149,13 +160,36 @@ void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr &msg)
 	{
 		visualization_frame_.rows = current_frame_.rows;
 		visualization_frame_.cols = current_frame_.cols;
-		
+
 		drawPoints(visualization_frame_);
-		
+
 		openCVVisualization();
 		aproxVisualization();
 		pointsRVIZVisualization();
 	}
+}
+
+void LaneDetector::computeTopView()
+{
+	// Choose top-view image size
+	topview_size_ = cv::Size(TOPVIEW_COLS, TOPVIEW_ROWS);
+
+	// Choose corner points (in real-world coordinates)
+	std::vector<cv::Point2f> coordinates;
+	coordinates.emplace_back(TOPVIEW_MIN_X, TOPVIEW_MIN_Y);
+	coordinates.emplace_back(TOPVIEW_MIN_X, TOPVIEW_MAX_Y);
+	coordinates.emplace_back(TOPVIEW_MAX_X, TOPVIEW_MIN_Y);
+	coordinates.emplace_back(TOPVIEW_MAX_X, TOPVIEW_MAX_Y);
+
+	std::vector<cv::Point2f> pixels;
+	pixels.emplace_back(topview_size_.width, topview_size_.height);
+	pixels.emplace_back(0, topview_size_.height);
+	pixels.emplace_back(topview_size_.width, 0);
+	pixels.emplace_back(0, 0);
+
+	topview2world_ = cv::findHomography(pixels, coordinates);
+
+	topview2cam_ = world2cam_ * topview2world_;
 }
 
 void LaneDetector::detectLines(cv::Mat &input_frame, std::vector<std::vector<cv::Point> > &output_lanes)
@@ -198,50 +232,7 @@ void LaneDetector::drawPoints(cv::Mat &frame)
 
 void LaneDetector::homography(cv::Mat input_frame, cv::Mat &homography_frame)
 {
-	resize(input_frame, input_frame, cv::Size(640, 480));
-
-	double focal_lenth, dist, alpha;
-
-	alpha = ((double)Alpha_ - 90) * PI / 180;
-	focal_lenth = (double)F_;
-	dist = (double)Dist_;
-
-	cv::Size image_size = input_frame.size();
-	double w = (double)image_size.width, h = (double)image_size.height;
-
-	// Matrix 2D -> 3D
-	cv::Mat A1 = (cv::Mat_<float>(4, 3) <<
-		1, 0, -w / 2,
-		0, 1, -h / 2,
-		0, 0, 0,
-		0, 0, 1);
-	
-	// Rotation matrix
-	cv::Mat RX = (cv::Mat_<float>(4, 4) <<
-		1, 0, 0, 0,
-		0, cos(alpha), -sin(alpha), 0,
-		0, sin(alpha), cos(alpha), 0,
-		0, 0, 0, 1);
-	
-	cv::Mat R = RX;
-
-	// Translation matrix
-	cv::Mat T = (cv::Mat_<float>(4, 4) <<
-		1, 0, 0, 0,
-		0, 1, 0, 0,
-		0, 0, 1, dist,
-		0, 0, 0, 1);
-
-	// Intrinsic matrix
-	cv::Mat K = (cv::Mat_<float>(3, 4) <<
-		focal_lenth, 0, w / 2, 0,
-		0, focal_lenth, h / 2, 0,
-		0, 0, 1, 0
-		);
-
-	cv::Mat transformationMat = K * (T * (R * A1));
-
-	cv::warpPerspective(input_frame, homography_frame, transformationMat, image_size, cv::INTER_CUBIC | cv::WARP_INVERSE_MAP);
+	cv::warpPerspective(input_frame, homography_frame, topview2cam_, topview_size_, cv::INTER_CUBIC | cv::WARP_INVERSE_MAP);
 }
 
 void LaneDetector::openCVVisualization()
@@ -257,7 +248,7 @@ void LaneDetector::openCVVisualization()
 
 	cv::namedWindow("Homography", cv::WINDOW_NORMAL);
 	cv::imshow("Homography", homography_frame_);
-	
+
 	if(!init_imageCallback_)
 	{
 		cv::namedWindow("testCrossing", cv::WINDOW_NORMAL);
@@ -383,7 +374,7 @@ void LaneDetector::recognizeLines()
 		left_line_index_ = min_index;
 	else
 		left_line_index_ = -1;
-	
+
 	min = current_frame_.cols;
 	min_index = -1;
 	for(int i = 0; i < lanes_vector_.size(); i++)
@@ -791,13 +782,13 @@ void LaneDetector::linesApproximation(std::vector<std::vector<cv::Point> > lanes
 		shrt_left = true;
 		suitable_lines--;
 	}
-		
+
 	if(right_length < min_length)
 	{
 		shrt_right = true;
 		suitable_lines--;
 	}
-		
+
 	if(middle_length < min_length)
 	{
 		shrt_middle = true;
@@ -818,7 +809,7 @@ void LaneDetector::linesApproximation(std::vector<std::vector<cv::Point> > lanes
 
 		left_coeff_ = left_line_poly_.coeff;
 		middle_coeff_ = center_line_poly_.coeff;
-		right_coeff_= right_line_poly_.coeff;	
+		right_coeff_= right_line_poly_.coeff;
 		break;
 
 		case 2:
@@ -831,7 +822,7 @@ void LaneDetector::linesApproximation(std::vector<std::vector<cv::Point> > lanes
 			right_line_poly_.polyfit(poly_nDegree);
 
 			middle_coeff_ = center_line_poly_.coeff;
-			right_coeff_= right_line_poly_.coeff;	
+			right_coeff_= right_line_poly_.coeff;
 			if(left_line_index_ == -1)
 			{
 				ROS_INFO("l-  c+  r+");
@@ -855,7 +846,7 @@ void LaneDetector::linesApproximation(std::vector<std::vector<cv::Point> > lanes
 			left_line_poly_.polyfit(poly_nDegree);
 
 			middle_coeff_ = center_line_poly_.coeff;
-			left_coeff_= left_line_poly_.coeff;	
+			left_coeff_= left_line_poly_.coeff;
 			if(right_line_index_ == -1)
 			{
 				ROS_INFO("l+  c+  r-");
@@ -879,7 +870,7 @@ void LaneDetector::linesApproximation(std::vector<std::vector<cv::Point> > lanes
 			left_line_poly_.polyfit(poly_nDegree);
 
 			right_coeff_ = right_line_poly_.coeff;
-			left_coeff_= left_line_poly_.coeff;	
+			left_coeff_= left_line_poly_.coeff;
 			if(center_line_index_ == -1)
 			{
 				ROS_INFO("l+  c-  r+");
@@ -1038,7 +1029,7 @@ void LaneDetector::linesApproximation(std::vector<std::vector<cv::Point> > lanes
 			}
 		}
 		break;
-		
+
 		case 0:
 		ROS_INFO("l-  c-  r-");
 		left_coeff_ = last_left_coeff_;
