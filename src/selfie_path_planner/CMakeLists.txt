@@ -203,7 +203,3 @@ include_directories(
 add_executable(estimate_position src/main_node.cpp src/polyfit.cpp src/path_planner.cpp)
 target_link_libraries(estimate_position ${catkin_LIBRARIES})
 add_dependencies(estimate_position ${catkin_EXPORTED_TARGETS})
-
-add_executable(test_node src/test_node.cpp)
-target_link_libraries(test_node ${catkin_LIBRARIES})
-add_dependencies(test_node ${catkin_EXPORTED_TARGETS})
