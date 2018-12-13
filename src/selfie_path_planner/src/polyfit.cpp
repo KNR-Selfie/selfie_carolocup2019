@@ -96,6 +96,11 @@ void poly::polyfit(int nDegree )
 
 void poly::polyval()
 {
+    x_raw_pts.clear();
+    for(int i = 0;i<300;i++)
+    {
+        x_raw_pts.push_back(float(i));
+    }
     size_t nCount =  x_raw_pts.size();
     size_t nDegree = coeff.size();
     std::vector<float>output( nCount );
@@ -224,4 +229,23 @@ std_msgs::Float64 tangent::get_head_offset(tangent tg)
     message.data = atan((this->coeff[1]-tg.coeff[1])/(1+this->coeff[1]*tg.coeff[1]));
     return message;
 
+}
+void poly::adjust(poly good_poly, int avg_points)
+{
+    this->coeff = good_poly.coeff;
+    float avg = 0;
+    float sum = 0;
+
+    if(y_raw_pts.size()<avg_points)
+        return;
+
+    //calculate average lane width
+    for(int i = 0;i<avg_points;i++)
+    {
+        sum += this->y_raw_pts[i] - good_poly.polyval(this->x_raw_pts[i]);
+    }
+
+    avg = sum/avg_points;
+
+    this->coeff[0] += avg;
 }
