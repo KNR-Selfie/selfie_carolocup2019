@@ -30,18 +30,30 @@ void RoadMarkings_to_cloud(const selfie_msgs::RoadMarkings::ConstPtr& msg, senso
     }
 }
 
-void poly_to_path(poly polyline,nav_msgs::Path& path)
+void poly_to_path(poly polyline,nav_msgs::Path& path, bool reversed)
 {
     geometry_msgs::PoseStamped poseSt;
 
     if(polyline.y_output_pts.size() == 0)
         return;
 
-    for(int i = 0;i<polyline.y_output_pts.size()-1;i++)
+    if(reversed == false)
     {
-        poseSt.pose.position.x = polyline.x_raw_pts[i];
-        poseSt.pose.position.y = polyline.y_output_pts[i];
-        path.poses.push_back(poseSt);
+        for(int i = 0;i<polyline.y_output_pts.size()-1;i++)
+        {
+            poseSt.pose.position.x = polyline.x_raw_pts[i];
+            poseSt.pose.position.y = polyline.y_output_pts[i];
+            path.poses.push_back(poseSt);
+        }
+    }
+    else
+    {
+        for(int i = polyline.y_output_pts.size()-1;i>0;i--)
+        {
+            poseSt.pose.position.x = polyline.x_raw_pts[i];
+            poseSt.pose.position.y = polyline.y_output_pts[i];
+            path.poses.push_back(poseSt);
+        }
     }
 
 }

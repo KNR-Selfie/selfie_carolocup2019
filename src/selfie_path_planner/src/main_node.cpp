@@ -33,11 +33,12 @@ void road_markingsCallback(const selfie_msgs::RoadMarkings::ConstPtr& msg)
     left_line.get_row_pts(msg->left_line);
     left_line.polyfit(3); //todo parametrize degree
 
-    center_line.get_row_pts(msg->center_line);
-    center_line.polyfit(3);
-
     right_line.get_row_pts(msg->right_line);
     right_line.polyfit(3);
+
+    center_line.get_row_pts(msg->center_line);
+    //center_line.polyfit(2);
+    center_line.adjust(right_line,5);
 
     middle_path.fit_middle(center_line,right_line,7);
     path_tangent.calc_coeff(middle_path,1);
@@ -55,10 +56,10 @@ void road_markingsCallback(const selfie_msgs::RoadMarkings::ConstPtr& msg)
     right_line.polyval();
     middle_path.polyval();
 
-//    poly_to_path(left_line,calc_path);
-//    poly_to_path(center_line,calc_path);
-//    poly_to_path(right_line,calc_path);
-    poly_to_path(middle_path,calc_path);
+//    poly_to_path(left_line,calc_path,true);
+    poly_to_path(center_line,calc_path,false);
+    poly_to_path(right_line,calc_path,true);
+//    poly_to_path(middle_path,calc_path,false);
 
     RoadMarkings_to_cloud(msg,points_preview);
 
