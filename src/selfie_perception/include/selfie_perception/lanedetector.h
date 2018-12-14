@@ -10,6 +10,7 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <selfie_msgs/RoadMarkings.h>
 #include <geometry_msgs/Point.h>
+#include <selfie_perception/polyfit.h>
 
 #define PI 3.1415926
 
@@ -31,7 +32,6 @@ class LaneDetector
 	cv::Mat current_frame_;
 	cv::Mat gray_frame_;
 	cv::Mat binary_frame_;
-	cv::Mat mask_;
 	cv::Mat dynamic_mask_;
 	cv::Mat masked_frame_;
 	cv::Mat crossing_ROI_;
@@ -42,6 +42,14 @@ class LaneDetector
 
 	std::vector<std::vector<cv::Point> > lanes_vector_;
 	std::vector<std::vector<cv::Point> > lanes_vector_last_frame;
+
+	//poly left_line_poly_;
+	//poly center_line_poly_;
+	//poly right_line_pol_y;
+
+	int left_line_index_;
+	int center_line_index_;
+	int right_line_index_;
 
 	void imageCallback(const sensor_msgs::ImageConstPtr &msg);
 	void openCVVisualization();
@@ -57,10 +65,14 @@ class LaneDetector
 	void printInfoParams();
 	void dynamicMask(cv::Mat input_frame, cv::Mat &output_frame, bool left_lane_detected, bool center_lane_detected, bool right_lane_detected, std::vector<std::vector<cv::Point> > lanes_vector_last_frame);
 	void crossingLane(cv::Mat input_frame, cv::Mat &output_frame, std::vector<std::vector<cv::Point> > lanes_vector);
+	void filterSmallLines();
+	
+	float min_length_search_line_;
+	float min_length_lane_;
+	float max_delta_x_lane_;
 
 	float binary_treshold_;
-	bool mask_initialized_;
 	bool visualize_;
+	float max_mid_line_distance_;
 	float max_mid_line_gap_;
-	float max_mid_line_X_gap_;
 };
