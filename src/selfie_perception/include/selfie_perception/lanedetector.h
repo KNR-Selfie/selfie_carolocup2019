@@ -42,6 +42,7 @@ class LaneDetector
 	cv::Mat canny_frame_;
 	cv::Mat visualization_frame_;
 	cv::Mat homography_frame_;
+	cv::Mat testCrossing;
 
 	std::vector<std::vector<cv::Point> > lanes_vector_;
 	std::vector<std::vector<cv::Point> > lanes_vector_last_frame;
@@ -84,6 +85,7 @@ class LaneDetector
 	sensor_msgs::PointCloud points_cloud_;
 	ros::Publisher points_cloud_pub_;
 	ros::Publisher aprox_visualization_pub_;
+	void filterPoints();
 	
 	float min_length_search_line_;
 	float min_length_lane_;
