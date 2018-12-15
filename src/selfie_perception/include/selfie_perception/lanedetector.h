@@ -9,6 +9,8 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <selfie_msgs/RoadMarkings.h>
+#include <geometry_msgs/Point.h>
+#include <sensor_msgs/PointCloud.h>
 #include <selfie_perception/polyfit.h>
 
 #define PI 3.1415926
@@ -74,6 +76,10 @@ class LaneDetector
 	void calcValuesForMasks();
 	void initRecognizeLines();
 	void linesApproximation(std::vector<std::vector<cv::Point> > lanes_vector);
+
+	void pointsRVIZVisualization();
+	sensor_msgs::PointCloud points_cloud_;
+	ros::Publisher points_cloud_pub_;
 	
 	float min_length_search_line_;
 	float min_length_lane_;

@@ -144,8 +144,8 @@ void poly::get_row_pts(const std::vector<cv::Point> point_vec)
 
     for(int i = 0;i<point_vec.size();i++)
     {
-        x_raw_pts.push_back(MAT_HEIGHT - point_vec[i].y);
-        y_raw_pts.push_back(MAT_WIDTH - point_vec[i].x);
+        x_raw_pts.push_back(point_vec[i].y);
+        y_raw_pts.push_back(point_vec[i].x);
     }
 }
 

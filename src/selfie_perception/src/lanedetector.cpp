@@ -26,7 +26,7 @@ LaneDetector::LaneDetector(const ros::NodeHandle &nh, const ros::NodeHandle &pnh
 	min_length_search_line_(30),
 	min_length_lane_(67),
 	max_delta_y_lane_(75),
-	nominal_center_line_Y_(220),
+	nominal_center_line_Y_(180),
 
 	left_line_index_(-1),
 	right_line_index_(-1),
@@ -45,6 +45,7 @@ LaneDetector::LaneDetector(const ros::NodeHandle &nh, const ros::NodeHandle &pnh
 	homography_frame_()
 {
 	lanes_pub_ =  nh_.advertise<selfie_msgs::RoadMarkings>("road_markings", 10);
+	points_cloud_pub_ = nh_.advertise<sensor_msgs::PointCloud>("new_coordinates", 10);
 }
 
 LaneDetector::~LaneDetector()
@@ -101,12 +102,12 @@ void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr &msg)
 
 	detectLines(canny_frame_, lanes_vector_);
 	filterSmallLines();
-	linesApproximation(lanes_vector_);
 
 	if(!lanes_vector_.empty())
 	{
 		mergeMiddleLane();
 		convertCoordinates();
+		pointsRVIZVisualization();
 		if(init_imageCallback_)
 		{
 			initRecognizeLines();
@@ -114,6 +115,9 @@ void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr &msg)
 		}
 		else
 			recognizeLines();
+		ROS_INFO("left: %d   center %d   right %d", left_line_index_, center_line_index_, right_line_index_);
+		linesApproximation(lanes_vector_);
+		calcValuesForMasks();
 	}
 
 	//publishMarkings();
@@ -471,6 +475,7 @@ void LaneDetector::filterSmallLines()
 
 void LaneDetector::convertCoordinates()
 {
+	int temp_x, temp_y;
 	for(int i = 0; i < lanes_vector_.size(); i++)
 		quickSortPointsY(lanes_vector_[i], 0, lanes_vector_.size() - 1);
 
@@ -479,8 +484,10 @@ void LaneDetector::convertCoordinates()
 	for(int i = 0; i < lanes_vector_.size(); i++)
 		for(int j = 0; j < lanes_vector_[i].size(); j++)
 		{
-			lanes_vector_[i][j].x = current_frame_.rows - lanes_vector_[i][j].y;
-			lanes_vector_[i][j].y = lanes_vector_[i][j].x - current_frame_.cols / 2;
+			temp_x = lanes_vector_[i][j].x;
+			temp_y = lanes_vector_[i][j].y;
+			lanes_vector_[i][j].x = current_frame_.rows - temp_y;
+			lanes_vector_[i][j].y = current_frame_.cols / 2 - temp_x;
 		}
 }
 
@@ -513,7 +520,7 @@ void LaneDetector::calcValuesForMasks()
 	for(float i = 0; i < current_frame_.rows; i += increment)
 	{
 		p.y = current_frame_.rows - i;
-		p.x = getAproxY(left_coeff_, i) + current_frame_.cols / 2;
+		p.x = current_frame_.cols / 2 - getAproxY(left_coeff_, i);
 		if(p.x < 0 || p.x > current_frame_.cols)
 			break;
 		aprox_lines_frame_coordinate_[0].push_back(p);
@@ -521,7 +528,7 @@ void LaneDetector::calcValuesForMasks()
 	for(float i = 0; i < current_frame_.rows; i += increment)
 	{
 		p.y = current_frame_.rows - i;
-		p.x = getAproxY(middle_coeff_, i) + current_frame_.cols / 2;
+		p.x = current_frame_.cols / 2 - getAproxY(middle_coeff_, i);
 		if(p.x < 0 || p.x > current_frame_.cols)
 			break;
 		aprox_lines_frame_coordinate_[1].push_back(p);
@@ -529,7 +536,7 @@ void LaneDetector::calcValuesForMasks()
 	for(float i = 0; i < current_frame_.rows; i += increment)
 	{
 		p.y = current_frame_.rows - i;
-		p.x = getAproxY(right_coeff_, i) + current_frame_.cols / 2;
+		p.x = current_frame_.cols / 2 - getAproxY(right_coeff_, i);
 		if(p.x < 0 || p.x > current_frame_.cols)
 			break;
 		aprox_lines_frame_coordinate_[2].push_back(p);
@@ -589,15 +596,15 @@ void LaneDetector::linesApproximation(std::vector<std::vector<cv::Point> > lanes
 	double left_length = 0, right_length = 0, middle_length = 0;
 
 	if(left_line_index_ != -1)
-		left_length = cv::arcLength(lanes_vector[0], false);
+		left_length = cv::arcLength(lanes_vector[left_line_index_], false);
 	else
 		left_length = 0;
 	if(center_line_index_ != -1)
-		middle_length = cv::arcLength(lanes_vector[1], false);
+		middle_length = cv::arcLength(lanes_vector[center_line_index_], false);
 	else
 		middle_length = 0;
 	if(right_line_index_ != -1)
-		right_length = cv::arcLength(lanes_vector[2], false);
+		right_length = cv::arcLength(lanes_vector[right_line_index_], false);
 	else
 		right_length = 0;
 
@@ -717,4 +724,23 @@ void LaneDetector::linesApproximation(std::vector<std::vector<cv::Point> > lanes
 	last_left_coeff_ = left_coeff_;
 	last_middle_coeff_ = middle_coeff_;
 	last_right_coeff_ = right_coeff_;
+}
+
+void LaneDetector::pointsRVIZVisualization()
+{
+    geometry_msgs::Point32 point;
+	point.z = 0;
+	points_cloud_.points.clear();
+	points_cloud_.header.frame_id = "laser";
+
+	for(int i = 0; i < lanes_vector_.size(); i++)
+	{
+		for(int j = 0; j < lanes_vector_[i].size(); j++)
+		{
+			point.x = lanes_vector_[i][j].x;
+			point.y = lanes_vector_[i][j].y;
+			points_cloud_.points.push_back(point);
+		}
+	}
+	points_cloud_pub_.publish(points_cloud_);
 }
