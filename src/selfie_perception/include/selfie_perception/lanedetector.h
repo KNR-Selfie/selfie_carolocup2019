@@ -9,7 +9,6 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <selfie_msgs/RoadMarkings.h>
-#include <geometry_msgs/Point.h>
 #include <selfie_perception/polyfit.h>
 
 #define PI 3.1415926
@@ -42,10 +41,14 @@ class LaneDetector
 
 	std::vector<std::vector<cv::Point> > lanes_vector_;
 	std::vector<std::vector<cv::Point> > lanes_vector_last_frame;
+	std::vector<std::vector<cv::Point> > aprox_lines_frame_coordinate_;
 
-	//poly left_line_poly_;
-	//poly center_line_poly_;
-	//poly right_line_pol_y;
+	std::vector<float> last_left_coeff_;
+	std::vector<float> last_middle_coeff_;
+	std::vector<float> last_right_coeff_;
+	std::vector<float> left_coeff_;
+	std::vector<float> middle_coeff_;
+	std::vector<float> right_coeff_;
 
 	int left_line_index_;
 	int center_line_index_;
@@ -63,16 +66,22 @@ class LaneDetector
 	void drawPoints(cv::Mat &frame);
 	void homography(cv::Mat input_frame, cv::Mat &homography_frame);
 	void printInfoParams();
-	void dynamicMask(cv::Mat input_frame, cv::Mat &output_frame, bool left_lane_detected, bool center_lane_detected, bool right_lane_detected, std::vector<std::vector<cv::Point> > lanes_vector_last_frame);
-	void crossingLane(cv::Mat input_frame, cv::Mat &output_frame, std::vector<std::vector<cv::Point> > lanes_vector);
+	void dynamicMask(cv::Mat &input_frame, cv::Mat &output_frame, std::vector<std::vector<cv::Point> > lanes_vector_last_frame);
+	void crossingLane(cv::Mat &input_frame, cv::Mat &output_frame, std::vector<std::vector<cv::Point> > lanes_vector);
 	void filterSmallLines();
+	void convertCoordinates();
+	float getAproxY(std::vector<float> coeff, float x);
+	void calcValuesForMasks();
+	void initRecognizeLines();
 	
 	float min_length_search_line_;
 	float min_length_lane_;
-	float max_delta_x_lane_;
+	float max_delta_y_lane_;
 
 	float binary_treshold_;
 	bool visualize_;
 	float max_mid_line_distance_;
 	float max_mid_line_gap_;
+	bool init_imageCallback_;
+	float nominal_center_line_Y_;
 };
