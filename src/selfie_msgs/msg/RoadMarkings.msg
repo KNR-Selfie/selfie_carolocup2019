@@ -1,5 +1,5 @@
 Header header
 
-geometry_msgs/Point[] left_line
-geometry_msgs/Point[] center_line
-geometry_msgs/Point[] right_line
+std_msgs/Float32[] left_line
+std_msgs/Float32[] center_line
+std_msgs/Float32[] right_line
