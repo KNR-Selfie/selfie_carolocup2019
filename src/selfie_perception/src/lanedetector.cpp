@@ -25,8 +25,8 @@ LaneDetector::LaneDetector(const ros::NodeHandle &nh, const ros::NodeHandle &pnh
 
 	min_length_search_line_(30),
 	min_length_lane_(67),
-	max_delta_y_lane_(75),
-	nominal_center_line_Y_(180),
+	max_delta_y_lane_(150),
+	nominal_center_line_Y_(100),
 
 	left_line_index_(-1),
 	right_line_index_(-1),
@@ -46,6 +46,7 @@ LaneDetector::LaneDetector(const ros::NodeHandle &nh, const ros::NodeHandle &pnh
 {
 	lanes_pub_ =  nh_.advertise<selfie_msgs::RoadMarkings>("road_markings", 10);
 	points_cloud_pub_ = nh_.advertise<sensor_msgs::PointCloud>("new_coordinates", 10);
+	aprox_visualization_pub_ = nh_.advertise<visualization_msgs::Marker>("aprox", 10);
 }
 
 LaneDetector::~LaneDetector()
@@ -117,6 +118,8 @@ void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr &msg)
 			recognizeLines();
 		ROS_INFO("left: %d   center %d   right %d", left_line_index_, center_line_index_, right_line_index_);
 		linesApproximation(lanes_vector_);
+		aproxVisualization();
+		//ROS_INFO("coeefleft: %.3f   coeefcenter %.3f   coeefright %.3f", last_left_coeff_[0], last_middle_coeff_[0], last_right_coeff_[0]);
 		calcValuesForMasks();
 	}
 
@@ -227,11 +230,12 @@ void LaneDetector::openCVVisualization()
 	//cv::namedWindow("Canny", cv::WINDOW_NORMAL);
 	//cv::imshow("Canny", canny_frame_);
 
-	cv::namedWindow("Homography", cv::WINDOW_NORMAL);
-	cv::imshow("Homography", homography_frame_);
-
 	cv::namedWindow("Output", cv::WINDOW_NORMAL);
 	cv::imshow("Output", visualization_frame_);
+
+	cv::namedWindow("Homography", cv::WINDOW_NORMAL);
+	cv::imshow("Homography", homography_frame_);
+	
 	cv::waitKey(1);
 }
 
@@ -591,7 +595,7 @@ void LaneDetector::linesApproximation(std::vector<std::vector<cv::Point> > lanes
 	right_coeff_.clear();
 
 	// vectors length count
-	const double min_length = 80;
+	const double min_length = 10;
 	bool shrt_left = false, shrt_right = false, shrt_middle = false;
 	double left_length = 0, right_length = 0, middle_length = 0;
 
@@ -611,9 +615,9 @@ void LaneDetector::linesApproximation(std::vector<std::vector<cv::Point> > lanes
 	if(left_length < min_length)
 		shrt_left = true;
 	if(middle_length < min_length)
-		shrt_right = true;
-	if(right_length < min_length)
 		shrt_middle = true;
+	if(right_length < min_length)
+		shrt_right = true;
 
 	// all lines
 	if(!shrt_left && !shrt_middle && !shrt_right)
@@ -742,5 +746,39 @@ void LaneDetector::pointsRVIZVisualization()
 			points_cloud_.points.push_back(point);
 		}
 	}
+
 	points_cloud_pub_.publish(points_cloud_);
+}
+
+void LaneDetector::aproxVisualization()
+{
+	visualization_msgs::Marker marker;
+
+	marker.header.frame_id = "laser";
+    marker.header.stamp = ros::Time::now();
+    marker.ns = "line";
+    marker.type = visualization_msgs::Marker::LINE_STRIP;
+    marker.action = visualization_msgs::Marker::ADD;
+    marker.id = 0;
+    marker.lifetime = ros::Duration();
+
+    marker.color.r = 0.0f;
+    marker.color.g = 1.0f;
+    marker.color.b = 0.0f;
+    marker.color.a = 1.0f;
+
+    marker.scale.x = 2;
+    marker.scale.y = 2;
+
+    geometry_msgs::Point marker_point;
+	marker_point.z = 0;
+
+	float increment = 5;
+	for(float i = 0; i < current_frame_.rows; i += increment)
+	{
+		marker_point.x = i;
+		marker_point.y = getAproxY(left_coeff_, i);
+		marker.points.push_back(marker_point);
+	}
+	aprox_visualization_pub_.publish(marker);
 }

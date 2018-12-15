@@ -13,6 +13,8 @@
 #include <sensor_msgs/PointCloud.h>
 #include <selfie_perception/polyfit.h>
 
+#include <visualization_msgs/Marker.h>
+
 #define PI 3.1415926
 
 class LaneDetector
@@ -78,8 +80,10 @@ class LaneDetector
 	void linesApproximation(std::vector<std::vector<cv::Point> > lanes_vector);
 
 	void pointsRVIZVisualization();
+	void aproxVisualization();
 	sensor_msgs::PointCloud points_cloud_;
 	ros::Publisher points_cloud_pub_;
+	ros::Publisher aprox_visualization_pub_;
 	
 	float min_length_search_line_;
 	float min_length_lane_;
