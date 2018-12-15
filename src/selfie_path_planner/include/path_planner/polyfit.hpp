@@ -28,11 +28,10 @@ public:
 
   poly();
   void polyfit(int nDegree );
-  void polyval();
   float polyval(float x);
-  void adjust(poly good_poly,int avg_points);
+  void adjust(poly good_poly);
 
-  void get_row_pts(const std::vector<geometry_msgs::Point> point_vec);
+  void get_coeff(const std::vector<float> coeff_vec);
   void fit_middle(poly left,poly right,int degree);
   std_msgs::Float64 get_pos_offset(float x, float y);
 };
