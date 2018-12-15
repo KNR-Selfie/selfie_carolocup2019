@@ -137,7 +137,7 @@ float poly::polyval(float x)
     return nY;
 }
 
-void poly::get_row_pts(const std::vector<geometry_msgs::Point> point_vec)
+void poly::get_row_pts(const std::vector<cv::Point> point_vec)
 {
     x_raw_pts.clear();
     y_raw_pts.clear();
@@ -185,23 +185,72 @@ std_msgs::Float64 poly::get_pos_offset(float x, float y)
     return message;
 }
 
-}
-void poly::adjust(poly good_poly, int avg_points)
+// void poly::adjust(poly good_poly, int avg_points)
+// {
+//     this->coeff = good_poly.coeff;
+//     float avg = 0;
+//     float sum = 0;
+
+//     if(y_raw_pts.size()<avg_points)
+//         return;
+
+//     //calculate average lane width
+//     for(int i = 0;i<avg_points;i++)
+//     {
+//         sum += this->y_raw_pts[i] - good_poly.polyval(this->x_raw_pts[i]);
+//     }
+
+//     avg = sum/avg_points;
+
+//     this->coeff[0] += avg;
+// }
+
+void poly::adjust(poly good_poly)
 {
     this->coeff = good_poly.coeff;
     float avg = 0;
     float sum = 0;
 
-    if(y_raw_pts.size()<avg_points)
-        return;
-
-    //calculate average lane width
-    for(int i = 0;i<avg_points;i++)
+    for(int i = 0;i<this->y_raw_pts.size();i++)
     {
-        sum += this->y_raw_pts[i] - good_poly.polyval(this->x_raw_pts[i]);
+        sum+=y_raw_pts[i];
     }
 
-    avg = sum/avg_points;
+    avg = sum/y_raw_pts.size();
 
-    this->coeff[0] += avg;
+    float est_sum = 0;
+    float est = 0;
+
+    for(int i = 0;i<this->y_raw_pts.size();i++)
+    {
+        est_sum+=(y_raw_pts[i] - avg)*(y_raw_pts[i] - avg);
+    }
+
+    est = est_sum/y_raw_pts.size();
+
+    float est_inc = y_raw_pts[0] - est;
+    float est_max = y_raw_pts[0] + est;
+
+    float sum_error = 0;
+    float min_error = (this->polyval(x_raw_pts[0]) - y_raw_pts[0])*(this->polyval(x_raw_pts[0]) - y_raw_pts[0]);
+    float offset;
+
+    for(est_inc;est_inc<est_max;est_inc+=1)
+    {
+        this->coeff[0] = est_inc;
+        sum_error = 0;
+        for(int i = 0;i<this->x_raw_pts.size();i++)
+        {
+            sum_error += (this->polyval(x_raw_pts[i]) - y_raw_pts[i])*(this->polyval(x_raw_pts[i]) - y_raw_pts[i]);
+        }
+
+        if(sum_error<min_error)
+        {
+            min_error = sum_error;
+            offset = est_inc;
+        }
+
+    }
+
+    this->coeff[0] = offset;
 }

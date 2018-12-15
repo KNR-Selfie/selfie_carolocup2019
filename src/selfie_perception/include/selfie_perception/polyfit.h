@@ -7,11 +7,15 @@
 #ifndef _USE_MATH_DEFINES
 #	define _USE_MATH_DEFINES
 #endif
+#define MAT_HEIGHT 480
+#define MAT_WIDTH 640
 
 #include <boost/numeric/ublas/matrix.hpp>
 #include <boost/numeric/ublas/lu.hpp>
 #include <vector>
 #include <stdexcept>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/imgproc/imgproc.hpp>
 #include "ros/ros.h"
 
 #include "geometry_msgs/Point32.h"
@@ -30,9 +34,9 @@ public:
   void polyfit(int nDegree );
   void polyval();
   float polyval(float x);
-  void adjust(poly good_poly,int avg_points);
+  void adjust(poly good_poly);
 
-  void get_row_pts(const std::vector<geometry_msgs::Point> point_vec);
+  void get_row_pts(const std::vector<cv::Point> point_vec);
   void fit_middle(poly left,poly right,int degree);
   std_msgs::Float64 get_pos_offset(float x, float y);
 };

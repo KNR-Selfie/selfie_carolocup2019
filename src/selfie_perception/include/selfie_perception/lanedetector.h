@@ -73,6 +73,7 @@ class LaneDetector
 	float getAproxY(std::vector<float> coeff, float x);
 	void calcValuesForMasks();
 	void initRecognizeLines();
+	void linesApproximation(std::vector<std::vector<cv::Point> > lanes_vector);
 	
 	float min_length_search_line_;
 	float min_length_lane_;

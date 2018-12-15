@@ -9,6 +9,10 @@ static int Acc_filt_slider = 40;
 static int Alpha_ = 12;
 static int F_ = 500, Dist_ = 500;
 
+poly left_line_poly_;
+poly center_line_poly_;
+poly right_line_poly_;
+
 LaneDetector::LaneDetector(const ros::NodeHandle &nh, const ros::NodeHandle &pnh) : 
 	nh_(nh),
 	pnh_(pnh),
@@ -97,6 +101,7 @@ void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr &msg)
 
 	detectLines(canny_frame_, lanes_vector_);
 	filterSmallLines();
+	linesApproximation(lanes_vector_);
 
 	if(!lanes_vector_.empty())
 	{
@@ -570,4 +575,146 @@ void LaneDetector::initRecognizeLines()
 			}
 	}
 	left_line_index_ = min_index;
+}
+
+void LaneDetector::linesApproximation(std::vector<std::vector<cv::Point> > lanes_vector)
+{
+	left_coeff_.clear();
+	middle_coeff_.clear();
+	right_coeff_.clear();
+
+	// vectors length count
+	const double min_length = 80;
+	bool shrt_left = false, shrt_right = false, shrt_middle = false;
+	double left_length = 0, right_length = 0, middle_length = 0;
+
+	if(left_line_index_ != -1)
+		left_length = cv::arcLength(lanes_vector[0], false);
+	else
+		left_length = 0;
+	if(center_line_index_ != -1)
+		middle_length = cv::arcLength(lanes_vector[1], false);
+	else
+		middle_length = 0;
+	if(right_line_index_ != -1)
+		right_length = cv::arcLength(lanes_vector[2], false);
+	else
+		right_length = 0;
+
+	if(left_length < min_length)
+		shrt_left = true;
+	if(middle_length < min_length)
+		shrt_right = true;
+	if(right_length < min_length)
+		shrt_middle = true;
+
+	// all lines
+	if(!shrt_left && !shrt_middle && !shrt_right)
+	{
+		left_line_poly_.get_row_pts(lanes_vector[left_line_index_]);
+		center_line_poly_.get_row_pts(lanes_vector[center_line_index_]);
+		right_line_poly_.get_row_pts(lanes_vector[right_line_index_]);
+
+		left_line_poly_.polyfit(2);
+		center_line_poly_.polyfit(2);
+		right_line_poly_.polyfit(2);
+
+		left_coeff_ = left_line_poly_.coeff;
+		middle_coeff_ = center_line_poly_.coeff;
+		right_coeff_= right_line_poly_.coeff;		
+	}
+	// middle and right lines, left line too short
+	else if(shrt_left && !shrt_middle && !shrt_right)
+	{
+		center_line_poly_.get_row_pts(lanes_vector[center_line_index_]);
+		right_line_poly_.get_row_pts(lanes_vector[right_line_index_]);
+
+		center_line_poly_.polyfit(2);
+		right_line_poly_.polyfit(2);
+
+		middle_coeff_ = center_line_poly_.coeff;
+		right_coeff_= right_line_poly_.coeff;	
+
+		// left line exist
+		if(left_line_index_ != -1)
+		{
+			int lf_length = lanes_vector[left_line_index_].size();
+			left_line_poly_.get_row_pts(lanes_vector[left_line_index_]);
+
+			left_line_poly_.adjust(center_line_poly_);
+			left_coeff_ = left_line_poly_.coeff;
+		}
+		// left line from last frame
+		else
+		{
+			left_coeff_ = last_left_coeff_;
+		}
+
+	}
+	// right line, left and center too short
+	else if(shrt_left && shrt_middle && !shrt_right)
+	{
+		right_line_poly_.get_row_pts(lanes_vector[right_line_index_]);
+		right_line_poly_.polyfit(2);
+		right_coeff_ = right_line_poly_.coeff;	
+
+		// left and center lines from last frame
+		if(left_line_index_ == -1 && center_line_index_ == -1)
+		{
+			left_coeff_ = last_left_coeff_;
+			middle_coeff_ = last_middle_coeff_;
+		}
+		// left line from last frame and center line exist
+		else if(left_line_index_ == -1 && center_line_index_ != -1)
+		{
+			left_coeff_ = last_left_coeff_;
+
+			int cn_length = lanes_vector[center_line_index_].size();
+			center_line_poly_.get_row_pts(lanes_vector[center_line_index_]);
+
+			center_line_poly_.adjust(right_line_poly_);
+			middle_coeff_ = center_line_poly_.coeff;
+		}
+		// left line exist and center line from last frame
+		else if(left_line_index_ != -1 && center_line_index_ == -1)
+		{
+			middle_coeff_ = last_middle_coeff_;
+
+			int lf_length = lanes_vector[left_line_index_].size();
+			left_line_poly_.get_row_pts(lanes_vector[left_line_index_]);
+
+			left_line_poly_.adjust(center_line_poly_);
+			left_coeff_ = left_line_poly_.coeff;
+		}
+		// left and center lines exist
+		else
+		{
+			int cn_length = lanes_vector[center_line_index_].size();
+			int lf_length = lanes_vector[left_line_index_].size();
+
+			center_line_poly_.get_row_pts(lanes_vector[center_line_index_]);
+			left_line_poly_.get_row_pts(lanes_vector[left_line_index_]);
+
+			center_line_poly_.adjust(right_line_poly_);
+			middle_coeff_ = center_line_poly_.coeff;
+			left_line_poly_.adjust(center_line_poly_);
+			left_coeff_ = left_line_poly_.coeff;
+		}
+	}
+	// no lines, all from last frame
+	else if(shrt_left && shrt_middle && shrt_right)
+	{
+		left_coeff_ = last_left_coeff_;
+		middle_coeff_ = last_middle_coeff_;
+		right_coeff_ = last_right_coeff_;
+	}
+
+
+	last_left_coeff_.clear();
+	last_middle_coeff_.clear();
+	last_right_coeff_.clear();
+
+	last_left_coeff_ = left_coeff_;
+	last_middle_coeff_ = middle_coeff_;
+	last_right_coeff_ = right_coeff_;
 }
