@@ -590,14 +590,19 @@ void LaneDetector::initRecognizeLines()
 
 void LaneDetector::linesApproximation(std::vector<std::vector<cv::Point> > lanes_vector)
 {
+	std::cout << "appr start" << std::endl;
 	left_coeff_.clear();
 	middle_coeff_.clear();
 	right_coeff_.clear();
 
 	// vectors length count
-	const double min_length = 10;
+	const double min_length = 30;
 	bool shrt_left = false, shrt_right = false, shrt_middle = false;
 	double left_length = 0, right_length = 0, middle_length = 0;
+
+	std::cout << "left_index" << left_line_index_ << std::endl;
+	std::cout << "middle_index " << center_line_index_ << std::endl;
+	std::cout << "right_index " << right_line_index_ << std::endl;
 
 	if(left_line_index_ != -1)
 		left_length = cv::arcLength(lanes_vector[left_line_index_], false);
@@ -612,19 +617,38 @@ void LaneDetector::linesApproximation(std::vector<std::vector<cv::Point> > lanes
 	else
 		right_length = 0;
 
+	std::cout << "left_length " << left_length << std::endl;
+	std::cout << "middle_length " << middle_length << std::endl;
+	std::cout << "right_length " << right_length << std::endl;
+
+
 	if(left_length < min_length)
 		shrt_left = true;
-	if(middle_length < min_length)
-		shrt_middle = true;
 	if(right_length < min_length)
 		shrt_right = true;
+	if(middle_length < min_length)
+		shrt_middle = true;
 
 	// all lines
 	if(!shrt_left && !shrt_middle && !shrt_right)
 	{
+		std::cout << "all" << std::endl;
 		left_line_poly_.get_row_pts(lanes_vector[left_line_index_]);
 		center_line_poly_.get_row_pts(lanes_vector[center_line_index_]);
 		right_line_poly_.get_row_pts(lanes_vector[right_line_index_]);
+
+		for(int i = 0; i < left_line_poly_.x_raw_pts.size(); i++)
+		{
+			std::cout << "left " << left_line_poly_.x_raw_pts[i] << " :: " << left_line_poly_.y_raw_pts[i] << std::endl; 
+		}
+		for(int i = 0; i < center_line_poly_.x_raw_pts.size(); i++)
+		{
+			std::cout << "center " << center_line_poly_.x_raw_pts[i] << " :: " << center_line_poly_.y_raw_pts[i] << std::endl; 
+		}
+		for(int i = 0; i < right_line_poly_.x_raw_pts.size(); i++)
+		{
+			std::cout << "right " << right_line_poly_.x_raw_pts[i] << " :: " << right_line_poly_.y_raw_pts[i] << std::endl; 
+		}
 
 		left_line_poly_.polyfit(2);
 		center_line_poly_.polyfit(2);
@@ -637,6 +661,7 @@ void LaneDetector::linesApproximation(std::vector<std::vector<cv::Point> > lanes
 	// middle and right lines, left line too short
 	else if(shrt_left && !shrt_middle && !shrt_right)
 	{
+		std::cout << "m + r" << std::endl;
 		center_line_poly_.get_row_pts(lanes_vector[center_line_index_]);
 		right_line_poly_.get_row_pts(lanes_vector[right_line_index_]);
 
@@ -658,13 +683,16 @@ void LaneDetector::linesApproximation(std::vector<std::vector<cv::Point> > lanes
 		// left line from last frame
 		else
 		{
-			left_coeff_ = last_left_coeff_;
+			float dst = lanes_vector[center_line_index_][0].y + std::abs(lanes_vector[right_line_index_][0].y);
+			left_coeff_ = middle_coeff_;
+			left_coeff_[0] = left_coeff_[0] + dst;
 		}
 
 	}
 	// right line, left and center too short
 	else if(shrt_left && shrt_middle && !shrt_right)
 	{
+		std::cout << "right" << std::endl;
 		right_line_poly_.get_row_pts(lanes_vector[right_line_index_]);
 		right_line_poly_.polyfit(2);
 		right_coeff_ = right_line_poly_.coeff;	
@@ -672,23 +700,28 @@ void LaneDetector::linesApproximation(std::vector<std::vector<cv::Point> > lanes
 		// left and center lines from last frame
 		if(left_line_index_ == -1 && center_line_index_ == -1)
 		{
+			std::cout << "r1" << std::endl;
 			left_coeff_ = last_left_coeff_;
 			middle_coeff_ = last_middle_coeff_;
 		}
 		// left line from last frame and center line exist
 		else if(left_line_index_ == -1 && center_line_index_ != -1)
 		{
-			left_coeff_ = last_left_coeff_;
-
+			std::cout << "r2" << std::endl;
 			int cn_length = lanes_vector[center_line_index_].size();
 			center_line_poly_.get_row_pts(lanes_vector[center_line_index_]);
 
 			center_line_poly_.adjust(right_line_poly_);
 			middle_coeff_ = center_line_poly_.coeff;
+
+			float dst = lanes_vector[center_line_index_][0].y + std::abs(lanes_vector[right_line_index_][0].y);
+			left_coeff_ = middle_coeff_;
+			left_coeff_[0] = left_coeff_[0] + dst;
 		}
 		// left line exist and center line from last frame
 		else if(left_line_index_ != -1 && center_line_index_ == -1)
 		{
+			std::cout << "r3" << std::endl;
 			middle_coeff_ = last_middle_coeff_;
 
 			int lf_length = lanes_vector[left_line_index_].size();
@@ -700,6 +733,7 @@ void LaneDetector::linesApproximation(std::vector<std::vector<cv::Point> > lanes
 		// left and center lines exist
 		else
 		{
+			std::cout << "r4" << std::endl;
 			int cn_length = lanes_vector[center_line_index_].size();
 			int lf_length = lanes_vector[left_line_index_].size();
 
@@ -708,16 +742,20 @@ void LaneDetector::linesApproximation(std::vector<std::vector<cv::Point> > lanes
 
 			center_line_poly_.adjust(right_line_poly_);
 			middle_coeff_ = center_line_poly_.coeff;
-			left_line_poly_.adjust(center_line_poly_);
+			left_line_poly_.adjust(right_line_poly_);
 			left_coeff_ = left_line_poly_.coeff;
 		}
 	}
 	// no lines, all from last frame
 	else if(shrt_left && shrt_middle && shrt_right)
 	{
+		std::cout << "nothing" << std::endl;
 		left_coeff_ = last_left_coeff_;
 		middle_coeff_ = last_middle_coeff_;
 		right_coeff_ = last_right_coeff_;
+	}
+	else{
+		std::cout << "else" << std::endl;
 	}
 
 
@@ -725,6 +763,7 @@ void LaneDetector::linesApproximation(std::vector<std::vector<cv::Point> > lanes
 	last_middle_coeff_.clear();
 	last_right_coeff_.clear();
 
+	std::cout << "przypisz" << std::endl;
 	last_left_coeff_ = left_coeff_;
 	last_middle_coeff_ = middle_coeff_;
 	last_right_coeff_ = right_coeff_;
