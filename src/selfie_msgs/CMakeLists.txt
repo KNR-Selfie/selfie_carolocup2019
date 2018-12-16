@@ -9,7 +9,6 @@ project(selfie_msgs)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
-  std_msgs
   message_generation
 )
 
@@ -71,7 +70,6 @@ add_message_files(
 generate_messages(
   DEPENDENCIES
   geometry_msgs
-  std_msgs
 )
 
 ################################################
@@ -104,7 +102,7 @@ generate_messages(
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-  CATKIN_DEPENDS std_msgs geometry_msgs message_runtime
+  CATKIN_DEPENDS geometry_msgs message_runtime
 )
 
 ###########
