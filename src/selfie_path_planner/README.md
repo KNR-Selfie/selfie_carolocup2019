@@ -1,9 +1,9 @@
-# Path Planner
+# Selfie Path Planner
 
 ## Usage
 ```
 . devel/setup.bash
-rosrun path_planner path_planner_node
+rosrun selfie_path_planner estimate_position
 ```
 ## Topics
 ### Subscribed topics
