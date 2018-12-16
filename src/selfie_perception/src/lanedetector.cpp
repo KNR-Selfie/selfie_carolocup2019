@@ -45,8 +45,12 @@ LaneDetector::LaneDetector(const ros::NodeHandle &nh, const ros::NodeHandle &pnh
 	homography_frame_()
 {
 	lanes_pub_ =  nh_.advertise<selfie_msgs::RoadMarkings>("road_markings", 10);
-	points_cloud_pub_ = nh_.advertise<sensor_msgs::PointCloud>("new_coordinates", 10);
-	aprox_visualization_pub_ = nh_.advertise<visualization_msgs::Marker>("aprox", 10);
+	if(visualize_)
+	{
+		points_cloud_pub_ = nh_.advertise<sensor_msgs::PointCloud>("new_coordinates", 10);
+		aprox_visualization_pub_ = nh_.advertise<visualization_msgs::Marker>("aprox", 10);
+	}
+	
 }
 
 LaneDetector::~LaneDetector()
@@ -127,18 +131,15 @@ void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr &msg)
 		if(init_imageCallback_)
 		{
 			initRecognizeLines();
-			//init_imageCallback_ = false;
+			if(!visualize_)
+				init_imageCallback_ = false;
 		}
 		else
 		{
 			recognizeLines();
 			filterPoints();
 		}
-		pointsRVIZVisualization();
-		ROS_INFO("left: %d   center %d   right %d", left_line_index_, center_line_index_, right_line_index_);
 		linesApproximation(lanes_vector_);
-		aproxVisualization();
-		//ROS_INFO("coeefleft: %.3f   coeefcenter %.3f   coeefright %.3f", last_left_coeff_[0], last_middle_coeff_[0], last_right_coeff_[0]);
 		calcValuesForMasks();
 	}
 
@@ -152,6 +153,8 @@ void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr &msg)
 		drawPoints(visualization_frame_);
 		
 		openCVVisualization();
+		aproxVisualization();
+		pointsRVIZVisualization();
 	}
 }
 
@@ -440,19 +443,24 @@ void LaneDetector::dynamicMask(cv::Mat &input_frame, cv::Mat &output_frame, std:
 {
 	dynamic_mask_ = cv::Mat::zeros(cv::Size(input_frame.cols, input_frame.rows), CV_8UC1);
 	int length;
-	int offset = 20;
+	int offset_right = 20;
+	int offset_left = 20;
 	output_frame = input_frame.clone();
+	if(right_line_index_ == -1)
+		offset_right = 70;
+	if(left_line_index_ == -1)
+		offset_left = 70;
 
 	int l, k;
 	length = lanes_vector_last_frame[0].size() + lanes_vector_last_frame[2].size();
 	cv::Point points[length];
 	for (l = 0; l < lanes_vector_last_frame[0].size(); l++)
 	{
-		points[l] = cv::Point(lanes_vector_last_frame[0][l].x - offset, lanes_vector_last_frame[0][l].y);
+		points[l] = cv::Point(lanes_vector_last_frame[0][l].x - offset_left, lanes_vector_last_frame[0][l].y);
 	}
 	for (k = lanes_vector_last_frame[2].size() - 1; k >= 0; k--)
 	{
-		points[l] = cv::Point(lanes_vector_last_frame[2][k].x + offset, lanes_vector_last_frame[2][k].y);
+		points[l] = cv::Point(lanes_vector_last_frame[2][k].x + offset_right, lanes_vector_last_frame[2][k].y);
 		l++;
 	}
 	cv::fillConvexPoly(dynamic_mask_, points, length, cv::Scalar(255, 255, 255));
@@ -468,6 +476,8 @@ void LaneDetector::crossingLane(cv::Mat &input_frame, cv::Mat &output_frame, std
 	int length;
 
 	int l, k, m = 0;
+	if(right_line_index_ == -1)
+		return;
 	length = lanes_vector_last_frame[2].size() + lanes_vector_last_frame[1].size();
 	cv::Point points[length];
 	for (l = 0; l < lanes_vector_last_frame[2].size(); l++)
@@ -547,7 +557,7 @@ void LaneDetector::calcValuesForMasks()
 	aprox_lines_frame_coordinate_[2].clear();
 
 	cv::Point p;
-	float increment = 5;
+	float increment = 10;
 	for(float i = 0; i < current_frame_.rows; i += increment)
 	{
 		p.y = current_frame_.rows - i;
@@ -613,181 +623,6 @@ void LaneDetector::initRecognizeLines()
 			}
 	}
 	left_line_index_ = min_index;
-}
-
-void LaneDetector::linesApproximation(std::vector<std::vector<cv::Point> > lanes_vector)
-{
-	int poly_nDegree = 2;
-	std::cout << "appr start" << std::endl;
-	left_coeff_.clear();
-	middle_coeff_.clear();
-	right_coeff_.clear();
-
-	// vectors length count
-	const double min_length = 150;
-	bool shrt_left = false, shrt_right = false, shrt_middle = false;
-	double left_length = 0, right_length = 0, middle_length = 0;
-
-	std::cout << "left_index" << left_line_index_ << std::endl;
-	std::cout << "middle_index " << center_line_index_ << std::endl;
-	std::cout << "right_index " << right_line_index_ << std::endl;
-
-	if(left_line_index_ != -1)
-		left_length = cv::arcLength(lanes_vector[left_line_index_], false);
-	else
-		left_length = 0;
-	if(center_line_index_ != -1)
-		middle_length = cv::arcLength(lanes_vector[center_line_index_], false);
-	else
-		middle_length = 0;
-	if(right_line_index_ != -1)
-		right_length = cv::arcLength(lanes_vector[right_line_index_], false);
-	else
-		right_length = 0;
-
-	std::cout << "left_length " << left_length << std::endl;
-	std::cout << "middle_length " << middle_length << std::endl;
-	std::cout << "right_length " << right_length << std::endl;
-
-
-	if(left_length < min_length)
-		shrt_left = true;
-	if(right_length < min_length)
-		shrt_right = true;
-	if(middle_length < min_length)
-		shrt_middle = true;
-
-	// all lines
-	if(!shrt_left && !shrt_middle && !shrt_right)
-	{
-		std::cout << "all" << std::endl;
-		left_line_poly_.get_row_pts(lanes_vector[left_line_index_]);
-		center_line_poly_.get_row_pts(lanes_vector[center_line_index_]);
-		right_line_poly_.get_row_pts(lanes_vector[right_line_index_]);
-
-		left_line_poly_.polyfit(poly_nDegree);
-		center_line_poly_.polyfit(poly_nDegree);
-		right_line_poly_.polyfit(poly_nDegree);
-
-		left_coeff_ = left_line_poly_.coeff;
-		middle_coeff_ = center_line_poly_.coeff;
-		right_coeff_= right_line_poly_.coeff;		
-	}
-	// middle and right lines, left line too short
-	else if(shrt_left && !shrt_middle && !shrt_right)
-	{
-		std::cout << "m + r" << std::endl;
-		center_line_poly_.get_row_pts(lanes_vector[center_line_index_]);
-		right_line_poly_.get_row_pts(lanes_vector[right_line_index_]);
-
-		center_line_poly_.polyfit(poly_nDegree);
-		right_line_poly_.polyfit(poly_nDegree);
-
-		middle_coeff_ = center_line_poly_.coeff;
-		right_coeff_= right_line_poly_.coeff;	
-
-		// left line exist
-		if(left_line_index_ != -1)
-		{
-			int lf_length = lanes_vector[left_line_index_].size();
-			left_line_poly_.get_row_pts(lanes_vector[left_line_index_]);
-
-			left_line_poly_.adjust(center_line_poly_, lf_length);
-			left_coeff_ = left_line_poly_.coeff;
-		}
-		// left line from last frame
-		else
-		{
-			float dst = lanes_vector[center_line_index_][0].y + std::abs(lanes_vector[right_line_index_][0].y);
-			left_coeff_ = middle_coeff_;
-			left_coeff_[0] = left_coeff_[0] + dst;
-		}
-
-	}
-	// right line, left and center too short
-	else if(shrt_left && shrt_middle && !shrt_right)
-	{
-		std::cout << "right" << std::endl;
-		right_line_poly_.get_row_pts(lanes_vector[right_line_index_]);
-		right_line_poly_.polyfit(poly_nDegree);
-		right_coeff_ = right_line_poly_.coeff;	
-
-		// left and center lines from last frame
-		if(left_line_index_ == -1 && center_line_index_ == -1)
-		{	
-			left_coeff_.clear();
-			middle_coeff_.clear();
-
-			std::cout << "r--" << std::endl;
-			left_coeff_ = last_left_coeff_;
-			middle_coeff_ = last_middle_coeff_;
-		}
-		// left line from last frame and center line exist
-		else if(left_line_index_ == -1 && center_line_index_ != -1)
-		{
-			std::cout << "r-m" << std::endl;
-			int cn_length = lanes_vector[center_line_index_].size();
-			center_line_poly_.get_row_pts(lanes_vector[center_line_index_]);
-
-			center_line_poly_.adjust(right_line_poly_, cn_length);
-			middle_coeff_ = center_line_poly_.coeff;
-
-			float dst = lanes_vector[center_line_index_][0].y + std::abs(lanes_vector[right_line_index_][0].y);
-			left_coeff_ = middle_coeff_;
-			left_coeff_[0] = left_coeff_[0] + dst;
-		}
-		// left line exist and center line from last frame
-		else if(left_line_index_ != -1 && center_line_index_ == -1)
-		{
-			std::cout << "rl-" << std::endl;
-			middle_coeff_ = last_middle_coeff_;
-
-			int lf_length = lanes_vector[left_line_index_].size();
-			left_line_poly_.get_row_pts(lanes_vector[left_line_index_]);
-
-			left_line_poly_.adjust(center_line_poly_, lf_length);
-			left_coeff_ = left_line_poly_.coeff;
-		}
-		// left and center lines exist
-		else
-		{
-			std::cout << "rlm" << std::endl;
-			int cn_length = lanes_vector[center_line_index_].size();
-			int lf_length = lanes_vector[left_line_index_].size();
-
-			center_line_poly_.get_row_pts(lanes_vector[center_line_index_]);
-			left_line_poly_.get_row_pts(lanes_vector[left_line_index_]);
-
-			center_line_poly_.adjust(right_line_poly_, cn_length);
-			middle_coeff_ = center_line_poly_.coeff;
-			left_line_poly_.adjust(right_line_poly_, lf_length);
-			left_coeff_ = left_line_poly_.coeff;
-		}
-	}
-	// no lines, all from last frame
-	else if(shrt_left && shrt_middle && shrt_right)
-	{
-		std::cout << "nothing" << std::endl;
-		left_coeff_ = last_left_coeff_;
-		middle_coeff_ = last_middle_coeff_;
-		right_coeff_ = last_right_coeff_;
-	}
-	else{
-		std::cout << "else" << std::endl;
-		left_coeff_ = last_left_coeff_;
-		middle_coeff_ = last_middle_coeff_;
-		right_coeff_ = last_right_coeff_;
-	}
-
-
-	last_left_coeff_.clear();
-	last_middle_coeff_.clear();
-	last_right_coeff_.clear();
-
-	std::cout << "przypisz" << std::endl;
-	last_left_coeff_ = left_coeff_;
-	last_middle_coeff_ = middle_coeff_;
-	last_right_coeff_ = right_coeff_;
 }
 
 void LaneDetector::pointsRVIZVisualization()
@@ -911,4 +746,311 @@ void LaneDetector::filterPoints()
 			}
 		}
 	}
+}
+
+
+void LaneDetector::linesApproximation(std::vector<std::vector<cv::Point> > lanes_vector)
+{
+	int poly_nDegree = 2;
+	std::cout << "appr start" << std::endl;
+	left_coeff_.clear();
+	middle_coeff_.clear();
+	right_coeff_.clear();
+
+	// vectors length count
+	const double min_length = 150;
+	bool shrt_left = false, shrt_right = false, shrt_middle = false;
+	double left_length = 0, right_length = 0, middle_length = 0;
+
+	std::cout << "left_index" << left_line_index_ << std::endl;
+	std::cout << "middle_index " << center_line_index_ << std::endl;
+	std::cout << "right_index " << right_line_index_ << std::endl;
+
+	if(left_line_index_ != -1)
+		left_length = cv::arcLength(lanes_vector[left_line_index_], false);
+	else
+		left_length = 0;
+	if(center_line_index_ != -1)
+		middle_length = cv::arcLength(lanes_vector[center_line_index_], false);
+	else
+		middle_length = 0;
+	if(right_line_index_ != -1)
+		right_length = cv::arcLength(lanes_vector[right_line_index_], false);
+	else
+		right_length = 0;
+
+	std::cout << "left_length " << left_length << std::endl;
+	std::cout << "middle_length " << middle_length << std::endl;
+	std::cout << "right_length " << right_length << std::endl;
+
+	int suitable_lines = 3;
+
+	if(left_length < min_length)
+	{
+		shrt_left = true;
+		suitable_lines--;
+	}
+		
+	if(right_length < min_length)
+	{
+		shrt_right = true;
+		suitable_lines--;
+	}
+		
+	if(middle_length < min_length)
+	{
+		shrt_middle = true;
+		suitable_lines--;
+	}
+
+	switch(suitable_lines)
+	{
+		case 3:
+		ROS_INFO("l+  c+  r+");
+		left_line_poly_.get_row_pts(lanes_vector[left_line_index_]);
+		center_line_poly_.get_row_pts(lanes_vector[center_line_index_]);
+		right_line_poly_.get_row_pts(lanes_vector[right_line_index_]);
+
+		left_line_poly_.polyfit(poly_nDegree);
+		center_line_poly_.polyfit(poly_nDegree);
+		right_line_poly_.polyfit(poly_nDegree);
+
+		left_coeff_ = left_line_poly_.coeff;
+		middle_coeff_ = center_line_poly_.coeff;
+		right_coeff_= right_line_poly_.coeff;	
+		break;
+
+		case 2:
+		if(shrt_left)
+		{
+			center_line_poly_.get_row_pts(lanes_vector[center_line_index_]);
+			right_line_poly_.get_row_pts(lanes_vector[right_line_index_]);
+
+			center_line_poly_.polyfit(poly_nDegree);
+			right_line_poly_.polyfit(poly_nDegree);
+
+			middle_coeff_ = center_line_poly_.coeff;
+			right_coeff_= right_line_poly_.coeff;	
+			if(left_line_index_ == -1)
+			{
+				ROS_INFO("l-  c+  r+");
+				left_coeff_ = middle_coeff_;
+				left_coeff_[0] += middle_coeff_[0] - right_coeff_[0];
+			}
+			else
+			{
+				ROS_INFO("l/  c+  r+");
+				left_line_poly_.get_row_pts(lanes_vector[left_line_index_]);
+				left_line_poly_.adjust(center_line_poly_, lanes_vector[left_line_index_].size());
+				left_coeff_ = left_line_poly_.coeff;
+			}
+		}
+		else if(shrt_right)
+		{
+			center_line_poly_.get_row_pts(lanes_vector[center_line_index_]);
+			left_line_poly_.get_row_pts(lanes_vector[left_line_index_]);
+
+			center_line_poly_.polyfit(poly_nDegree);
+			left_line_poly_.polyfit(poly_nDegree);
+
+			middle_coeff_ = center_line_poly_.coeff;
+			left_coeff_= left_line_poly_.coeff;	
+			if(right_line_index_ == -1)
+			{
+				ROS_INFO("l+  c+  r-");
+				right_coeff_ = middle_coeff_;
+				right_coeff_[0] -= left_coeff_[0] - middle_coeff_[0];
+			}
+			else
+			{
+				ROS_INFO("l+  c+  r/");
+				right_line_poly_.get_row_pts(lanes_vector[right_line_index_]);
+				right_line_poly_.adjust(center_line_poly_, lanes_vector[right_line_index_].size());
+				right_coeff_ = right_line_poly_.coeff;
+			}
+		}
+		else if(shrt_middle)
+		{
+			right_line_poly_.get_row_pts(lanes_vector[right_line_index_]);
+			left_line_poly_.get_row_pts(lanes_vector[left_line_index_]);
+
+			right_line_poly_.polyfit(poly_nDegree);
+			left_line_poly_.polyfit(poly_nDegree);
+
+			right_coeff_ = right_line_poly_.coeff;
+			left_coeff_= left_line_poly_.coeff;	
+			if(center_line_index_ == -1)
+			{
+				ROS_INFO("l+  c-  r+");
+				middle_coeff_ = right_coeff_;
+				middle_coeff_[0] += (left_coeff_[0] - right_coeff_[0]) / 2;
+			}
+			else
+			{
+				ROS_INFO("l+  c/  r+");
+				center_line_poly_.get_row_pts(lanes_vector[center_line_index_]);
+				center_line_poly_.adjust(right_line_poly_, lanes_vector[center_line_index_].size());
+				middle_coeff_ = center_line_poly_.coeff;
+			}
+		}
+		break;
+
+		case 1:
+		if(!shrt_right)
+		{
+			right_line_poly_.get_row_pts(lanes_vector[right_line_index_]);
+			right_line_poly_.polyfit(poly_nDegree);
+			right_coeff_ = right_line_poly_.coeff;
+			if(center_line_index_ != -1 || left_line_index_ != -1)
+			{
+				if(center_line_index_ != -1 && left_line_index_ != -1)
+				{
+					ROS_INFO("l/  c/  r+");
+					center_line_poly_.get_row_pts(lanes_vector[center_line_index_]);
+					center_line_poly_.adjust(right_line_poly_, lanes_vector[center_line_index_].size());
+					middle_coeff_ = center_line_poly_.coeff;
+
+					left_line_poly_.get_row_pts(lanes_vector[left_line_index_]);
+					left_line_poly_.adjust(right_line_poly_, lanes_vector[left_line_index_].size());
+					left_coeff_ = left_line_poly_.coeff;
+				}
+				else if(center_line_index_ != -1)
+				{
+					ROS_INFO("l-  c/  r+");
+					center_line_poly_.get_row_pts(lanes_vector[center_line_index_]);
+					center_line_poly_.adjust(right_line_poly_, lanes_vector[center_line_index_].size());
+					middle_coeff_ = center_line_poly_.coeff;
+
+					left_coeff_ = middle_coeff_;
+					left_coeff_[0] += middle_coeff_[0] - right_coeff_[0];
+				}
+				else
+				{
+					ROS_INFO("l/  c-  r+");
+					left_line_poly_.get_row_pts(lanes_vector[left_line_index_]);
+					left_line_poly_.adjust(right_line_poly_, lanes_vector[left_line_index_].size());
+					left_coeff_ = left_line_poly_.coeff;
+
+					middle_coeff_ = right_coeff_;
+					middle_coeff_[0] += (left_coeff_[0] - right_coeff_[0]) / 2;
+				}
+			}
+			else
+			{
+				ROS_INFO("l-  c-  r+");
+				middle_coeff_ = last_middle_coeff_;
+				left_coeff_ = last_left_coeff_;
+			}
+		}
+
+		else if(!shrt_left)
+		{
+			left_line_poly_.get_row_pts(lanes_vector[left_line_index_]);
+			left_line_poly_.polyfit(poly_nDegree);
+			left_coeff_ = left_line_poly_.coeff;
+			if(center_line_index_ != -1 || right_line_index_ != -1)
+			{
+				if(center_line_index_ != -1 && right_line_index_ != -1)
+				{
+					ROS_INFO("l+  c/  r/");
+					center_line_poly_.get_row_pts(lanes_vector[center_line_index_]);
+					center_line_poly_.adjust(left_line_poly_, lanes_vector[center_line_index_].size());
+					middle_coeff_ = center_line_poly_.coeff;
+
+					right_line_poly_.get_row_pts(lanes_vector[right_line_index_]);
+					right_line_poly_.adjust(left_line_poly_, lanes_vector[right_line_index_].size());
+					right_coeff_ = right_line_poly_.coeff;
+				}
+				else if(center_line_index_ != -1)
+				{
+					ROS_INFO("l+  c/  r-");
+					center_line_poly_.get_row_pts(lanes_vector[center_line_index_]);
+					center_line_poly_.adjust(left_line_poly_, lanes_vector[center_line_index_].size());
+					middle_coeff_ = center_line_poly_.coeff;
+
+					right_coeff_ = middle_coeff_;
+					right_coeff_[0] -= left_coeff_[0] - middle_coeff_[0];
+				}
+				else
+				{
+					ROS_INFO("l+  c-  r/");
+					right_line_poly_.get_row_pts(lanes_vector[right_line_index_]);
+					right_line_poly_.adjust(left_line_poly_, lanes_vector[right_line_index_].size());
+					right_coeff_ = right_line_poly_.coeff;
+
+					middle_coeff_ = right_coeff_;
+					middle_coeff_[0] += (left_coeff_[0] - right_coeff_[0]) / 2;
+				}
+			}
+			else
+			{
+				ROS_INFO("l+  c-  r-");
+				middle_coeff_ = last_middle_coeff_;
+				right_coeff_ = last_right_coeff_;
+			}
+		}
+
+		else if(!shrt_middle)
+		{
+			center_line_poly_.get_row_pts(lanes_vector[center_line_index_]);
+			center_line_poly_.polyfit(poly_nDegree);
+			middle_coeff_ = center_line_poly_.coeff;
+			if(left_line_index_ != -1 || right_line_index_ != -1)
+			{
+				if(left_line_index_ != -1 && right_line_index_ != -1)
+				{
+					ROS_INFO("l/  c+  r/");
+					left_line_poly_.get_row_pts(lanes_vector[left_line_index_]);
+					left_line_poly_.adjust(center_line_poly_, lanes_vector[left_line_index_].size());
+					left_coeff_ = left_line_poly_.coeff;
+
+					right_line_poly_.get_row_pts(lanes_vector[right_line_index_]);
+					right_line_poly_.adjust(center_line_poly_, lanes_vector[right_line_index_].size());
+					right_coeff_ = right_line_poly_.coeff;
+				}
+				else if(left_line_index_ != -1)
+				{
+					ROS_INFO("l/  c+  r-");
+					left_line_poly_.get_row_pts(lanes_vector[left_line_index_]);
+					left_line_poly_.adjust(center_line_poly_, lanes_vector[left_line_index_].size());
+					left_coeff_ = left_line_poly_.coeff;
+
+					right_coeff_ = middle_coeff_;
+					right_coeff_[0] -= left_coeff_[0] - middle_coeff_[0];
+				}
+				else
+				{
+					ROS_INFO("l-  c+  r/");
+					right_line_poly_.get_row_pts(lanes_vector[right_line_index_]);
+					right_line_poly_.adjust(center_line_poly_, lanes_vector[right_line_index_].size());
+					right_coeff_ = right_line_poly_.coeff;
+
+					left_coeff_ = middle_coeff_;
+					left_coeff_[0] += middle_coeff_[0] - right_coeff_[0];
+				}
+			}
+			else
+			{
+				ROS_INFO("l-  c+  r-");
+				left_coeff_ = last_left_coeff_;
+				right_coeff_ = last_right_coeff_;
+			}
+		}
+		break;
+		
+		case 0:
+		ROS_INFO("l-  c-  r-");
+		left_coeff_ = last_left_coeff_;
+		right_coeff_ = last_right_coeff_;
+		middle_coeff_ = last_middle_coeff_;
+		break;
+	}
+
+	last_left_coeff_.clear();
+	last_middle_coeff_.clear();
+	last_right_coeff_.clear();
+
+	last_left_coeff_ = left_coeff_;
+	last_middle_coeff_ = middle_coeff_;
+	last_right_coeff_ = right_coeff_;
 }
