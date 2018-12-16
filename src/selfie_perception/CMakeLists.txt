@@ -208,7 +208,7 @@ include_directories(
 
 install(DIRECTORY include/${PROJECT_NAME}/
     DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-    FILES_MATCHING PATTERN "*.h"
+    FILES_MATCHING PATTERN "*.hpp" PATTERN "*.h"
     PATTERN ".svn" EXCLUDE
 )
 
@@ -221,6 +221,6 @@ add_executable(detect_obstacles src/detect_obstacles.cpp src/obstacles_generator
 target_link_libraries(detect_obstacles ${catkin_LIBRARIES})
 add_dependencies(detect_obstacles ${catkin_EXPORTED_TARGETS})
 
-add_executable(detect_markings src/cam.cpp src/lanedetector.cpp)
+add_executable(detect_markings src/cam.cpp src/lanedetector.cpp src/polyfit.cpp)
 target_link_libraries(detect_markings ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 add_dependencies(detect_markings ${catkin_EXPORTED_TARGETS})
