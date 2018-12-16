@@ -30,9 +30,26 @@ void road_markingsCallback(const selfie_msgs::RoadMarkings::ConstPtr& msg)
     left_line.get_coeff(msg->left_line);
     right_line.get_coeff(msg->right_line);
     center_line.get_coeff(msg->center_line);
+    ROS_INFO("coeff0: %.3f    coeff1: %.3f     coeff2: %.3f ",center_line.coeff[0],center_line.coeff[1],center_line.coeff[2]);
+
+    center_line.x_raw_pts.clear();
+    center_line.y_raw_pts.clear();
+    right_line.x_raw_pts.clear();
+    right_line.y_raw_pts.clear();
+
+    for(float i = 0; i < 100; i++)
+    {
+        center_line.x_raw_pts.push_back(i);
+        center_line.y_raw_pts.push_back(left_line.polyval(i));
+
+        right_line.x_raw_pts.push_back(i);
+        right_line.y_raw_pts.push_back(left_line.polyval(i));
+    }
 
     middle_path.fit_middle(center_line,right_line,7);
     path_tangent.calc_coeff(middle_path,1);
+
+    ROS_INFO("POS offset: %.3f     head offset: %.3f", middle_path.get_pos_offset(0,0),path_tangent.get_head_offset(zero_line) );
 
     position_offset_pub.publish(middle_path.get_pos_offset(0,0));
     heading_offset_pub.publish(path_tangent.get_head_offset(zero_line));

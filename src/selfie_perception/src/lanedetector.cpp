@@ -419,6 +419,7 @@ void LaneDetector::recognizeLines()
 
 void LaneDetector::publishMarkings()
 {
+	ROS_INFO("coeff0: %.3f    coeff1: %.3f     coeff2: %.3f ",middle_coeff_[0],middle_coeff_[1],middle_coeff_[2]);
 	selfie_msgs::RoadMarkings road_markings;
 	road_markings.header.stamp = ros::Time::now();
 	road_markings.header.frame_id = "road_markings";
