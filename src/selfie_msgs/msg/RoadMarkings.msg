@@ -1,5 +1,6 @@
 Header header
 
-geometry_msgs/Point[] left_line
-geometry_msgs/Point[] center_line
-geometry_msgs/Point[] right_line
+# Polynomial coefficients for fitted lines
+float32[] left_line
+float32[] center_line
+float32[] right_line
