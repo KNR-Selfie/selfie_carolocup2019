@@ -143,7 +143,7 @@ void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr &msg)
 		calcValuesForMasks();
 	}
 
-	//publishMarkings();
+	publishMarkings();
 
 	if (visualize_)
 	{
@@ -417,7 +417,7 @@ void LaneDetector::recognizeLines()
 		right_line_index_ = -1;
 }
 
-/*void LaneDetector::publishMarkings()
+void LaneDetector::publishMarkings()
 {
 	selfie_msgs::RoadMarkings road_markings;
 	road_markings.header.stamp = ros::Time::now();
@@ -429,7 +429,7 @@ void LaneDetector::recognizeLines()
 		road_markings.center_line.push_back(middle_coeff_[i]);
 	}
 	lanes_pub_.publish(road_markings);
-}*/
+}
 
 void LaneDetector::printInfoParams()
 {
