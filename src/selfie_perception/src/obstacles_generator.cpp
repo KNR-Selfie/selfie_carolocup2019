@@ -3,15 +3,15 @@
 ObstaclesGenerator::ObstaclesGenerator(const ros::NodeHandle& nh, const ros::NodeHandle& pnh):
     nh_(nh),
     pnh_(pnh),
-    max_range_(1),
+    max_range_(4.0),
     min_range_(0.03),
     line_search_max_range_difference_(0.04),
     line_search_max_slope_difference_(2.0),
     line_search_min_slope_difference_(0.05),
-    line_search_slope_difference_ratio_(0.06),
-    line_search_min_length_(0.015),
+    line_search_slope_difference_ratio_(0.1),
+    line_search_min_length_(0.014), //0.015
     line_min_length_(0.05),
-    obstacle_nominal_length_(0.11),
+    obstacle_nominal_length_(0.2),
     obstacles_frame_("laser"),
     visualization_frame_("laser"),
     visualize_(true)
@@ -211,7 +211,7 @@ void ObstaclesGenerator::visualizeLines()
         marker_point.y = line_array_[i].end_point.y;
         marker.points.push_back(marker_point);
     }
-    visualization_lines_pub_.publish(marker);
+//    visualization_lines_pub_.publish(marker);
 }
 
 void ObstaclesGenerator::printInfoParams()
