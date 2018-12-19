@@ -8,14 +8,13 @@
 #include <sensor_msgs/image_encodings.h>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
+#include <opencv2/calib3d.hpp>
 #include <selfie_msgs/RoadMarkings.h>
 #include <geometry_msgs/Point.h>
 #include <sensor_msgs/PointCloud.h>
 #include <selfie_perception/polyfit.h>
 
 #include <visualization_msgs/Marker.h>
-
-#define PI 3.1415926
 
 class LaneDetector
 {
@@ -30,6 +29,11 @@ class LaneDetector
 	image_transport::ImageTransport it_;
 	image_transport::Subscriber image_sub_;
 	ros::Publisher lanes_pub_;
+
+	cv::Size topview_size_;
+	cv::Mat world2cam_;
+	cv::Mat topview2world_;
+	cv::Mat topview2cam_;
 
 	cv::Mat kernel_v_;
 	cv::Mat current_frame_;
@@ -60,6 +64,7 @@ class LaneDetector
 	int right_line_index_;
 
 	void imageCallback(const sensor_msgs::ImageConstPtr &msg);
+	void computeTopView();
 	void openCVVisualization();
 	void mergeMiddleLane();
 	void quickSortLinesY(int left, int right);
@@ -86,11 +91,13 @@ class LaneDetector
 	ros::Publisher points_cloud_pub_;
 	ros::Publisher aprox_visualization_pub_;
 	void filterPoints();
+	void lanesVectorVisualization(cv::Mat &visualization_frame);
 	
 	float min_length_search_line_;
 	float min_length_lane_;
 	float max_delta_y_lane_;
 
+	std::string config_file_;
 	float binary_treshold_;
 	bool visualize_;
 	float max_mid_line_distance_;
