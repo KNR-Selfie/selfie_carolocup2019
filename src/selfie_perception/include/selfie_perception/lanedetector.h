@@ -91,6 +91,7 @@ class LaneDetector
 	ros::Publisher points_cloud_pub_;
 	ros::Publisher aprox_visualization_pub_;
 	void filterPoints();
+	void lanesVectorVisualization(cv::Mat &visualization_frame);
 	
 	float min_length_search_line_;
 	float min_length_lane_;
