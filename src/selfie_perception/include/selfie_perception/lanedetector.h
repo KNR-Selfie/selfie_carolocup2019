@@ -49,7 +49,7 @@ class LaneDetector
 	cv::Mat testCrossing;
 
 	std::vector<std::vector<cv::Point> > lanes_vector_;
-	std::vector<std::vector<cv::Point> > lanes_vector_last_frame;
+	//std::vector<std::vector<cv::Point> > lanes_vector_last_frame;
 	std::vector<std::vector<cv::Point> > aprox_lines_frame_coordinate_;
 
 	std::vector<float> last_left_coeff_;
@@ -92,10 +92,13 @@ class LaneDetector
 	ros::Publisher aprox_visualization_pub_;
 	void filterPoints();
 	void lanesVectorVisualization(cv::Mat &visualization_frame);
+	void removeCar(cv::Mat &frame);
+	void addBottomPoint();
 	
 	float min_length_search_line_;
 	float min_length_lane_;
 	float max_delta_y_lane_;
+	float min_length_to_aprox_;
 
 	std::string config_file_;
 	float binary_treshold_;
