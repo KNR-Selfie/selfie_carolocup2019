@@ -13,6 +13,9 @@ find_package(catkin REQUIRED COMPONENTS
   selfie_msgs
   std_msgs
   visualization_msgs
+  nav_msgs
+  ackermann_msgs
+  tf
 )
 
 
@@ -203,6 +206,10 @@ include_directories(
 add_executable(parking_node src/parking.cpp src/find_parking_place.cpp)
 target_link_libraries(parking_node ${catkin_LIBRARIES})
 add_dependencies(parking_node ${catkin_EXPORTED_TARGETS})
+
+add_executable(park_node src/park.cpp src/park_main.cpp)
+target_link_libraries(park_node ${catkin_LIBRARIES})
+add_dependencies(park_node ${catkin_EXPORTED_TARGETS})
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
