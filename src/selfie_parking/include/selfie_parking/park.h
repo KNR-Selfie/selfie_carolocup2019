@@ -57,10 +57,14 @@ class Park
 
 
 		//parking spot
+		float initial_front_wall;
 		float front_wall;
 		float back_wall;
 		float parking_spot_mid_y;
+		float parking_spot_mid_x;
 		float traffic_lane_mid_y;
+		float parking_spot_width;
+		float parking_spot_length;
 		
 
 		void initialize_parking_spot();
@@ -75,16 +79,17 @@ class Park
 		float front_distance();
 		float back_distance();
 		bool in_parking_spot();
+		bool in_traffic_lane();
 
-		//going vars
+		//move vars
 		float mid_x;
 		float mid_y;
 		float parking_speed;
 		bool front;
+		bool right;
 
-		void get_in_front();
-		void get_in_back();
 		bool get_in();
+		bool get_out();
 		enum Move_State
 		{
 			init_move = 0,
@@ -93,7 +98,9 @@ class Park
 			end = 3
 		} move_state;
 		
-
+		//params
+		float max_distance_to_wall;
+		bool use_scan;
 
 
 

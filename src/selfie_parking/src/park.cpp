@@ -1,11 +1,11 @@
 #include "../include/selfie_parking/park.h"
 
-
 Park::Park(const ros::NodeHandle &nh, const ros::NodeHandle &pnh):
 nh_(nh),
 pnh_(pnh),
 parking_state(not_parking),
-parking_speed(0.1)
+parking_speed(0.1),
+move_state(init_move)
 {
 	ackermann_pub = nh_.advertise<ackermann_msgs::AckermannDriveStamped>("/sim_drive", 10);
 }
@@ -14,12 +14,12 @@ bool Park::init()
 {
 	odom_sub = nh_.subscribe("/vesc/odom", 1, &Park::odom_callback, this);
 	scan_sub = nh_.subscribe("/obstacles", 1, &Park::scan_callback, this);
+	pnh_.param("use_scan",use_scan, false);
+	pnh_.param("max_distance_to_wall",max_distance_to_wall, 0.02);
+
 	initialize_parking_spot();
-	
 	//parking_spot_sub = nh_.subscribe("/parking_spot", 10, &Park::parking_spot_callback, this);
 }
-
-
 
 std::vector<geometry_msgs::PointStamped> Park::convert_polygon_to_points(const std::string &output_frame, const geometry_msgs::PolygonStamped &msg)
 {
@@ -35,7 +35,6 @@ std::vector<geometry_msgs::PointStamped> Park::convert_polygon_to_points(const s
 		to_convert_point.header = msg.header;
 		transform_listener.transformPoint(output_frame, to_convert_point, converted_point);
 		points_vector.push_back(converted_point);
-
 	}
 	return points_vector;
 }
@@ -67,7 +66,7 @@ void Park::initialize_parking_spot()
 	quat.setRPY(0,0,0);
 	odom_to_parking.setRotation(quat);
 	front_wall = 0.9;
-	back_wall = 0;
+	back_wall = 0.1;
 	parking_spot_mid_y = 0.15;
 	traffic_lane_mid_y = 0.5;
 	transform_broadcaster.sendTransform(tf::StampedTransform(odom_to_parking, ros::Time::now(),"map","parking"));
@@ -76,38 +75,77 @@ void Park::initialize_parking_spot()
 void Park::odom_callback(const nav_msgs::Odometry &msg)
 {
 	get_position(msg);
-	if(parking_state == not_parking)
+	switch(parking_state)
 	{
+		case not_parking:
+		ROS_INFO("not_parking");
+		if(actual_front_pose.pose.position.x < 0.1) drive(0.3, 0);
+		else parking_state = init_parking_spot;
+		break;
 		
-		
-		if(actual_front_pose.pose.position.x < 0.9)
-		{
-			drive(0.3, 0);
-		}
-		else
-		{
-			parking_state = init_parking_spot;
-		}
-	}
-	else if(parking_state == init_parking_spot)
-	{
-
+		case init_parking_spot:
 		parking_state = going_in;
 		ROS_INFO("init_parking_spot");
 		drive(0,0);
-	}
-	else if(parking_state == going_in)
-	{
-		if(get_in())
-		{
-			ROS_INFO("IN PARKING_SPOT");
-		}
-	}
+		break;
 
+		case going_in:
+		ROS_INFO("get_in");
+		if(get_in()) parking_state = parked;
+		break;
+
+		case parked:
+		ROS_INFO("PARKED");
+		//blink
+		parking_state = going_out;
+		break;
+
+		case going_out:
+		ROS_INFO("get_out");
+		if(get_out()) parking_state = out;
+		break;
+
+		case out:
+		ROS_INFO("OUT");
+		break;
+	}
 }
 
 void Park::scan_callback(const selfie_msgs::PolygonArray &msg)
-{}
+{
+	std::vector<geometry_msgs::PointStamped> points;
+	for(std::vector<geometry_msgs::Polygon>::const_iterator itpoly = msg.polygons.begin();itpoly < msg.polygons.end();it++)
+	{
+		for(std::vector<geometry_msgs::Point32>::const_iterator itpoint = (*itpoly).points.begin();itpoint < (*it).points.end();itpoint++)
+		{
+			geometry_msgs::PointStamped transformed_point, tmp_point;
+			tmp_point.header = msg.header;
+			tmp_point.point.x = (*itpoint).x;
+			tmp_point.point.y = (*itpoint).y;
+			tmp_point.point.z = (*itpoint).z;
+			transform_listener.transformPoint("parking", tmp_point, transformed_point);
+			points.push_back(transformed_point);
+		}
+	}
+	std::vector<geometry_msgs::PointStamped> front_wall_points;
+	float minimal_x;
+	for(std::vector<geometry_msgs::PointStamped>::const_iterator itwall = points.begin();itwall < points.end();itwall++)
+	{
+		if((*itwall).point.x > initial_front_wall - scan_point_max_distance && (*itwall).point.x < initial_front_wall + scan_point_max_distance && (*itwall).point.y > 0 && (*itwall).point.y < parking_spot_width)
+		{
+			front_wall_points.push_back(*itwall);
+			if
+		}
+	}
+	if(front_wall_points.size() < 2) return;
+	else
+	{
+		for(std::vector<geometry_msgs::PointStamped>::const_iterator )
+	}
+
+
+}
+
 void Park::get_position(const nav_msgs::Odometry &msg)
 {
 	geometry_msgs::PoseStamped p;
@@ -127,8 +165,9 @@ void Park::get_position(const nav_msgs::Odometry &msg)
 	actual_back_pose.pose.position.y-=sin(actual_yaw)*std::abs(ODOM_TO_BACK);
 	actual_front_pose.pose.position.x+=cos(actual_yaw)*std::abs(ODOM_TO_FRONT);
 	actual_front_pose.pose.position.y+=sin(actual_yaw)*std::abs(ODOM_TO_FRONT);
-	ROS_INFO("actual_x  %f actual_y %f actual_back_x %f actual_back_y %f actual_front_x %f actual_front_y %f actual_yaw %f", actual_pose.pose.position.x, actual_pose.pose.position.y,actual_back_pose.pose.position.x, actual_back_pose.pose.position.y,actual_front_pose.pose.position.x, actual_front_pose.pose.position.y,actual_yaw);
+	//ROS_INFO("actual_x  %f actual_y %f actual_back_x %f actual_back_y %f actual_front_x %f actual_front_y %f actual_yaw %f", actual_pose.pose.position.x, actual_pose.pose.position.y,actual_back_pose.pose.position.x, actual_back_pose.pose.position.y,actual_front_pose.pose.position.x, actual_front_pose.pose.position.y,actual_yaw);
 }
+
 void Park::drive(float speed, float steering_angle)
 {
 	ackermann_msgs::AckermannDriveStamped msg;
@@ -142,87 +181,74 @@ float Park::front_distance()
 {
 	return front_wall - actual_front_pose.pose.position.x;
 }
+
 float Park::back_distance()
 {
 	return actual_back_pose.pose.position.x - back_wall;
 }
 
-void Park::get_in_front()
-{
-	switch(move_state)
-	{
-		case init_move:
-		mid_x = actual_front_pose.pose.position.x + (front_wall - actual_front_pose.pose.position.x) / 2;
-		mid_y = parking_spot_mid_y + (actual_front_pose.pose.position.y - parking_spot_mid_y) / 2;
-		move_state = first_phase;
-		case first_phase:
-		drive(parking_speed, -MAX_TURN);
-		if(actual_front_pose.pose.position.x > mid_x || actual_pose.pose.position.y < mid_y)
-		{
-			move_state = second_phase;
-		}
-		break;
-		case second_phase:
-		drive(parking_speed, MAX_TURN);
-		if(actual_yaw > 0 || front_distance() < 0.02)
-		{
-			move_state = end;
-		}
-		break;
-		case end:
-		drive(0,0);
-		ROS_INFO("END");
-		break;
-	}
-}
-
 bool Park::get_in()
 {
+
 	switch(move_state)
 	{
 		case init_move:
+		ROS_INFO("init_move");
 		front = front_distance() > back_distance();
+		right = actual_pose.pose.position.y > parking_spot_mid_y;
 		mid_x = (front?actual_front_pose.pose.position.x + (front_wall - actual_front_pose.pose.position.x) / 2:back_wall + (actual_back_pose.pose.position.x - back_wall)/2);
 		mid_y = parking_spot_mid_y + (actual_back_pose.pose.position.y - parking_spot_mid_y)/2;
 		move_state = first_phase;
 		case first_phase:
-		drive(front?parking_speed:-parking_speed, -MAX_TURN);
-		if(front)
+		ROS_INFO("1st phase");
+		drive(front?parking_speed:-parking_speed, right?-MAX_TURN:MAX_TURN);
+		if(front && right)
 		{
-			if(actual_front_pose.pose.position.x > mid_x || actual_pose.pose.position.y < mid_y)
-			{
-				move_state = second_phase;
-			}
+			if(actual_front_pose.pose.position.x > mid_x || actual_pose.pose.position.y < mid_y) move_state = second_phase;
+			
 		}
-		else
+		else if(!front && right)
 		{
-			if(actual_back_pose.pose.position.x < mid_x || actual_pose.pose.position.y < mid_y)
-			{
-				move_state = second_phase;
-			}
+			if(actual_back_pose.pose.position.x < mid_x || actual_pose.pose.position.y < mid_y) move_state = second_phase;
+			
+		}
+		if(front && !right)
+		{
+			if(actual_front_pose.pose.position.x > mid_x || actual_pose.pose.position.y > mid_y) move_state = second_phase;
+			
+		}
+		else if(!front && !right)
+		{
+			if(actual_back_pose.pose.position.x < mid_x || actual_pose.pose.position.y > mid_y) move_state = second_phase;
+			
 		}
 		break;
 		case second_phase:
-		drive(front?parking_speed:-parking_speed, MAX_TURN);
-		if(front)
+		ROS_INFO("2nd phase");
+		drive(front?parking_speed:-parking_speed, right?MAX_TURN:-MAX_TURN);
+		if(front && right)
 		{
-			if(actual_yaw > 0 || front_distance() < 0.02)
-			{
-				move_state = end;
-			}
+			if(actual_yaw > 0 || front_distance() < max_distance_to_wall) move_state = end;
 		}
-		else
+		else if(!front && right)
 		{
-			if(actual_yaw < 0 || back_distance() < 0.02)
-			{
-				move_state = end;
-			}
+			if(actual_yaw < 0 || back_distance() < max_distance_to_wall) move_state = end;
+		}
+		if(front && !right)
+		{
+			if(actual_yaw < 0 || front_distance() < max_distance_to_wall) move_state = end;
+		}
+		else if(!front && !right)
+		{
+			if(actual_yaw > 0 || back_distance() < max_distance_to_wall) move_state = end;
 		}
 		break;
 		case end:
+		ROS_INFO("end");
 		drive(0,0);
 			if(in_parking_spot())
 			{
+				move_state = init_move;
 				return true;
 			}
 			else
@@ -234,7 +260,87 @@ bool Park::get_in()
 	}
 	return false;
 }
+
+bool Park::get_out()
+{
+
+	switch(move_state)
+	{
+		case init_move:
+		front = front_distance() > back_distance();
+		right = actual_pose.pose.position.y > traffic_lane_mid_y;
+		mid_x = (front?actual_front_pose.pose.position.x + (front_wall - actual_front_pose.pose.position.x) / 2:back_wall + (actual_back_pose.pose.position.x - back_wall)/2);
+		mid_y = traffic_lane_mid_y + (actual_back_pose.pose.position.y - traffic_lane_mid_y)/2;
+		move_state = first_phase;
+		case first_phase:
+		drive(front?parking_speed:-parking_speed, right?-MAX_TURN:MAX_TURN);
+		if(front && right)
+		{
+			if(actual_front_pose.pose.position.x > mid_x || actual_pose.pose.position.y < mid_y) move_state = second_phase;
+			
+		}
+		else if(!front && right)
+		{
+			if(actual_back_pose.pose.position.x < mid_x || actual_pose.pose.position.y < mid_y) move_state = second_phase;
+			
+		}
+		if(front && !right)
+		{
+			if(actual_front_pose.pose.position.x > mid_x || actual_pose.pose.position.y > mid_y) move_state = second_phase;
+			
+		}
+		else if(!front && !right)
+		{
+			if(actual_back_pose.pose.position.x < mid_x || actual_pose.pose.position.y > mid_y) move_state = second_phase;
+			
+		}
+		break;
+		case second_phase:
+		//ROS_INFO("%f %f",front_distance(),back_distance());
+		drive(front?parking_speed:-parking_speed, right?MAX_TURN:-MAX_TURN);
+		if(front && right)
+		{
+			if(actual_yaw > 0 || front_distance() < max_distance_to_wall) move_state = end;
+		}
+		else if(!front && right)
+		{
+			if(actual_yaw < 0 || back_distance() < max_distance_to_wall) move_state = end;
+		}
+		if(front && !right)
+		{
+			if(actual_yaw < 0 || front_distance() < max_distance_to_wall) move_state = end;
+		}
+		else if(!front && !right)
+		{
+			if(actual_yaw > 0 || back_distance() < max_distance_to_wall) move_state = end;
+		}
+		break;
+		case end:
+		drive(0,0);
+			if(in_traffic_lane())
+			{
+				move_state = init_move;
+				return true;
+			}
+			else
+			{
+				move_state = init_move;
+			}
+		break;
+	
+	}
+	return false;
+}
+
 bool Park::in_parking_spot()
 {
-	return parking_spot_mid_y + MARIGIN>actual_pose.pose.position.y>parking_spot_mid_y - MARIGIN;
+	ROS_INFO(" pos %f", actual_pose.pose.position.y);
+	return parking_spot_mid_y + MARIGIN>actual_pose.pose.position.y && actual_pose.pose.position.y>parking_spot_mid_y - MARIGIN;
+}
+
+bool Park::in_traffic_lane()
+{
+	ROS_INFO(" pos %f", actual_pose.pose.position.y);
+	return traffic_lane_mid_y + MARIGIN>actual_pose.pose.position.y && actual_pose.pose.position.y>traffic_lane_mid_y - MARIGIN;
+	
 }
