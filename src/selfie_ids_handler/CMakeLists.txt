@@ -2,20 +2,25 @@ cmake_minimum_required(VERSION 2.8.3)
 project(selfie_ids_handler)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-# add_compile_options(-std=c++11)
+add_compile_options(-std=c++11)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  message_generation
-  std_msgs
-  genmsg
-  sensor_msgs
+  geometry_msgs
   roscpp
-  OpenCV REQUIRED
+  sensor_msgs
+  std_msgs
+  visualization_msgs
+  selfie_msgs
+  cv_bridge
+  image_transport
 )
+#find_package(OpenCV 3 REQUIRED HINTS $(OpenCV_DIR) NO_DEFAULT_PATH)
 
+find_package(OpenCV 3.3.1 REQUIRED)
+#find_library(UEYE_LIBRARY ueye_api REQUIRED)
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
@@ -50,9 +55,11 @@ find_package(catkin REQUIRED COMPONENTS
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-#add_message_files(
-#  FILES
-#)
+# add_message_files(
+#   FILES
+#   Message1.msg
+#   Message2.msg
+# )
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -69,11 +76,10 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate added messages and services with any dependencies listed here
-generate_messages(
-  DEPENDENCIES
-  std_msgs
-  sensor_msgs
-)
+# generate_messages(
+#   DEPENDENCIES
+#   geometry_msgs#   sensor_msgs#   std_msgs#   visualization_msgs
+# )
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -104,24 +110,26 @@ generate_messages(
 ## LIBRARIES: libraries you create in this project that dependent projects also need
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
-catkin_package(
-  CATKIN_DEPENDS message_runtime
-)
+
 
 ###########
 ## Build ##
 ###########
-
+catkin_package(
+#  LIBRARIES selfie_perception
+#  CATKIN_DEPENDS geometry_msgs roscpp sensor_msgs std_msgs visualization_msgs selfie_msgs cv_bridge image_transport
+#  DEPENDS system_lib
+)
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-# include
   ${catkin_INCLUDE_DIRS}
+  ${OpenCV_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/selfie_msgs.cpp
+#   src/${PROJECT_NAME}/selfie_perception.cpp
 # )
 
 ## Add cmake target dependencies of the library
@@ -132,7 +140,7 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-# add_executable(${PROJECT_NAME}_node src/selfie_msgs_node.cpp)
+# add_executable(${PROJECT_NAME}_node src/selfie_perception_node.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -166,7 +174,7 @@ include_directories(
 ## Mark executables and/or libraries for installation
 # install(TARGETS ${PROJECT_NAME} ${PROJECT_NAME}_node
 #   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATIOfN}
+#   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 # )
 
@@ -189,7 +197,7 @@ include_directories(
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_selfie_msgs.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_selfie_perception.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()
@@ -197,10 +205,7 @@ include_directories(
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
 
-include_directories(include ${catkin_INCLUDE_DIRS})
-
-add_executable(selfie_ids_handler src/main_ids.cpp src/ids.cpp)
-target_link_libraries(selfie_ids_handler ${catkin_LIBRARIES})
-target_link_libraries(selfie_ids_handler ${OpenCV_LIBS})
-add_dependencies(selfie_ids_handler selfie_usb_generate_messages_cpp)
+add_executable(selfie_ids_handler src/main_ids.cpp)# src/ids.cpp src/thread.cpp)
+target_link_libraries(selfie_ids_handler ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})# ${UEYE_LIBRARY})
+add_dependencies(selfie_ids_handler ${catkin_EXPORTED_TARGETS})
 

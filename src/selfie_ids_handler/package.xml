@@ -1,13 +1,13 @@
 <?xml version="1.0"?>
 <package format="2">
   <name>selfie_ids_handler</name>
-  <version>1.0.0</version>
-  <description>The selfie ids handling package</description>
+  <version>0.0.0</version>
+  <description>The selfie_perception package</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->
   <!-- <maintainer email="jane.doe@example.com">Jane Doe</maintainer> -->
-  <maintainer email="kornelialukojc@gmail.com">Kornelia Lukojc</maintainer>
+  <maintainer email="maciej@todo.todo">maciej</maintainer>
 
 
   <!-- One license tag required, multiple allowed, one license per tag -->
@@ -19,7 +19,7 @@
   <!-- Url tags are optional, but multiple are allowed, one per tag -->
   <!-- Optional attribute type can be: website, bugtracker, or repository -->
   <!-- Example: -->
-  <!-- <url type="website">http://wiki.ros.org/selfie_msgs</url> -->
+  <!-- <url type="website">http://wiki.ros.org/selfie_perception</url> -->
 
 
   <!-- Author tags are optional, multiple are allowed, one per tag -->
@@ -49,13 +49,31 @@
   <!-- Use doc_depend for packages you need only for building documentation: -->
   <!--   <doc_depend>doxygen</doc_depend> -->
   <buildtool_depend>catkin</buildtool_depend>
-
-  <depend>roscpp</depend>
-  <depend>std_msgs</depend>
-  <depend>sensor_msgs</depend>
-  <depend>ackermann_msgs</depend>
-
+  <build_depend>cv_bridge</build_depend>
+  <build_depend>image_transport</build_depend>
+  <build_depend>geometry_msgs</build_depend>
+  <build_depend>roscpp</build_depend>
+  <build_depend>sensor_msgs</build_depend>
+  <build_depend>std_msgs</build_depend>
   <build_depend>message_generation</build_depend>
+  <build_depend>visualization_msgs</build_depend>
+  <build_depend>selfie_msgs</build_depend>
+  <build_export_depend>cv_bridge</build_export_depend>
+  <build_export_depend>image_transport</build_export_depend>
+  <build_export_depend>geometry_msgs</build_export_depend>
+  <build_export_depend>roscpp</build_export_depend>
+  <build_export_depend>sensor_msgs</build_export_depend>
+  <build_export_depend>std_msgs</build_export_depend>
+  <build_export_depend>visualization_msgs</build_export_depend>
+  <build_export_depend>selfie_msgs</build_export_depend>
+  <exec_depend>cv_bridge</exec_depend>
+  <exec_depend>image_transport</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>roscpp</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>visualization_msgs</exec_depend>
+  <exec_depend>selfie_msgs</exec_depend>
   <exec_depend>message_runtime</exec_depend>
 
 
