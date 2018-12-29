@@ -4,11 +4,16 @@ project(selfie_rviz)
 ## Compile as C++11, supported in ROS Kinetic and newer
 add_compile_options(-std=c++11)
 
-find_package(catkin REQUIRED COMPONENTS rviz selfie_msgs)
+find_package(catkin REQUIRED COMPONENTS rviz selfie_msgs cv_bridge)
+find_package(OpenCV 3.3.1 REQUIRED)
 
 catkin_package()
 
-include_directories(${catkin_INCLUDE_DIRS})
+include_directories(
+  ${catkin_INCLUDE_DIRS}
+  ${OpenCV_INCLUDE_DIRS}
+)
+
 link_directories(${catkin_LIBRARY_DIRS})
 
 ## This setting causes Qt's "MOC" generation to happen automatically.
@@ -35,6 +40,8 @@ add_definitions(-DQT_NO_KEYWORDS)
 set(SRC_FILES
   src/road_markings_display.cpp
   src/road_markings_visual.cpp
+  src/birds_eye_view_display.cpp
+  src/birds_eye_view_visual.cpp
 )
 
 ## An rviz plugin is just a shared library, so here we declare the
