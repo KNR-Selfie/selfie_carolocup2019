@@ -80,6 +80,8 @@ class Park
 		float back_distance();
 		bool in_parking_spot();
 		bool in_traffic_lane();
+		bool is_point_good(const geometry_msgs::PointStamped &pt);
+
 
 		//move vars
 		float mid_x;
@@ -101,6 +103,9 @@ class Park
 		//params
 		float max_distance_to_wall;
 		bool use_scan;
+		bool always_get_wall;
+		float scan_point_max_distance;
+		bool state_msgs;
 
 
 
