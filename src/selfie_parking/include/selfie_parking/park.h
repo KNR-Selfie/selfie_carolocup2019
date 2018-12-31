@@ -67,10 +67,10 @@ class Park
 		float parking_spot_length;
 		
 
-		void initialize_parking_spot();
+		void initialize_parking_spot(const geometry_msgs::PolygonStamped &msg);
 		//parking spot frame
-		geometry_msgs::PolygonStamped convert_polygon_to_polygon(const std::string &output_frame, const geometry_msgs::PolygonStamped &msg);
-		std::vector<geometry_msgs::PointStamped> convert_polygon_to_points(const std::string &output_frame, const geometry_msgs::PolygonStamped &msg);
+		geometry_msgs::PolygonStamped convert_polygon_to_polygon(const geometry_msgs::PolygonStamped &msg);
+		std::vector<geometry_msgs::PointStamped> convert_polygon_to_points( const geometry_msgs::PolygonStamped &msg);
 		tf::Transform odom_to_parking;
 		geometry_msgs::PoseStamped actual_pose, actual_back_pose, actual_front_pose;
 		double actual_yaw;
@@ -106,6 +106,7 @@ class Park
 		bool always_get_wall;
 		float scan_point_max_distance;
 		bool state_msgs;
+		float earlier_turn;
 
 
 

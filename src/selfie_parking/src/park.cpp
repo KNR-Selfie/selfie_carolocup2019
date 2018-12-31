@@ -5,8 +5,8 @@ nh_(nh),
 pnh_(pnh),
 parking_state(not_parking),
 parking_speed(0.1),
-move_state(init_move)
-//transform_listener(ros::Duration(1))
+move_state(init_move),
+transform_listener(ros::Duration(1))
 {
 	ackermann_pub = nh_.advertise<ackermann_msgs::AckermannDriveStamped>("/sim_drive", 10);
 }
@@ -15,38 +15,60 @@ bool Park::init()
 {
 	odom_sub = nh_.subscribe("/vesc/odom", 1, &Park::odom_callback, this);
 	scan_sub = nh_.subscribe("/obstacles", 1, &Park::scan_callback, this);
-	pnh_.param("use_scan",use_scan, true);
-	pnh_.param<float>("max_distance_to_wall",max_distance_to_wall, 0.02);
+	pnh_.param("use_scan",use_scan, false);
+	pnh_.param<float>("max_distance_to_wall",max_distance_to_wall, 0.04);
 	pnh_.param<bool>("always_get_wall",always_get_wall,true);
 	pnh_.param<float>("scan_point_max_distance", scan_point_max_distance, 0.04);
 	pnh_.param<bool>("info_msgs",state_msgs, false);
+	pnh_.param<float>("earlier_turn",earlier_turn, 0.1);
 
 
-	initialize_parking_spot();
+
+
+
+
+	geometry_msgs::PolygonStamped msg;
+	geometry_msgs::Point32 p;
+	p.x = 3.1;
+	p.y = -0.2;
+	msg.polygon.points.push_back(p);
+	p.x = 3.09;
+	p.y = -0.5;
+	msg.polygon.points.push_back(p);
+	p.x = 3.9;
+	p.y = -0.49;
+	msg.polygon.points.push_back(p);
+	p.x = 3.89;
+	p.y = -0.21;
+	msg.polygon.points.push_back(p);
+	msg.header.stamp = ros::Time::now();
+	msg.header.frame_id = "map";
+
+	
+	initialize_parking_spot(msg);
 	//parking_spot_sub = nh_.subscribe("/parking_spot", 10, &Park::parking_spot_callback, this);
 }
 
-std::vector<geometry_msgs::PointStamped> Park::convert_polygon_to_points(const std::string &output_frame, const geometry_msgs::PolygonStamped &msg)
+std::vector<geometry_msgs::PointStamped> Park::convert_polygon_to_points(const geometry_msgs::PolygonStamped &msg)
 {
 	std::vector<geometry_msgs::PointStamped> points_vector;
 	for(std::vector<geometry_msgs::Point32>::const_iterator it = msg.polygon.points.begin(); it<msg.polygon.points.end();it++)
 	{
 		
-		geometry_msgs::PointStamped to_convert_point;
-		geometry_msgs::PointStamped converted_point;
-		to_convert_point.point.x = (*it).x;
-		to_convert_point.point.y = (*it).y;
-		to_convert_point.point.z = (*it).z;
-		to_convert_point.header = msg.header;
-		transform_listener.transformPoint(output_frame, to_convert_point, converted_point);
-		points_vector.push_back(converted_point);
+		geometry_msgs::PointStamped point;
+		
+		point.point.x = (*it).x;
+		point.point.y = (*it).y;
+		point.point.z = (*it).z;
+		point.header = msg.header;
+		points_vector.push_back(point);
 	}
 	return points_vector;
 }
 
-geometry_msgs::PolygonStamped Park::convert_polygon_to_polygon(const std::string &output_frame, const geometry_msgs::PolygonStamped &msg)
+geometry_msgs::PolygonStamped Park::convert_polygon_to_polygon(const geometry_msgs::PolygonStamped &msg)
 {
-	std::vector<geometry_msgs::PointStamped> points = convert_polygon_to_points(output_frame, msg);
+	std::vector<geometry_msgs::PointStamped> points = convert_polygon_to_points(msg);
 	geometry_msgs::PolygonStamped polygon;
 
 	for(std::vector<geometry_msgs::PointStamped>::const_iterator it  = points.begin();it<points.end();it++)
@@ -64,47 +86,61 @@ geometry_msgs::PolygonStamped Park::convert_polygon_to_polygon(const std::string
 	return polygon;
 
 }
-void Park::initialize_parking_spot()
+void Park::initialize_parking_spot(const geometry_msgs::PolygonStamped &msg)
 {
-	ros::Time now = ros::Time::now();
-	geometry_msgs::PointStamped p;
-	p.point.x = 2;
-	p.point.y = 2;
-	p.header.frame_id = "laser";
-	p.header.stamp = now-ros::Duration(0.001);
-	odom_to_parking.setOrigin(tf::Vector3(3.05, -0.5, 0.0));
+	
+	geometry_msgs::PointStamped tl, bl, br, tr;
+	std::vector<geometry_msgs::PointStamped> points = convert_polygon_to_points(msg);
+	
+	std::vector<geometry_msgs::PointStamped> transformed_points;
+	
+	tl = points[0];
+	bl = points[1];
+	br = points[2];
+	tr = points[3];
+	odom_to_parking.setOrigin(tf::Vector3(bl.point.x, bl.point.y, 0.0));
 	tf::Quaternion quat;
-	quat.setRPY(0,0,0);
+	quat.setRPY(0,0, atan((br.point.y - bl.point.y )/( br.point.x - bl.point.x)) );
 	odom_to_parking.setRotation(quat);
-	/*
-	front_wall = 0.9;
-	back_wall = 0.1;
-	parking_spot_mid_y = 0.15;
-	parking_spot_mid_x = 0.5;
-	traffic_lane_mid_y = 0.5;
-	parking_spot_width = 0.3;
-	parking_spot_length = 0.8;
-	initial_front_wall = 0.9;
-	*/
-	ROS_INFO("%f", ros::Time::now().toSec());
-	transform_broadcaster.sendTransform(tf::StampedTransform(odom_to_parking, now,"map","parking"));
-	transform_listener.waitForTransform("laser",now, "parking", now, "map", ros::Duration(10));
-	//ROS_INFO("%f", ros::Time::now().toSec());
-	transform_listener.transformPoint("parking",now, p, "map", p);
-	ROS_INFO("%f %f ",p.point.x,p.point.y);
-	ROS_INFO("%faaaaaaaaaaaaaaaaaaaaaaaaaaa", ros::Time::now().toSec());
+
+	ros::Time stamp = tl.header.stamp;
+	transform_broadcaster.sendTransform(tf::StampedTransform(odom_to_parking,ros::Time::now(),"map","parking"));
+	transform_listener.waitForTransform(msg.header.frame_id, "parking",stamp, ros::Duration(5));
+	for(int i = 0;i<points.size();i++)
+	{
+		geometry_msgs::PointStamped p;
+		transform_listener.transformPoint("parking", points[i], p);
+		transformed_points.push_back(p);
+		ROS_INFO("%f %f ",transformed_points[i].point.x, transformed_points[i].point.y);
+	}
+	tl = transformed_points[0];
+	bl = transformed_points[1];
+	br = transformed_points[2];
+	tr = transformed_points[3];
+
+	front_wall = tr.point.x<br.point.x?tr.point.x:br.point.x;
+	back_wall = tl.point.x<bl.point.x?bl.point.x:tl.point.x;
+	parking_spot_width = tl.point.y<tr.point.y?tl.point.y:tr.point.y;
+	parking_spot_mid_y = parking_spot_width/2;
+	
+	parking_spot_mid_x = back_wall + (front_wall - back_wall)/2;
+	traffic_lane_mid_y = parking_spot_width + 0.2;
+	
+	parking_spot_length = front_wall - back_wall;
+	initial_front_wall = front_wall;
 	
 
 }
 
 void Park::odom_callback(const nav_msgs::Odometry &msg)
 {
+	transform_broadcaster.sendTransform(tf::StampedTransform(odom_to_parking, ros::Time::now(),"map","parking"));
 	get_position(msg);
 	switch(parking_state)
 	{
 		case not_parking:
 		if(state_msgs) ROS_INFO("not_parking");
-		if(actual_front_pose.pose.position.x < 0.1) drive(0, 0);
+		if(actual_front_pose.pose.position.x < 0.1) drive(0.2, 0);
 		else parking_state = init_parking_spot;
 		break;
 		
@@ -224,7 +260,7 @@ void Park::get_position(const nav_msgs::Odometry &msg)
 	actual_back_pose.pose.position.y-=sin(actual_yaw)*std::abs(ODOM_TO_BACK);
 	actual_front_pose.pose.position.x+=cos(actual_yaw)*std::abs(ODOM_TO_FRONT);
 	actual_front_pose.pose.position.y+=sin(actual_yaw)*std::abs(ODOM_TO_FRONT);
-	//ROS_INFO("actual_x  %f actual_y %f actual_back_x %f actual_back_y %f actual_front_x %f actual_front_y %f actual_yaw %f", actual_pose.pose.position.x, actual_pose.pose.position.y,actual_back_pose.pose.position.x, actual_back_pose.pose.position.y,actual_front_pose.pose.position.x, actual_front_pose.pose.position.y,actual_yaw);
+	ROS_INFO("actual_x  %f actual_y %f actual_back_x %f actual_back_y %f actual_front_x %f actual_front_y %f actual_yaw %f", actual_pose.pose.position.x, actual_pose.pose.position.y,actual_back_pose.pose.position.x, actual_back_pose.pose.position.y,actual_front_pose.pose.position.x, actual_front_pose.pose.position.y,actual_yaw);
 }
 
 void Park::drive(float speed, float steering_angle)
@@ -263,22 +299,22 @@ bool Park::get_in()
 		drive(front?parking_speed:-parking_speed, right?-MAX_TURN:MAX_TURN);
 		if(front && right)
 		{
-			if(actual_front_pose.pose.position.x > mid_x || actual_pose.pose.position.y < mid_y) move_state = second_phase;
+			if(actual_front_pose.pose.position.x > mid_x - earlier_turn || actual_pose.pose.position.y < mid_y) move_state = second_phase;
 			
 		}
 		else if(!front && right)
 		{
-			if(actual_back_pose.pose.position.x < mid_x || actual_pose.pose.position.y < mid_y) move_state = second_phase;
+			if(actual_back_pose.pose.position.x < mid_x + earlier_turn || actual_pose.pose.position.y < mid_y) move_state = second_phase;
 			
 		}
 		if(front && !right)
 		{
-			if(actual_front_pose.pose.position.x > mid_x || actual_pose.pose.position.y > mid_y) move_state = second_phase;
+			if(actual_front_pose.pose.position.x > mid_x  - earlier_turn|| actual_pose.pose.position.y > mid_y) move_state = second_phase;
 			
 		}
 		else if(!front && !right)
 		{
-			if(actual_back_pose.pose.position.x < mid_x || actual_pose.pose.position.y > mid_y) move_state = second_phase;
+			if(actual_back_pose.pose.position.x < mid_x + earlier_turn || actual_pose.pose.position.y > mid_y) move_state = second_phase;
 			
 		}
 		break;
@@ -335,22 +371,22 @@ bool Park::get_out()
 		drive(front?parking_speed:-parking_speed, right?-MAX_TURN:MAX_TURN);
 		if(front && right)
 		{
-			if(actual_front_pose.pose.position.x > mid_x || actual_pose.pose.position.y < mid_y) move_state = second_phase;
+			if(actual_front_pose.pose.position.x > mid_x - earlier_turn || actual_pose.pose.position.y < mid_y) move_state = second_phase;
 			
 		}
 		else if(!front && right)
 		{
-			if(actual_back_pose.pose.position.x < mid_x || actual_pose.pose.position.y < mid_y) move_state = second_phase;
+			if(actual_back_pose.pose.position.x < mid_x + earlier_turn || actual_pose.pose.position.y < mid_y) move_state = second_phase;
 			
 		}
 		if(front && !right)
 		{
-			if(actual_front_pose.pose.position.x > mid_x || actual_pose.pose.position.y > mid_y) move_state = second_phase;
+			if(actual_front_pose.pose.position.x > mid_x - earlier_turn || actual_pose.pose.position.y > mid_y) move_state = second_phase;
 			
 		}
 		else if(!front && !right)
 		{
-			if(actual_back_pose.pose.position.x < mid_x || actual_pose.pose.position.y > mid_y) move_state = second_phase;
+			if(actual_back_pose.pose.position.x < mid_x + earlier_turn || actual_pose.pose.position.y > mid_y) move_state = second_phase;
 			
 		}
 		break;
