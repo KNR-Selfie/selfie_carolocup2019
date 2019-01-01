@@ -14,10 +14,11 @@
 #include <string>
 #include <tf/transform_datatypes.h>
 
-#define ODOM_TO_FRONT 0.2
-#define ODOM_TO_BACK 0
+#define ODOM_TO_FRONT 0.26
+#define ODOM_TO_BACK 0.04
 #define MAX_TURN 0.7
-#define MARIGIN 0.05
+#define CAR_WIDTH 0.2
+#define MARGIN 0.05
 
 class Park
 {
@@ -97,7 +98,9 @@ class Park
 			init_move = 0,
 			first_phase = 1,
 			second_phase = 2,
-			end = 3
+			end = 3,
+			get_straigth = 4,
+			get_middles = 5
 		} move_state;
 		
 		//params

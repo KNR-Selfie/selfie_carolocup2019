@@ -16,11 +16,11 @@ bool Park::init()
 	odom_sub = nh_.subscribe("/vesc/odom", 1, &Park::odom_callback, this);
 	scan_sub = nh_.subscribe("/obstacles", 1, &Park::scan_callback, this);
 	pnh_.param("use_scan",use_scan, false);
-	pnh_.param<float>("max_distance_to_wall",max_distance_to_wall, 0.04);
+	pnh_.param<float>("max_distance_to_wall",max_distance_to_wall, 0.02);
 	pnh_.param<bool>("always_get_wall",always_get_wall,true);
 	pnh_.param<float>("scan_point_max_distance", scan_point_max_distance, 0.04);
 	pnh_.param<bool>("info_msgs",state_msgs, false);
-	pnh_.param<float>("earlier_turn",earlier_turn, 0.1);
+	pnh_.param<float>("earlier_turn",earlier_turn, 0.01);
 
 
 
@@ -35,10 +35,10 @@ bool Park::init()
 	p.x = 3.09;
 	p.y = -0.5;
 	msg.polygon.points.push_back(p);
-	p.x = 3.9;
+	p.x = 3.7;
 	p.y = -0.49;
 	msg.polygon.points.push_back(p);
-	p.x = 3.89;
+	p.x = 3.7;
 	p.y = -0.21;
 	msg.polygon.points.push_back(p);
 	msg.header.stamp = ros::Time::now();
@@ -125,6 +125,7 @@ void Park::initialize_parking_spot(const geometry_msgs::PolygonStamped &msg)
 	
 	parking_spot_mid_x = back_wall + (front_wall - back_wall)/2;
 	traffic_lane_mid_y = parking_spot_width + 0.2;
+
 	
 	parking_spot_length = front_wall - back_wall;
 	initial_front_wall = front_wall;
@@ -260,7 +261,7 @@ void Park::get_position(const nav_msgs::Odometry &msg)
 	actual_back_pose.pose.position.y-=sin(actual_yaw)*std::abs(ODOM_TO_BACK);
 	actual_front_pose.pose.position.x+=cos(actual_yaw)*std::abs(ODOM_TO_FRONT);
 	actual_front_pose.pose.position.y+=sin(actual_yaw)*std::abs(ODOM_TO_FRONT);
-	ROS_INFO("actual_x  %f actual_y %f actual_back_x %f actual_back_y %f actual_front_x %f actual_front_y %f actual_yaw %f", actual_pose.pose.position.x, actual_pose.pose.position.y,actual_back_pose.pose.position.x, actual_back_pose.pose.position.y,actual_front_pose.pose.position.x, actual_front_pose.pose.position.y,actual_yaw);
+	//ROS_INFO("actual_x  %f actual_y %f actual_back_x %f actual_back_y %f actual_front_x %f actual_front_y %f actual_yaw %f", actual_pose.pose.position.x, actual_pose.pose.position.y,actual_back_pose.pose.position.x, actual_back_pose.pose.position.y,actual_front_pose.pose.position.x, actual_front_pose.pose.position.y,actual_yaw);
 }
 
 void Park::drive(float speed, float steering_angle)
@@ -274,14 +275,13 @@ void Park::drive(float speed, float steering_angle)
 
 float Park::front_distance()
 {
-	return front_wall - actual_front_pose.pose.position.x;
+	return front_wall - actual_front_pose.pose.position.x - sin(actual_yaw)*CAR_WIDTH/2;
 }
 
 float Park::back_distance()
 {
-	return actual_back_pose.pose.position.x - back_wall;
+	return actual_back_pose.pose.position.x - back_wall - sin(actual_yaw)*CAR_WIDTH/2;
 }
-
 bool Park::get_in()
 {
 
@@ -291,11 +291,46 @@ bool Park::get_in()
 		if(state_msgs)ROS_INFO("init_move");
 		front = front_distance() > back_distance();
 		right = actual_pose.pose.position.y > parking_spot_mid_y;
-		mid_x = (front?actual_front_pose.pose.position.x + (front_wall - actual_front_pose.pose.position.x) / 2:back_wall + (actual_back_pose.pose.position.x - back_wall)/2);
+		move_state = get_straigth;
+
+		case get_straigth:
+		if(state_msgs) ROS_INFO("get_straigth");
+		if(front && right)
+		{
+			if(actual_yaw > 0) drive(parking_speed, -MAX_TURN);
+			else move_state = get_middles;
+			
+		}
+		else if(!front && right)
+		{
+			if(actual_yaw < 0) drive(-parking_speed, -MAX_TURN);
+			else move_state = get_middles;
+			
+		}
+		if(front && !right)
+		{
+			if(actual_yaw < 0) drive(parking_speed, MAX_TURN);
+			else move_state = get_middles;			
+		}
+		else if(!front && !right)
+		{
+			if(actual_yaw > 0) drive(-parking_speed, MAX_TURN);
+			else move_state = get_middles;
+			
+		}
+		break;
+
+		case get_middles:
+
+		mid_x = (front?actual_front_pose.pose.position.x  + (front_wall - max_distance_to_wall  - actual_front_pose.pose.position.x)*1/3:back_wall + (actual_back_pose.pose.position.x + max_distance_to_wall - back_wall)/2);
 		mid_y = parking_spot_mid_y + (actual_back_pose.pose.position.y - parking_spot_mid_y)/2;
 		move_state = first_phase;
+		//ROS_INFO("mid x %f mid y  %f", mid_x, mid_y);
+
+		
 		case first_phase:
 		if(state_msgs) ROS_INFO("1st phase");
+		//ROS_INFO("act  x %f act  y  %f",actual_front_pose.pose.position.x, actual_pose.pose.position.y);
 		drive(front?parking_speed:-parking_speed, right?-MAX_TURN:MAX_TURN);
 		if(front && right)
 		{
@@ -320,6 +355,7 @@ bool Park::get_in()
 		break;
 		case second_phase:
 		if(state_msgs) ROS_INFO("2nd phase");
+		ROS_INFO("front distance %f", front_distance());
 		drive(front?parking_speed:-parking_speed, right?MAX_TURN:-MAX_TURN);
 		if(front && right)
 		{
@@ -364,10 +400,44 @@ bool Park::get_out()
 		case init_move:
 		front = front_distance() > back_distance();
 		right = actual_pose.pose.position.y > traffic_lane_mid_y;
-		mid_x = (front?actual_front_pose.pose.position.x + (front_wall - actual_front_pose.pose.position.x) / 2:back_wall + (actual_back_pose.pose.position.x - back_wall)/2);
+		move_state = get_straigth;
+
+		case get_straigth:
+		if(state_msgs) ROS_INFO("get_straigth");
+		if(front && right)
+		{
+			if(actual_yaw > 0) drive(parking_speed, -MAX_TURN);
+			else move_state = get_middles;
+			
+		}
+		else if(!front && right)
+		{
+			if(actual_yaw < 0) drive(-parking_speed, -MAX_TURN);
+			else move_state = get_middles;
+			
+		}
+		if(front && !right)
+		{
+			if(actual_yaw < 0) drive(parking_speed, MAX_TURN);
+			else move_state = get_middles;			
+		}
+		else if(!front && !right)
+		{
+			if(actual_yaw > 0) drive(-parking_speed, MAX_TURN);
+			else move_state = get_middles;
+			
+		}
+		break;
+
+		case get_middles:
+		mid_x = (front?actual_front_pose.pose.position.x  + (front_wall- max_distance_to_wall  - actual_front_pose.pose.position.x) *1/3:back_wall + (actual_back_pose.pose.position.x + max_distance_to_wall - back_wall)/2);
 		mid_y = traffic_lane_mid_y + (actual_back_pose.pose.position.y - traffic_lane_mid_y)/2;
 		move_state = first_phase;
+		ROS_INFO("mid x %f mid y  %f", mid_x, mid_y);
+
 		case first_phase:
+		//ROS_INFO("act  x %f act  y  %f",actual_front_pose.pose.position.x, actual_pose.pose.position.y);
+
 		drive(front?parking_speed:-parking_speed, right?-MAX_TURN:MAX_TURN);
 		if(front && right)
 		{
@@ -393,6 +463,7 @@ bool Park::get_out()
 		case second_phase:
 		//ROS_INFO("%f %f",front_distance(),back_distance());
 		drive(front?parking_speed:-parking_speed, right?MAX_TURN:-MAX_TURN);
+		ROS_INFO("front distance %f",front_distance());
 		if(front && right)
 		{
 			if(actual_yaw > 0 || front_distance() < max_distance_to_wall) move_state = end;
@@ -429,13 +500,16 @@ bool Park::get_out()
 
 bool Park::in_parking_spot()
 {
-	ROS_INFO(" pos %f", actual_pose.pose.position.y);
-	return parking_spot_mid_y + MARIGIN>actual_pose.pose.position.y && actual_pose.pose.position.y>parking_spot_mid_y - MARIGIN;
+	//ROS_INFO(" pos %f", actual_pose.pose.position.y);
+	float l = cos(actual_yaw)*CAR_WIDTH/2;
+	bool is_in = parking_spot_width > actual_back_pose.pose.position.y + l && actual_back_pose.pose.position.y - l > 0 && parking_spot_width > actual_front_pose.pose.position.y + l && actual_front_pose.pose.position.y - l > 0;
+	return is_in;
 }
 
 bool Park::in_traffic_lane()
 {
-	ROS_INFO(" pos %f", actual_pose.pose.position.y);
-	return traffic_lane_mid_y + MARIGIN>actual_pose.pose.position.y && actual_pose.pose.position.y>traffic_lane_mid_y - MARIGIN;
+	//ROS_INFO(" pos %f", actual_pose.pose.position.y);
+	float l = cos(actual_yaw)*CAR_WIDTH/2;
+	return traffic_lane_mid_y + MARGIN > actual_pose.pose.position.y && actual_pose.pose.position.y > traffic_lane_mid_y - MARGIN;
 	
 }
