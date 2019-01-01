@@ -10,7 +10,13 @@ int main(int argc, char** argv)
 
 	Park park(nh, pnh);
 	park.init();
-	ros::spin();
+	ros::Rate rate(50);
+	while(ros::ok())
+	{
+		park.broadcast_parking_frame();
+		ros::spinOnce();
+		rate.sleep();
+	}
 	return 0;
 }
 

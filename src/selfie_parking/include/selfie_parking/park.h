@@ -13,6 +13,8 @@
 #include <geometry_msgs/PoseStamped.h>
 #include <string>
 #include <tf/transform_datatypes.h>
+#include <tf/message_filter.h>
+#include <message_filters/subscriber.h>
 
 #define ODOM_TO_FRONT 0.26
 #define ODOM_TO_BACK 0.04
@@ -23,16 +25,11 @@
 class Park
 {
 	private:
-		struct Point
-		{
-			double x;
-			double y;
-		};
-
 		enum Parking_State
 		{
 			not_parking = 0,
 			init_parking_spot = 1,
+			go_to_parking_spot = 6,
 			going_in = 2,
 			parked = 3,
 			going_out = 4,
@@ -41,21 +38,18 @@ class Park
 
 		ros::NodeHandle nh_;
 		ros::NodeHandle pnh_;
-
-		ros::Subscriber odom_sub;
-		ros::Subscriber scan_sub;
-		//ros::Subscriber parking_spot_sub;
 		ros::Publisher ackermann_pub;
-
 		tf::TransformBroadcaster transform_broadcaster;
 		tf::TransformListener transform_listener;
 
-
-
-		void odom_callback(const nav_msgs::Odometry &msg);
-		void scan_callback(const selfie_msgs::PolygonArray &msg);
-		//void parking_spot_callback(const geometry_msgs::PolygonStamped &msg);
-
+		//scan
+		message_filters::Subscriber<selfie_msgs::PolygonArray> scan_sub;
+		tf::MessageFilter<selfie_msgs::PolygonArray> * tf_filter_scan;
+		void scan_callback(const boost::shared_ptr<const selfie_msgs::PolygonArray> & msg_ptr);
+		//odom
+		message_filters::Subscriber<nav_msgs::Odometry> odomsub;
+		tf::MessageFilter<nav_msgs::Odometry> * tf_filter_odom;
+		void odom_callback(const boost::shared_ptr<const nav_msgs::Odometry> & msg_ptr);
 
 		//parking spot
 		float initial_front_wall;
@@ -66,12 +60,10 @@ class Park
 		float traffic_lane_mid_y;
 		float parking_spot_width;
 		float parking_spot_length;
-		
 
 		void initialize_parking_spot(const geometry_msgs::PolygonStamped &msg);
-		//parking spot frame
-		geometry_msgs::PolygonStamped convert_polygon_to_polygon(const geometry_msgs::PolygonStamped &msg);
-		std::vector<geometry_msgs::PointStamped> convert_polygon_to_points( const geometry_msgs::PolygonStamped &msg);
+		
+		std::vector<geometry_msgs::PointStamped> convert_polygon_to_points(const geometry_msgs::PolygonStamped &msg);
 		tf::Transform odom_to_parking;
 		geometry_msgs::PoseStamped actual_pose, actual_back_pose, actual_front_pose;
 		double actual_yaw;
@@ -83,8 +75,7 @@ class Park
 		bool in_traffic_lane();
 		bool is_point_good(const geometry_msgs::PointStamped &pt);
 
-
-		//move vars
+		//move variablres
 		float mid_x;
 		float mid_y;
 		float parking_speed;
@@ -93,14 +84,16 @@ class Park
 
 		bool get_in();
 		bool get_out();
+		bool to_parking_spot();
+
 		enum Move_State
 		{
 			init_move = 0,
-			first_phase = 1,
-			second_phase = 2,
-			end = 3,
-			get_straigth = 4,
-			get_middles = 5
+			get_straigth = 1,
+			get_middles = 2,
+			first_phase = 3,
+			second_phase = 4,
+			end = 5
 		} move_state;
 		
 		//params
@@ -110,20 +103,15 @@ class Park
 		float scan_point_max_distance;
 		bool state_msgs;
 		float earlier_turn;
-
-
-
-
+		float first_to_second_phase_x_frontwards;
+		float first_to_second_phase_x_backwards;
+		float minimal_start_parking_x;
+		float maximal_start_parking_x;
+		void print_params();
 
 	public:
 		Park(const ros::NodeHandle &nh, const ros::NodeHandle &pnh);
 		bool init();
-
-
-
-
-
-
-
+		void broadcast_parking_frame();
 
 };
