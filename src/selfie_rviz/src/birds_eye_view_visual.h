@@ -37,9 +37,11 @@ private:
 	float min_y_;
 	float max_y_;
 
-	cv::Mat world2cam_;
+	float pixel_size_;
 
-	float pixel_size_; // TODO
+	cv::Mat world2cam_;
+	cv::Mat topview2cam_;
+	cv::Size topview_size_;
 
 	Ogre::ManualObject* quad_object_;
 	Ogre::MaterialPtr quad_mat_;
@@ -49,7 +51,8 @@ private:
 	Ogre::SceneManager* scene_manager_;
 
 	void createQuad_();
-	void updateQuadDimensions_(float min_x, float max_x, float min_y, float max_y);
+	void updateQuadDimensions_();
+	void computeTopView_();
 };
 
 } // end namespace selfie_rviz

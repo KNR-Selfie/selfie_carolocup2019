@@ -60,7 +60,7 @@ add_library(${PROJECT_NAME} ${SRC_FILES})
 ## cmake knows it is a library and names the actual file something like
 ## "libselfie_rviz.so", or whatever is appropriate for your
 ## particular OS.
-target_link_libraries(${PROJECT_NAME} ${QT_LIBRARIES} ${catkin_LIBRARIES})
+target_link_libraries(${PROJECT_NAME} ${QT_LIBRARIES} ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 
 ## Install rules
 

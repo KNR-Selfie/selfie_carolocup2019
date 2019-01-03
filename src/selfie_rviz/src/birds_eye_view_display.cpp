@@ -5,6 +5,8 @@
 
 #include <ros/node_handle.h>
 
+#include <cv_bridge/cv_bridge.h>
+
 #include "birds_eye_view_visual.h"
 #include "birds_eye_view_display.h"
 
@@ -83,6 +85,16 @@ void BirdsEyeViewDisplay::imageCallback(const sensor_msgs::Image::ConstPtr& img)
 		visual_ = new BirdsEyeViewVisual(context_->getSceneManager(), scene_node_);
 		updateViewArea();
 	}
+
+	// TODO
+	cv::Mat T = (cv::Mat_<double>(3,3) <<
+		1.7701441713691642e+02, -2.8791094488713605e+02,
+		3.0858296328889139e+01, -5.4460425051049683e+01,
+		-1.3921909066466005e+00, 9.3396020789094635e+01,
+		5.3720558367159277e-01, -9.8966649280545702e-03,
+		8.7165877342182813e-02);
+	
+	visual_->setHomography(T);
 
 	visual_->setImage(img);
 }

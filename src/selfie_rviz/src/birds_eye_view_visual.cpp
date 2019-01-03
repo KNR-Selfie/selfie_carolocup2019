@@ -1,4 +1,5 @@
 #include <rviz/uniform_string_stream.h>
+#include <opencv2/calib3d.hpp>
 
 #include "birds_eye_view_visual.h"
 
@@ -10,6 +11,9 @@ BirdsEyeViewVisual::BirdsEyeViewVisual(Ogre::SceneManager* scene_manager, Ogre::
 	scene_manager_ = scene_manager;
 	frame_node_ = parent_node->createChildSceneNode();
 
+	// TODO
+	pixel_size_ = 0.01;
+
 	createQuad_();
 }
 
@@ -20,7 +24,15 @@ BirdsEyeViewVisual::~BirdsEyeViewVisual()
 
 void BirdsEyeViewVisual::setImage(const sensor_msgs::Image::ConstPtr& img)
 {
-	quad_texture_->addMessage(img);
+	cv_bridge::CvImagePtr cv_img = cv_bridge::toCvCopy(img);
+	cv::Mat dest;
+	cv::warpPerspective(cv_img->image, dest, topview2cam_, topview_size_, cv::INTER_CUBIC | cv::WARP_INVERSE_MAP);
+
+	cv_img->image = dest;
+	sensor_msgs::Image::Ptr warped_img(new sensor_msgs::Image);
+	cv_img->toImageMsg(*warped_img);
+
+	quad_texture_->addMessage(warped_img);
 	quad_texture_->update();
 }
 
@@ -37,12 +49,18 @@ void BirdsEyeViewVisual::setFrameOrientation(const Ogre::Quaternion& orientation
 void BirdsEyeViewVisual::setViewArea(float min_x, float max_x,
 																		 float min_y, float max_y)
 {
-	updateQuadDimensions_(min_x, max_x, min_y, max_y);
+	min_x_ = min_x;
+	max_x_ = max_x;
+	min_y_ = min_y;
+	max_y_ = max_y;
+
+	updateQuadDimensions_();
 }
 
 void BirdsEyeViewVisual::setHomography(cv::Mat world2cam)
 {
 	world2cam_ = world2cam;
+	computeTopView_();
 }
 
 void BirdsEyeViewVisual::createQuad_()
@@ -68,8 +86,7 @@ void BirdsEyeViewVisual::createQuad_()
 	);
 }
 
-void BirdsEyeViewVisual::updateQuadDimensions_(float min_x, float max_x,
-																		 					 float min_y, float max_y)
+void BirdsEyeViewVisual::updateQuadDimensions_()
 {
 	quad_object_->clear();
 	quad_object_->estimateVertexCount(8);
@@ -77,20 +94,20 @@ void BirdsEyeViewVisual::updateQuadDimensions_(float min_x, float max_x,
 											Ogre::RenderOperation::OT_TRIANGLE_LIST);
 
 	Ogre::Vector3 points[4];
-	points[0].x = max_x;
-	points[0].y = max_y;
+	points[0].x = max_x_;
+	points[0].y = max_y_;
 	points[0].z = 0;
 
-	points[1].x = max_x;
-	points[1].y = min_y;
+	points[1].x = max_x_;
+	points[1].y = min_y_;
 	points[1].z = 0;
 
-	points[2].x = min_x;
-	points[2].y = min_y;;
+	points[2].x = min_x_;
+	points[2].y = min_y_;
 	points[2].z = 0;
 
-	points[3].x = min_x;
-	points[3].y = max_y;
+	points[3].x = min_x_;
+	points[3].y = max_y_;
 	points[3].z = 0;
 
 	int triangle_vertex_indices[2][3];
@@ -144,6 +161,30 @@ void BirdsEyeViewVisual::updateQuadDimensions_(float min_x, float max_x,
 	}
 
 	quad_object_->end();
+}
+
+void BirdsEyeViewVisual::computeTopView_()
+{
+	// Choose top-view image size
+	topview_size_ = cv::Size((max_y_ - min_y_) / pixel_size_,
+													 (max_x_ - min_x_) / pixel_size_);
+
+	// Choose corner points (in real-world coordinates)
+	std::vector<cv::Point2f> coordinates;
+	coordinates.emplace_back(min_x_, min_y_);
+	coordinates.emplace_back(min_x_, max_y_);
+	coordinates.emplace_back(max_x_, min_y_);
+	coordinates.emplace_back(max_x_, max_y_);
+
+	std::vector<cv::Point2f> pixels;
+	pixels.emplace_back(topview_size_.width, topview_size_.height);
+	pixels.emplace_back(0, topview_size_.height);
+	pixels.emplace_back(topview_size_.width, 0);
+	pixels.emplace_back(0, 0);
+
+	cv::Mat H = cv::findHomography(pixels, coordinates);
+
+	topview2cam_ = world2cam_ * H;
 }
 
 } // end namespace selfie_rviz
