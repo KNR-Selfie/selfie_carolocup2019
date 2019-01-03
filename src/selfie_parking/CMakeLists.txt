@@ -10,9 +10,11 @@ add_compile_options(-std=c++11)
 find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   roscpp
+  rospy
   selfie_msgs
   std_msgs
   visualization_msgs
+  ackermann_msgs
 )
 
 

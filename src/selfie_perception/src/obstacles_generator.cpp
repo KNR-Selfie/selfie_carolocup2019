@@ -14,7 +14,7 @@ ObstaclesGenerator::ObstaclesGenerator(const ros::NodeHandle& nh, const ros::Nod
     obstacle_nominal_length_(0.2),
     obstacles_frame_("laser"),
     visualization_frame_("laser"),
-    visualize_(true)
+    visualize_(false)
 {
     obstacles_pub_ = nh_.advertise<selfie_msgs::PolygonArray>("obstacles", 10);
 }
