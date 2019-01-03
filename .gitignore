@@ -17,6 +17,7 @@ build_isolated/
 devel_isolated/
 install/
 rosbag/
+.vscode/
 
 #qt_ros project
 *.workspace
