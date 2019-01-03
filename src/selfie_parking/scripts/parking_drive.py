@@ -5,12 +5,18 @@ from ackermann_msgs.msg import AckermannDriveStamped
 from std_msgs.msg import Int16
 
 SPEED = 0.4
-UPDATE_RATE = 20
+UPDATE_RATE = 40
 
 def state_callback(msg):
-    if(msg.data == 0):
+    if(msg.data < 2):
+        if(msg.data == 1):
+            rospy.loginfo('planning failed')
+            rospy.sleep(1)
         rospy.loginfo('searching ')
-    elif(msg.data == 1):
+        drive_msg.drive.steering_angle = 0
+        drive_msg.drive.speed = SPEED
+        drive_msg.drive.steering_angle_velocity = 5
+    elif(msg.data == 2):
         drive_msg.drive.speed = 0
         drive_msg.drive.steering_angle = 0
         rospy.loginfo('planning')
@@ -30,7 +36,6 @@ if __name__ == '__main__':
     global drive_pub
     drive_pub = rospy.Publisher('drive', AckermannDriveStamped, queue_size=1) 
     parking_state_sub = rospy.Subscriber('parking_state', Int16, state_callback, queue_size=10)  
-
     rate = rospy.Rate(UPDATE_RATE)
     while not rospy.is_shutdown():
         drive_pub.publish(drive_msg)

@@ -30,7 +30,7 @@ void Parking::manager(const selfie_msgs::PolygonArray &msg)
     planning_error_counter = 0;
     search(msg);
     bool place_found = find_free_place();
-
+    first_free_place.visualize(point_pub);
     if(place_found && abs(get_dist_from_first_free_place()) < distance_to_stop)
     {
       state = planning;
@@ -39,12 +39,13 @@ void Parking::manager(const selfie_msgs::PolygonArray &msg)
     display_bottom_lines();
    // display_left_lines();
   }  
-  else if(state == planning)
+  else if(state == planning || state == planning_failed)
     {
-      if(planning_scan_counter < 6)
+      if(planning_scan_counter < 5)
       {
         if(!planning_scan_counter)
-          ros::Duration(0.5).sleep();
+       // cout << "planning_scan_counter == 0\n0.5s sleep \n";
+          ros::Duration(1).sleep();
         search(msg);
         if(find_free_place())
         {
@@ -53,12 +54,12 @@ void Parking::manager(const selfie_msgs::PolygonArray &msg)
           cout << "ok\n";
         }
       }
-      if(planning_scan_counter == 6)
+      if(planning_scan_counter == 5)
       {
         first_free_place.visualize(point_pub);
         first_free_place.print_box_dimensions();
-        cout << count_surface_area(first_free_place) << endl;
-        ros::Duration(3).sleep();
+       // cout << "1s sleep\n";
+      //  ros::Duration(0.5).sleep();
         get_exact_measurements();
         planning_scan_counter = 0;
         for_planning.clear();
@@ -68,26 +69,32 @@ void Parking::manager(const selfie_msgs::PolygonArray &msg)
         display_free_place();
       }
     }
-    if(planning_error_counter > 5)
-      state = searching;
+    if(planning_error_counter == 5)
+    {
+      planning_error_counter = 0;
+      planning_scan_counter = 0;
+      state = planning_failed;
+      first_free_place.reset();
+      reset();
+    }
 }
 
 bool Parking::find_free_place()
 {
   if(boxes_on_the_right_side.size() < 2)
     return false;
-  double min_space = 0.5;
+  double min_space = 0.6;
   vector<Box>::iterator iter = boxes_on_the_right_side.begin();
   vector<Box>::const_iterator end_iter = boxes_on_the_right_side.cend();
-//  for(;  iter != end_iter;  ++iter)
-//  {
+  //for(;  iter != end_iter;  ++iter)
+ // {
     double dist = (*iter).top_left.get_distance((*(iter+1)).bottom_left);
     if(dist > min_space)
     {
       Box tmp_box((*iter).top_left, (*iter).top_right, (*(iter+1)).bottom_left, (*(iter+1)).bottom_right);
       first_free_place = tmp_box;
     //  first_free_place.print();
-    //  tmp_box.visualize(point_pub);
+      tmp_box.visualize(point_pub);
       return true;
     }
     if(state == planning)
@@ -95,8 +102,9 @@ bool Parking::find_free_place()
       cout << "error, place not found!!!!\n";
       ++planning_error_counter;
     }
-    return false;
- // }
+    
+  //}
+  return false;
 //  potential_free_places.push_back();
 }
 
@@ -110,6 +118,10 @@ void Parking::get_exact_measurements()
   double min_top_right_x = 1000;
   double max_top_left_y = -1000;
   double max_bottom_left_y = -1000;
+  double max_bottom_left_x = -1000;
+  double max_bottom_right_x = -1000;
+  double max_bottom_right_y = -1000;
+
   for(;  box_it != for_planning.end();  ++box_it)
   {
     double surface = count_surface_area(*box_it);
@@ -130,11 +142,25 @@ void Parking::get_exact_measurements()
 
     if((*box_it).bottom_left.y > max_bottom_left_y)
       max_bottom_left_y = (*box_it).bottom_left.y;    
+
+    if((*box_it).bottom_right.x > max_bottom_right_x)
+      max_bottom_right_x = (*box_it).bottom_right.x;
+
+    if((*box_it).bottom_right.y > max_bottom_right_y)
+      max_bottom_right_y = (*box_it).bottom_right.y;
+
+    if((*box_it).bottom_left.x > max_bottom_left_x)
+      max_bottom_left_x = (*box_it).bottom_left.x;
   }
   real_place.top_left.x = min_top_left_x;
   real_place.top_left.y = max_top_left_y;
+  real_place.top_right.x = real_place.top_left.x;
+  real_place.top_right.y = real_place.top_left.y-0.3;
   real_place.bottom_left.y = max_bottom_left_y;
-  real_place.top_right.x = min_top_right_x;
+  real_place.bottom_left.x = max_bottom_left_x;
+  real_place.bottom_right.x = real_place.bottom_left.x;
+  real_place.bottom_right.y = real_place.bottom_left.y-0.3;
+  
   first_free_place = real_place;
   // TODO
 }

@@ -18,7 +18,7 @@
 
 using namespace std;
 
-enum parking_state{searching, planning, parking};
+enum parking_state{searching=0,  planning_failed=1, planning=2, parking=3};
 
 class Parking{
 private:
@@ -44,7 +44,7 @@ private:
   double planning_error_counter = 0;
 
   // jednostki w metrach
-  const float point_min_x = -1;
+  const float point_min_x = -0.3;
   const float point_max_x = 5;
 
   const float point_min_y = -1;
