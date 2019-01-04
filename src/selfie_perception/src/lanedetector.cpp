@@ -140,15 +140,14 @@ void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr &msg)
 		if(init_imageCallback_)
 		{
 			initRecognizeLines();
-			if(!visualize_)
-				init_imageCallback_ = false;
+			init_imageCallback_ = false;
 		}
 		else
 		{
 			recognizeLines();
 			filterPoints();
+			addBottomPoint();
 		}
-		addBottomPoint();
 		linesApproximation(lanes_vector_);
 		calcValuesForMasks();
 	}
@@ -245,14 +244,6 @@ void LaneDetector::openCVVisualization()
 
 	cv::namedWindow("Output", cv::WINDOW_NORMAL);
 	cv::imshow("Output", visualization_frame_);
-
-	/*
-	if(!init_imageCallback_)
-	{
-		cv::namedWindow("testCrossing", cv::WINDOW_NORMAL);
-		cv::imshow("testCrossing", testCrossing);
-	}*/
-	init_imageCallback_ = false;
 
 	cv::namedWindow("Homography", cv::WINDOW_NORMAL);
 	cv::imshow("Homography", homography_frame_);
@@ -1112,20 +1103,25 @@ void LaneDetector::addBottomPoint()
 	cv::Point temp;
 	if(left_line_index_ > -1)
 	{
+
 		temp.x = 0;
 		temp.y = getAproxY(last_left_coeff_, 0);
 		lanes_vector_[left_line_index_].insert(lanes_vector_[left_line_index_].begin(), temp);
+
 	}
 
 	if(right_line_index_ > -1)
 	{
+
 		temp.x = 0;
 		temp.y = getAproxY(last_right_coeff_, 0);
 		lanes_vector_[right_line_index_].insert(lanes_vector_[right_line_index_].begin(), temp);
+
 	}
 
 	if(center_line_index_ > -1)
 	{
+
 		temp.x = 0;
 		temp.y = getAproxY(last_middle_coeff_, 0);
 		lanes_vector_[center_line_index_].insert(lanes_vector_[center_line_index_].begin(), temp);

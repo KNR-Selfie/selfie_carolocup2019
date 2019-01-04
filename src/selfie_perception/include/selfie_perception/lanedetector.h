@@ -49,7 +49,6 @@ class LaneDetector
 	cv::Mat testCrossing;
 
 	std::vector<std::vector<cv::Point> > lanes_vector_;
-	//std::vector<std::vector<cv::Point> > lanes_vector_last_frame;
 	std::vector<std::vector<cv::Point> > aprox_lines_frame_coordinate_;
 
 	std::vector<float> last_left_coeff_;
