@@ -8,15 +8,14 @@
 #define CAM_RES_X IDS_WIDTH
 #define CAM_RES_Y IDS_HEIGHT
 
-bool show_visualition = false;
+bool show_visualization = false;
 
 int main(int argc, char **argv)
 {
   ros::init(argc, argv, "selfie_ids_handler");
   ros::NodeHandle n;
   ros::NodeHandle pnh("~");
-  pnh.getParam("show",show_visualition);
-
+  pnh.getParam("show",show_visualization);
   image_transport::ImageTransport it(n);
 
   image_transport::Publisher image_pub;
@@ -27,7 +26,7 @@ int main(int argc, char **argv)
   
   cv::Mat ids_image(CAM_RES_Y,CAM_RES_X,CV_8UC3);
   int denom = 0;
-  if (show_visualition == true){
+  if (show_visualization == true){
     cv::namedWindow("Frame",1);  
   }
 
@@ -49,7 +48,7 @@ int main(int argc, char **argv)
     //publishing message
     image_pub.publish(img_msg); 
 
-    if (show_visualition == true){
+    if (show_visualization == true){
       //showing image from camera
       if(++denom >= IMSHOW_RATE){
         denom = 0;
