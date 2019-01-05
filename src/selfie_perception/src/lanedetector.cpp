@@ -32,6 +32,7 @@ LaneDetector::LaneDetector(const ros::NodeHandle &nh, const ros::NodeHandle &pnh
 	max_delta_y_lane_(50 * (TOPVIEW_MAX_Y - TOPVIEW_MIN_Y) / TOPVIEW_COLS / 0.0021875),
 	nominal_center_line_Y_(50 * (TOPVIEW_MAX_Y - TOPVIEW_MIN_Y) / TOPVIEW_COLS / 0.0021875),
 	min_length_to_aprox_(200 * (TOPVIEW_MAX_X - TOPVIEW_MIN_X) / TOPVIEW_ROWS / 0.00175),
+	lane_width_(100),
 
 	left_line_index_(-1),
 	right_line_index_(-1),
@@ -819,6 +820,7 @@ void LaneDetector::linesApproximation(std::vector<std::vector<cv::Point> > lanes
 		left_coeff_ = left_line_poly_.coeff;
 		middle_coeff_ = center_line_poly_.coeff;
 		right_coeff_= right_line_poly_.coeff;
+		lane_width_ = middle_coeff_[0] - right_coeff_[0];
 		break;
 
 		case 2:
@@ -832,6 +834,7 @@ void LaneDetector::linesApproximation(std::vector<std::vector<cv::Point> > lanes
 
 			middle_coeff_ = center_line_poly_.coeff;
 			right_coeff_= right_line_poly_.coeff;
+			lane_width_ = middle_coeff_[0] - right_coeff_[0];
 			if(left_line_index_ == -1)
 			{
 				ROS_INFO("l-  c+  r+");
@@ -856,6 +859,7 @@ void LaneDetector::linesApproximation(std::vector<std::vector<cv::Point> > lanes
 
 			middle_coeff_ = center_line_poly_.coeff;
 			left_coeff_= left_line_poly_.coeff;
+			lane_width_ = left_coeff_[0] - middle_coeff_[0];
 			if(right_line_index_ == -1)
 			{
 				ROS_INFO("l+  c+  r-");
@@ -880,6 +884,7 @@ void LaneDetector::linesApproximation(std::vector<std::vector<cv::Point> > lanes
 
 			right_coeff_ = right_line_poly_.coeff;
 			left_coeff_= left_line_poly_.coeff;
+			lane_width_ = (left_coeff_[0] - right_coeff_[0]) / 2;
 			if(center_line_index_ == -1)
 			{
 				ROS_INFO("l+  c-  r+");
@@ -939,8 +944,10 @@ void LaneDetector::linesApproximation(std::vector<std::vector<cv::Point> > lanes
 			else
 			{
 				ROS_INFO("l-  c-  r+");
-				middle_coeff_ = last_middle_coeff_;
-				left_coeff_ = last_left_coeff_;
+				middle_coeff_ = right_coeff_;
+				middle_coeff_[0] += lane_width_;
+				left_coeff_ = middle_coeff_;
+				left_coeff_[0] += lane_width_;
 			}
 		}
 
@@ -986,8 +993,10 @@ void LaneDetector::linesApproximation(std::vector<std::vector<cv::Point> > lanes
 			else
 			{
 				ROS_INFO("l+  c-  r-");
-				middle_coeff_ = last_middle_coeff_;
-				right_coeff_ = last_right_coeff_;
+				middle_coeff_ = left_coeff_;
+				middle_coeff_[0] -= lane_width_;
+				right_coeff_ = middle_coeff_;
+				right_coeff_[0] -= lane_width_;
 			}
 		}
 
@@ -1033,8 +1042,10 @@ void LaneDetector::linesApproximation(std::vector<std::vector<cv::Point> > lanes
 			else
 			{
 				ROS_INFO("l-  c+  r-");
-				left_coeff_ = last_left_coeff_;
-				right_coeff_ = last_right_coeff_;
+				left_coeff_ = middle_coeff_;
+				left_coeff_[0] += lane_width_;
+				right_coeff_ = middle_coeff_;
+				right_coeff_[0] -= lane_width_;
 			}
 		}
 		break;
@@ -1103,7 +1114,6 @@ void LaneDetector::addBottomPoint()
 	cv::Point temp;
 	if(left_line_index_ > -1)
 	{
-
 		temp.x = 0;
 		temp.y = getAproxY(last_left_coeff_, 0);
 		lanes_vector_[left_line_index_].insert(lanes_vector_[left_line_index_].begin(), temp);
@@ -1112,7 +1122,6 @@ void LaneDetector::addBottomPoint()
 
 	if(right_line_index_ > -1)
 	{
-
 		temp.x = 0;
 		temp.y = getAproxY(last_right_coeff_, 0);
 		lanes_vector_[right_line_index_].insert(lanes_vector_[right_line_index_].begin(), temp);
@@ -1121,7 +1130,6 @@ void LaneDetector::addBottomPoint()
 
 	if(center_line_index_ > -1)
 	{
-
 		temp.x = 0;
 		temp.y = getAproxY(last_middle_coeff_, 0);
 		lanes_vector_[center_line_index_].insert(lanes_vector_[center_line_index_].begin(), temp);

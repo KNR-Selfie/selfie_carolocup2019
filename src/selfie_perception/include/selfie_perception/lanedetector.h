@@ -98,6 +98,7 @@ class LaneDetector
 	float min_length_lane_;
 	float max_delta_y_lane_;
 	float min_length_to_aprox_;
+	float lane_width_;
 
 	std::string config_file_;
 	float binary_treshold_;
