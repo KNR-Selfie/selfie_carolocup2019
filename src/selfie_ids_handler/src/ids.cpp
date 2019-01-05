@@ -4,14 +4,15 @@ pthread_cond_t algorithm_signal = PTHREAD_COND_INITIALIZER;
 pthread_mutex_t algorithm_signal_mutex = PTHREAD_MUTEX_INITIALIZER;
 IDS ids;
 
+//function used inside ids thread
 void* ids_thread_f(void *x){
-
     while(true){
         ids.frame_loop();
     }
     return NULL;
 }
 
+//initialization of ids class
 void IDS::init(){
     initialize_camera();
     setting_auto_params();
@@ -20,8 +21,11 @@ void IDS::init(){
     update_autoparams();
     create_manual_trackbars();
     update_params();
+
+    //initialization of mutex used as signal for image processing
     pthread_mutex_init(&algorithm_signal_mutex,NULL);
 
+    //creating threads for image processing
     int x = 0;
     if (pthread_create(&frame_thread,NULL,ids_thread_f,&x)){
         ROS_ERROR("Error creating frame-grabbing thread");
@@ -30,6 +34,8 @@ void IDS::init(){
         ROS_INFO("Frame-grabbing thread started");
     }
 }
+
+//initialization of all parameters for ids camera
 void IDS::initialize_camera() {
     m_hCamera = (HIDS)0;
     pthread_mutex_init(&frame_mutex,NULL);
@@ -41,7 +47,7 @@ void IDS::initialize_camera() {
         ROS_INFO("Camera initialized!");
     }
     else{
-	ROS_ERROR("Camera error with initialization");
+	    ROS_ERROR("Camera error with initialization");
 	}
 
     // Setting the pixels clock
@@ -62,22 +68,23 @@ void IDS::initialize_camera() {
     if (nRet == IS_SUCCESS) {
         ROS_INFO("Camera color mode succes");
     }
+    else{
+        ROS_ERROR("Camera color mode error");
+    }
 
+    // Set display mode
     INT displayMode = IS_SET_DM_DIB;
     nRet = is_SetDisplayMode(m_hCamera, displayMode);
 
+    // Setting AOI for camera
     IS_RECT rectAOI;
-
     rectAOI.s32X     = (752 - IDS_WIDTH)/2;
-
     rectAOI.s32Y     = (480 - IDS_HEIGHT);
-
     rectAOI.s32Width = IDS_WIDTH;
-
     rectAOI.s32Height = IDS_HEIGHT;
-
     nRet = is_AOI( m_hCamera, IS_AOI_IMAGE_SET_AOI, (void*)&rectAOI, sizeof(rectAOI));
 
+    //Allocating buffer for camera
     if(_AllocImages(IDS_WIDTH, IDS_HEIGHT, 24)){
         ROS_INFO("Buffer alloc success");
         if(is_CaptureVideo(m_hCamera, IS_WAIT) == IS_SUCCESS){
@@ -97,32 +104,23 @@ void IDS::initialize_camera() {
     }
     is_EnableAutoExit(m_hCamera, IS_ENABLE_AUTO_EXIT);
 }
-// Capture a frame from IDS
-void IDS::setAlgorithmReady(){
-    algorithm_ready = true;
-}
 
-void IDS::frameEvent(){
-    INT ret = is_WaitEvent(m_hCamera, IS_SET_EVENT_FRAME, INFINITE);
-    if(ret == IS_SUCCESS){
-        pthread_mutex_lock(&signal_mutex);
-        pthread_cond_signal(&frame_signal);
-        pthread_mutex_unlock(&signal_mutex);
-    }
-}
+//getting new image from ids camera, used inside thread 
 void IDS::frame_loop()
 {
     INT ret = is_WaitEvent(m_hCamera, IS_SET_EVENT_FRAME, 1000);
     if(ret == IS_SUCCESS){
         is_DisableEvent (m_hCamera, IS_SET_EVENT_FRAME);
-        ProcessFrame();
+        process_frame();
         is_EnableEvent (m_hCamera, IS_SET_EVENT_FRAME);
     }
     if(ret == IS_TIMED_OUT){
         ROS_INFO("Event Timeout");
     }
 }
-void IDS::ProcessFrame ()
+
+//processing frame from ids
+void IDS::process_frame ()
 {
     INT dummy = 0;
     bool bDraw = true;
@@ -136,7 +134,7 @@ void IDS::ProcessFrame ()
 
         pthread_mutex_lock(&frame_mutex);
         if (is_GetFramesPerSecond (m_hCamera, &fps) == IS_SUCCESS)
-            updateFps (fps);
+            _UpdateFps (fps);
         pthread_mutex_unlock(&frame_mutex);
 
         if (m_pLastBuffer)
@@ -159,6 +157,8 @@ void IDS::ProcessFrame ()
         }
     }
 }
+
+//copying frame from ids to mat output
 void IDS::get_frame_to(cv::Mat &output) {
     pthread_cond_wait(&algorithm_signal, &algorithm_signal_mutex);
 
@@ -166,9 +166,12 @@ void IDS::get_frame_to(cv::Mat &output) {
     ids_frame.copyTo(output);
     pthread_mutex_unlock(&frame_mutex);
 }
+
+//---------IDS functions
 HIDS IDS::getCameraHID(){
     return m_hCamera;
 }
+
 INT IDS::_GetImageID (char* pbuf)
 {
     if (!pbuf)
@@ -192,6 +195,7 @@ INT IDS::_GetImageNum (char* pbuf)
 
     return 0;
 }
+
 bool IDS::_AllocImages (int nWidth, int nHeight, int nBitspp)
 {
     m_pLastBuffer = NULL;
@@ -224,6 +228,7 @@ bool IDS::_AllocImages (int nWidth, int nHeight, int nBitspp)
 
     return TRUE;
 }
+
 void IDS::_FreeImages ()
 {
     m_pLastBuffer = NULL;
@@ -237,7 +242,9 @@ void IDS::_FreeImages ()
             m_Images[i].nImageID = 0;
         }
     }
+    
 }
+
 void IDS::_EmptyImages ()
 {
     INT ret = IS_SUCCESS;
@@ -252,27 +259,33 @@ void IDS::_EmptyImages ()
         }
     }
 }
-void IDS::updateFps (double fps)
+
+void IDS::_UpdateFps (double fps)
 {
     if (meanfps == 0.0)
         meanfps = fps;
     else
         meanfps = (meanfps * 15 + fps) / 16;
 }
+
+//getting fps information
 double IDS::getFPS(){
     return meanfps;
 }
+
+//exiting ids camera
 void IDS::exit(){
     _FreeImages ();
     is_ExitCamera (m_hCamera);
 }
+
 //Updating parameters from trackbars in while loop
 void IDS::update_params() {
     PixelClock = (UINT)pixelclock_slider;
     is_PixelClock(m_hCamera, IS_PIXELCLOCK_CMD_SET, (void*)&PixelClock, sizeof(PixelClock));
 
     Exposure = (double)(exposure_slider/30.);
-//    is_Exposure(m_hCamera, IS_EXPOSURE_CMD_SET_EXPOSURE, (void*)&Exposure, sizeof(Exposure));
+//  is_Exposure(m_hCamera, IS_EXPOSURE_CMD_SET_EXPOSURE, (void*)&Exposure, sizeof(Exposure));
 
     FPS = (double)fps_slider;
     is_SetFrameRate(m_hCamera, FPS, &NEWFPS);
@@ -307,8 +320,7 @@ void IDS::setting_auto_params() {
     is_SetAutoParameter(m_hCamera, IS_SET_ENABLE_AUTO_SHUTTER, &disable, 0);
     is_SetAutoParameter(m_hCamera, IS_SET_ENABLE_AUTO_SENSOR_SHUTTER, &disable, 0);
     is_SetAutoParameter(m_hCamera, IS_SET_ENABLE_AUTO_SENSOR_GAIN_SHUTTER, &disable, 0);
-
-    
+ 
 
     nSizeOfParam = sizeof(AES_CONFIGURATION) - sizeof(CHAR) + sizeof(AES_PEAK_CONFIGURATION);
     CHAR *pBuffer = new char[nSizeOfParam];
@@ -345,10 +357,10 @@ void IDS::setting_auto_params() {
     is_AutoParameter(m_hCamera, IS_AES_CMD_SET_TYPE, &nType, sizeof(nType));
     is_AutoParameter(m_hCamera, IS_AES_CMD_SET_ENABLE, &nEnable, sizeof(nEnable));
     if(nRet)
-        std::cout << "Autoparams problem" << std::endl;
+        ROS_ERROR("Autoparams problem");
 }
 
-//Changing camera setting and gettign default variables
+//Changing camera setting and getting default variables
 void IDS::change_params() {
 //    is_Exposure(m_hCamera, IS_EXPOSURE_CMD_SET_EXPOSURE, (void*)&Exposure, sizeof(Exposure));
 
@@ -359,6 +371,7 @@ void IDS::change_params() {
 //    if (nRet == IS_SUCCESS) {
 //        std::cout << "Enabling Gain success" << std::endl;
 //    }
+
     //Get gain factors
     Master_GAIN_Factor = is_SetHWGainFactor(m_hCamera, IS_GET_DEFAULT_MASTER_GAIN_FACTOR,100);
     Red_GAIN_Factor = is_SetHWGainFactor(m_hCamera, IS_GET_DEFAULT_RED_GAIN_FACTOR, 100);
@@ -377,6 +390,8 @@ void IDS::change_params() {
 //    }
 
 }
+
+//updating parameters from slider
 void IDS::update_autoparams() {
 
     is_Gamma(m_hCamera, IS_GAMMA_CMD_SET, &Gamma, sizeof(Gamma));
@@ -397,31 +412,38 @@ void IDS::update_autoparams() {
     is_AutoParameter(m_hCamera, IS_AES_CMD_SET_ENABLE, &nEnable, sizeof(nEnable));
 }
 
-static void update_suwaki(int,void*){
+
+//trackbars updating function with callback
+static void update_manual_trackbars(int,void*){
     ids.update_params();
 }
+
+//trackbars updating function with callback
 static void update_auto_trackbars(int,void*){
     ids.update_autoparams();
 
 }
+
 //Creating in debug mode trackbars
 void IDS::create_manual_trackbars(void){
     cvNamedWindow("ids", 1);
-    cv::createTrackbar("Pixel", "ids", &pixelclock_slider, 40, update_suwaki);
-    cv::createTrackbar("Exposure", "ids", &exposure_slider, 30*30, update_suwaki);
-    cv::createTrackbar("FPS", "ids", &fps_slider, 100, update_suwaki);
-    cv::createTrackbar("Master", "ids", &Master_GAIN_Factor, 300, update_suwaki);
+    cv::createTrackbar("Pixel", "ids", &pixelclock_slider, 40, update_manual_trackbars);
+    cv::createTrackbar("Exposure", "ids", &exposure_slider, 30*30, update_manual_trackbars);
+    cv::createTrackbar("FPS", "ids", &fps_slider, 100, update_manual_trackbars);
+    cv::createTrackbar("Master", "ids", &Master_GAIN_Factor, 300, update_manual_trackbars);
     cv::setTrackbarMin("Master", "ids", 100);
-    cv::createTrackbar("Green", "ids", &Green_GAIN_Factor, 300, update_suwaki);
+    cv::createTrackbar("Green", "ids", &Green_GAIN_Factor, 300, update_manual_trackbars);
     cv::setTrackbarMin("Green", "ids",100);
-    cv::createTrackbar("Red", "ids", &Red_GAIN_Factor, 300, update_suwaki);
+    cv::createTrackbar("Red", "ids", &Red_GAIN_Factor, 300, update_manual_trackbars);
     cv::setTrackbarMin("Red", "ids", 100);
-    cv::createTrackbar("Blue", "ids", &Blue_GAIN_Factor, 300, update_suwaki);
+    cv::createTrackbar("Blue", "ids", &Blue_GAIN_Factor, 300, update_manual_trackbars);
     cv::setTrackbarMin("Blue", "ids", 100);
-    cv::createTrackbar("Sharpness", "ids", &sharpness_slider, 9, update_suwaki);
+    cv::createTrackbar("Sharpness", "ids", &sharpness_slider, 9, update_manual_trackbars);
     cv::setTrackbarMin("Sharpness", "ids", 0);
-    cv::createTrackbar("Gamma", "ids", &Gamma, 300, update_suwaki);
+    cv::createTrackbar("Gamma", "ids", &Gamma, 300, update_manual_trackbars);
 }
+
+//Creating in debug mode trackbars
 void IDS::create_auto_trackbars(void){
     cvNamedWindow("IDS Settings", 1);
     cv::createTrackbar("Min Exposure", "IDS Settings", &min_exposure_slider, 5*100, update_auto_trackbars);

@@ -17,7 +17,6 @@ find_package(catkin REQUIRED COMPONENTS
   cv_bridge
   image_transport
 )
-#find_package(OpenCV 3 REQUIRED HINTS $(OpenCV_DIR) NO_DEFAULT_PATH)
 
 find_package(OpenCV 3.3.1 REQUIRED)
 find_library(UEYE_LIBRARY ueye_api REQUIRED)
@@ -205,7 +204,7 @@ include_directories(
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
 
-add_executable(selfie_ids_handler src/main_ids.cpp src/ids.cpp src/thread.cpp)
+add_executable(selfie_ids_handler src/main_ids.cpp src/ids.cpp)
 target_link_libraries(selfie_ids_handler ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${UEYE_LIBRARY})
 add_dependencies(selfie_ids_handler ${catkin_EXPORTED_TARGETS})
 

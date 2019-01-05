@@ -7,21 +7,20 @@
 #include <iostream>
 #include <stdio.h>
 #include <stddef.h>
-#include "opencv2/opencv.hpp"
 #include "ueye.h"
-#include <image_transport/image_transport.h>
-#include <cv_bridge/cv_bridge.h>
+#include "ros/ros.h"
+#include "opencv2/opencv.hpp"
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
 #include <pthread.h>
 
 #define IDS_WIDTH 752
-#define IDS_HEIGHT 360
+#define IDS_HEIGHT 480//360
 #define IMAGE_COUNT 20
 
 class IDS {
-
+private:
     typedef struct _UEYE_IMAGE
     {
         char *pBuf;
@@ -48,11 +47,11 @@ class IDS {
     AES_CONFIGURATION *pAesConfiguration;
     AES_PEAK_CONFIGURATION *pPeakConfiguration;
 
-    void ProcessFrame ();
-    void updateFps (double fps);
+    void process_frame ();
+   
+    void initialize_camera();
 
-    void frameEvent(void);
-
+    void _UpdateFps (double fps);
     bool _AllocImages (int nWidth, int nHeight, int nBitspp);
     INT _GetImageNum (char* pbuf);
     void _FreeImages ();
@@ -63,6 +62,7 @@ class IDS {
 
     pthread_mutex_t signal_mutex = PTHREAD_MUTEX_INITIALIZER;
     pthread_cond_t frame_signal = PTHREAD_COND_INITIALIZER;
+
 public:
 
     cv::Mat ids_frame = cv::Mat(IDS_HEIGHT, IDS_WIDTH, CV_8UC3);
@@ -89,15 +89,12 @@ public:
     char* pMem = NULL;
     int memID = 0;
 
-    void setAlgorithmReady();
-
     double getFPS();
     void get_frame_to(cv::Mat &output);
     HIDS getCameraHID();
 
     void init();
     void frame_loop();
-    void initialize_camera();
     void exit();
     void change_params();
     void setting_auto_params();
@@ -106,6 +103,7 @@ public:
     void create_auto_trackbars();
     void update_autoparams();
 };
+
 extern IDS ids;
 extern pthread_cond_t algorithm_signal;
 extern pthread_mutex_t algorithm_signal_mutex;
