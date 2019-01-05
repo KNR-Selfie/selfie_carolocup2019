@@ -32,6 +32,8 @@ bool Park::init()
 	tf_filter_odom = new tf::MessageFilter<nav_msgs::Odometry>(odomsub, transform_listener, "parking", 10);
 	tf_filter_odom->registerCallback(boost::bind(&Park::odom_callback, this, _1));
 
+	parking_spot_sub = nh_.subscribe("parking_spot", 10, &Park::parking_spot_callback, this);
+/*
 	geometry_msgs::PolygonStamped msg;
 	geometry_msgs::Point32 p;
 	p.x = 3.1;
@@ -49,7 +51,16 @@ bool Park::init()
 	msg.header.stamp = ros::Time::now();
 	msg.header.frame_id = "map";
 	initialize_parking_spot(msg);
-	print_params();
+	print_params();*/
+}
+
+void Park::parking_spot_callback(const geometry_msgs::PolygonStamped &msg)
+{
+	if(parking_state != not_parking)
+	{
+		initialize_parking_spot(msg);
+		parking_state = go_to_parking_spot;
+	}
 }
 
 void Park::print_params()
@@ -135,7 +146,6 @@ void Park::odom_callback(const boost::shared_ptr<const nav_msgs::Odometry> & msg
 	{
 		case not_parking:
 		if(state_msgs) ROS_INFO("not_parking");
-		parking_state = init_parking_spot;
 		break;
 		
 		case init_parking_spot:

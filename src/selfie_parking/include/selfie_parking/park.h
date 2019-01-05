@@ -50,6 +50,8 @@ class Park
 		message_filters::Subscriber<nav_msgs::Odometry> odomsub;
 		tf::MessageFilter<nav_msgs::Odometry> * tf_filter_odom;
 		void odom_callback(const boost::shared_ptr<const nav_msgs::Odometry> & msg_ptr);
+		ros::Subscriber parking_spot_sub;
+		void parking_spot_callback(const geometry_msgs::PolygonStamped &msg);
 
 		//parking spot
 		float initial_front_wall;
