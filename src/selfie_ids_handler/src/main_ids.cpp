@@ -8,12 +8,15 @@
 #define CAM_RES_X IDS_WIDTH
 #define CAM_RES_Y IDS_HEIGHT
 
-#define DEBUG_MODE
+bool show_visualition = false;
 
 int main(int argc, char **argv)
 {
   ros::init(argc, argv, "selfie_ids_handler");
   ros::NodeHandle n;
+  ros::NodeHandle pnh("~");
+  pnh.getParam("show",show_visualition);
+
   image_transport::ImageTransport it(n);
 
   image_transport::Publisher image_pub;
@@ -23,10 +26,10 @@ int main(int argc, char **argv)
   sensor_msgs::Image img_msg; 
   
   cv::Mat ids_image(CAM_RES_Y,CAM_RES_X,CV_8UC3);
-#ifdef DEBUG_MODE
-  cv::namedWindow("Frame",1);  
   int denom = 0;
-#endif //DEBUG_MODE
+  if (show_visualition == true){
+    cv::namedWindow("Frame",1);  
+  }
 
   //initialization of ids
   ids.init();
@@ -46,14 +49,14 @@ int main(int argc, char **argv)
     //publishing message
     image_pub.publish(img_msg); 
 
-#ifdef DEBUG_MODE
-    //showing image from camera
-    if(++denom >= IMSHOW_RATE){
-      denom = 0;
-      cv::imshow("0 Frame", ids_image);
-      cv::waitKey(1);
+    if (show_visualition == true){
+      //showing image from camera
+      if(++denom >= IMSHOW_RATE){
+        denom = 0;
+        cv::imshow("Frame", ids_image);
+        cv::waitKey(1);
+      }
     }
-#endif
     ros::spinOnce();
   }
   
