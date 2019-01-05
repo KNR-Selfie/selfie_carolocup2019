@@ -101,12 +101,14 @@ class LaneDetector
 	void addBottomPoint();
 	bool polyfit(int nDegree, std::vector<cv::Point2f> line, std::vector<float> &coeff);
 	std::vector<float> adjust(std::vector<float> good_poly_coeff, std::vector<cv::Point2f> line);
+	void calcRoadWidth();
 
 	float min_length_search_line_;
 	float min_length_lane_;
 	float max_delta_y_lane_;
 	float min_length_to_aprox_;
 	float lane_width_;
+	float lane_avg_width_;
 
 	std::string config_file_;
 	float binary_treshold_;
