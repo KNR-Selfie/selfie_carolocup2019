@@ -12,6 +12,9 @@ In this node some external libraries are used:
 - OpenCV 3.3.1
 - EYE_LIBRARY (installed inside /bin)
 
+## Params
+= `show` - bool, true if you want to show image from camera, false if don't, default show=false
+
 ## Topics
 ### Published topics
 - `/image_ids` ([sensor_msgs::Image](http://docs.ros.org/api/sensor_msgs/html/msg/Imgage.html))
