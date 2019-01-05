@@ -68,7 +68,7 @@ bool LaneDetector::init()
 {
 	lanes_vector_.clear();
 	aprox_lines_frame_coordinate_.clear();
-	std::vector<cv::Point> empty;
+	std::vector<cv::Point2f> empty;
 	empty.clear();
 	aprox_lines_frame_coordinate_.push_back(empty);
 	aprox_lines_frame_coordinate_.push_back(empty);
@@ -187,16 +187,17 @@ void LaneDetector::computeTopView()
 	pixels.emplace_back(0, 0);
 
 	topview2world_ = cv::findHomography(pixels, coordinates);
+	world2topview_ = topview2world_.inv();
 
 	topview2cam_ = world2cam_ * topview2world_;
 }
 
-void LaneDetector::detectLines(cv::Mat &input_frame, std::vector<std::vector<cv::Point> > &output_lanes)
+void LaneDetector::detectLines(cv::Mat &input_frame, std::vector<std::vector<cv::Point2f> > &output_lanes)
 {
 	output_lanes.clear();
 	cv::findContours(input_frame, output_lanes, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cv::Point(0, 0));
 
-	for (std::vector<std::vector<cv::Point> >::iterator filt = output_lanes.begin(); filt != output_lanes.end();)
+	for (std::vector<std::vector<cv::Point2f> >::iterator filt = output_lanes.begin(); filt != output_lanes.end();)
 	{
 		if (filt->size() < Acc_filt)
 			filt = output_lanes.erase(filt);
@@ -236,7 +237,7 @@ void LaneDetector::homography(cv::Mat input_frame, cv::Mat &homography_frame)
 
 void LaneDetector::openCVVisualization()
 {
-	
+
 	cv::namedWindow("Binarization", cv::WINDOW_NORMAL);
 	cv::imshow("Binarization", binary_frame_);
 
@@ -281,7 +282,7 @@ void LaneDetector::quickSortLinesY(int left, int right)
 		LaneDetector::quickSortLinesY(i, right);
 }
 
-void LaneDetector::quickSortPointsY(std::vector<cv::Point> &vector_in, int left, int right)
+void LaneDetector::quickSortPointsY(std::vector<cv::Point2f> &vector_in, int left, int right)
 {
 	int i = left;
 	int j = right;
@@ -402,7 +403,7 @@ void LaneDetector::recognizeLines()
 				center_line_index_ = min_index;
 				right_line_index_ = -1;
 			}
-			else 
+			else
 			{
 				center_line_index_ = -1;
 			}
@@ -412,7 +413,7 @@ void LaneDetector::recognizeLines()
 				center_line_index_ = min_index;
 				left_line_index_ = -1;
 			}
-			else 
+			else
 			{
 				center_line_index_ = -1;
 			}
@@ -521,20 +522,10 @@ void LaneDetector::filterSmallLines()
 
 void LaneDetector::convertCoordinates()
 {
-	int temp_x, temp_y;
 	for(int i = 0; i < lanes_vector_.size(); i++)
-		quickSortPointsY(lanes_vector_[i], 0, lanes_vector_.size() - 1);
-
-	quickSortLinesY(0, lanes_vector_.size() - 1);
-
-	for(int i = 0; i < lanes_vector_.size(); i++)
-		for(int j = 0; j < lanes_vector_[i].size(); j++)
-		{
-			temp_x = lanes_vector_[i][j].x;
-			temp_y = lanes_vector_[i][j].y;
-			lanes_vector_[i][j].x = homography_frame_.rows - temp_y;
-			lanes_vector_[i][j].y = homography_frame_.cols / 2 - temp_x;
-		}
+		cv::transform(lanes_vector_[i],
+									lanes_vector_[i],
+									topview2world_.rowRange(0, 2));
 }
 
 float LaneDetector::getAproxY(std::vector<float> coeff, float x)
@@ -561,32 +552,33 @@ void LaneDetector::calcValuesForMasks()
 	aprox_lines_frame_coordinate_[1].clear();
 	aprox_lines_frame_coordinate_[2].clear();
 
-	cv::Point p;
-	float increment = 10;
-	for(float i = 0; i < homography_frame_.rows; i += increment)
+	cv::Point2f p;
+	float increment = 0.1;
+	for(float x = TOPVIEW_MIN_X; x < TOPVIEW_MAX_X; x += increment)
 	{
-		p.y = homography_frame_.rows - i;
-		p.x = homography_frame_.cols / 2 - getAproxY(left_coeff_, i);
-		//if(p.x < 0 || p.x > current_frame_.cols)
-			//break;
+		p.x = x;
+
+		p.y = getAproxY(left_coeff_, x);
 		aprox_lines_frame_coordinate_[0].push_back(p);
-	}
-	for(float i = 0; i < homography_frame_.rows; i += increment)
-	{
-		p.y = homography_frame_.rows - i;
-		p.x = homography_frame_.cols / 2 - getAproxY(middle_coeff_, i);
-		//if(p.x < 0 || p.x > current_frame_.cols)
-			//break;
+
+		p.y = getAproxY(middle_coeff_, x);
 		aprox_lines_frame_coordinate_[1].push_back(p);
-	}
-	for(float i = 0; i < homography_frame_.rows; i += increment)
-	{
-		p.y = homography_frame_.rows - i;
-		p.x = homography_frame_.cols / 2 - getAproxY(right_coeff_, i);
-		//if(p.x < 0 || p.x > current_frame_.cols)
-			//break;
+
+		p.y = getAproxY(right_coeff_, x);
 		aprox_lines_frame_coordinate_[2].push_back(p);
 	}
+
+	cv::transform(aprox_lines_frame_coordinate_[0],
+								aprox_lines_frame_coordinate_[0],
+								world2topview_.rowRange(0, 2));
+
+	cv::transform(aprox_lines_frame_coordinate_[1],
+								aprox_lines_frame_coordinate_[1],
+								world2topview_.rowRange(0, 2));
+
+	cv::transform(aprox_lines_frame_coordinate_[2],
+								aprox_lines_frame_coordinate_[2],
+								world2topview_.rowRange(0, 2));
 }
 
 void LaneDetector::initRecognizeLines()
@@ -595,7 +587,7 @@ void LaneDetector::initRecognizeLines()
 	int min_index = -1;
 	for(int i = 0; i < lanes_vector_.size(); i++)
 	{
-		if(std::abs(nominal_center_line_Y_ - lanes_vector_[i][0].y) < min && lanes_vector_[i][0].x < homography_frame_.rows / 2 && cv::arcLength(lanes_vector_[i], false) > 150)
+		if(std::abs(nominal_center_line_Y_ - lanes_vector_[i][0].y) < min && lanes_vector_[i][0].x < homography_frame_.rows / 2 && cv::arcLength(lanes_vector_[i], false) > 0.25)
 		{
 			min = std::abs(nominal_center_line_Y_ - lanes_vector_[i][0].y);
 			min_index = i;
@@ -607,7 +599,7 @@ void LaneDetector::initRecognizeLines()
 	min_index = -1;
 	for(int i = 0; i < lanes_vector_.size(); i++)
 	{
-		if(lanes_vector_[i][0].y < lanes_vector_[center_line_index_][0].y && lanes_vector_[i][0].x < homography_frame_.rows / 2 && cv::arcLength(lanes_vector_[i], false) > 150)
+		if(lanes_vector_[i][0].y < lanes_vector_[center_line_index_][0].y && lanes_vector_[i][0].x < homography_frame_.rows / 2 && cv::arcLength(lanes_vector_[i], false) > 0.25)
 			if(std::abs(lanes_vector_[i][0].y - lanes_vector_[center_line_index_][0].y) < min)
 			{
 				min = std::abs(lanes_vector_[i][0].y - lanes_vector_[center_line_index_][0].y);
@@ -620,7 +612,7 @@ void LaneDetector::initRecognizeLines()
 	min_index = -1;
 	for(int i = 0; i < lanes_vector_.size(); i++)
 	{
-		if(lanes_vector_[i][0].y > lanes_vector_[center_line_index_][0].y && lanes_vector_[i][0].x < homography_frame_.rows / 2 && cv::arcLength(lanes_vector_[i], false) > 150)
+		if(lanes_vector_[i][0].y > lanes_vector_[center_line_index_][0].y && lanes_vector_[i][0].x < homography_frame_.rows / 2 && cv::arcLength(lanes_vector_[i], false) > 0.25)
 			if(std::abs(lanes_vector_[i][0].y - lanes_vector_[center_line_index_][0].y) < min)
 			{
 				min = std::abs(lanes_vector_[i][0].y - lanes_vector_[center_line_index_][0].y);

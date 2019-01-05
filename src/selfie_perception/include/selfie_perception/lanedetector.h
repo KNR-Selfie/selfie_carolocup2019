@@ -34,6 +34,7 @@ class LaneDetector
 	cv::Mat world2cam_;
 	cv::Mat topview2world_;
 	cv::Mat topview2cam_;
+  cv::Mat world2topview_;
 
 	cv::Mat kernel_v_;
 	cv::Mat current_frame_;
@@ -48,8 +49,8 @@ class LaneDetector
 	cv::Mat homography_frame_;
 	cv::Mat testCrossing;
 
-	std::vector<std::vector<cv::Point> > lanes_vector_;
-	std::vector<std::vector<cv::Point> > aprox_lines_frame_coordinate_;
+	std::vector<std::vector<cv::Point2f> > lanes_vector_;
+	std::vector<std::vector<cv::Point2f> > aprox_lines_frame_coordinate_;
 
 	std::vector<float> last_left_coeff_;
 	std::vector<float> last_middle_coeff_;
@@ -67,11 +68,11 @@ class LaneDetector
 	void openCVVisualization();
 	void mergeMiddleLane();
 	void quickSortLinesY(int left, int right);
-	void quickSortPointsY(std::vector<cv::Point> &vector_in, int left, int right);
+	void quickSortPointsY(std::vector<cv::Point2f> &vector_in, int left, int right);
 	float getDistance(cv::Point p1, cv::Point p2);
 	void recognizeLines();
 	void publishMarkings();
-	void detectLines(cv::Mat &input_frame, std::vector<std::vector<cv::Point> > &output_lanes);
+	void detectLines(cv::Mat &input_frame, std::vector<std::vector<cv::Point2f> > &output_lanes);
 	void drawPoints(cv::Mat &frame);
 	void homography(cv::Mat input_frame, cv::Mat &homography_frame);
 	void printInfoParams();
@@ -93,7 +94,7 @@ class LaneDetector
 	void lanesVectorVisualization(cv::Mat &visualization_frame);
 	void removeCar(cv::Mat &frame);
 	void addBottomPoint();
-	
+
 	float min_length_search_line_;
 	float min_length_lane_;
 	float max_delta_y_lane_;
