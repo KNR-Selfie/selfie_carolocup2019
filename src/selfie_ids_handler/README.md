@@ -1,6 +1,6 @@
 # IDS CAMERA HANDLER
 
-`selfie_ids_handler` package provides a node to handler image processing from ids camera. It gets image from camera and convert it to /image_ids ROS message.
+`selfie_ids_handler` package provides a node to handle image processing from ids camera. It gets image from camera and convert it to /image_ids ROS message. It uses opencv_bridge and image_transport packages to sending frame to message, but ids is getting and giving image not using ROS package.
 
 ## Usage
 ```
