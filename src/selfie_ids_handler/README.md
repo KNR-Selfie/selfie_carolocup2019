@@ -13,7 +13,7 @@ In this node some external libraries are used:
 - EYE_LIBRARY (installed inside /bin)
 
 ## Params
-= `show` - bool, true if you want to show image from camera, false if don't, default show=false
+- `show` - bool, true if you want to show image from camera, false if don't, default show=false
 
 ## Topics
 ### Published topics
