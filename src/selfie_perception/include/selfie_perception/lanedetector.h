@@ -12,7 +12,11 @@
 #include <selfie_msgs/RoadMarkings.h>
 #include <geometry_msgs/Point.h>
 #include <sensor_msgs/PointCloud.h>
-#include <selfie_perception/polyfit.h>
+#include <math.h>
+#include <boost/numeric/ublas/matrix.hpp>
+#include <boost/numeric/ublas/lu.hpp>
+#include <vector>
+#include <stdexcept>
 
 #include <visualization_msgs/Marker.h>
 
@@ -49,7 +53,8 @@ class LaneDetector
 	cv::Mat homography_frame_;
 	cv::Mat testCrossing;
 
-	std::vector<std::vector<cv::Point2f> > lanes_vector_;
+	std::vector<std::vector<cv::Point> > lanes_vector_;
+	std::vector<std::vector<cv::Point2f> > lanes_vector_converted_;
 	std::vector<std::vector<cv::Point2f> > aprox_lines_frame_coordinate_;
 
 	std::vector<float> last_left_coeff_;
@@ -68,11 +73,11 @@ class LaneDetector
 	void openCVVisualization();
 	void mergeMiddleLane();
 	void quickSortLinesY(int left, int right);
-	void quickSortPointsY(std::vector<cv::Point2f> &vector_in, int left, int right);
+	void quickSortPointsY(std::vector<cv::Point> &vector_in, int left, int right);
 	float getDistance(cv::Point p1, cv::Point p2);
 	void recognizeLines();
 	void publishMarkings();
-	void detectLines(cv::Mat &input_frame, std::vector<std::vector<cv::Point2f> > &output_lanes);
+	void detectLines(cv::Mat &input_frame, std::vector<std::vector<cv::Point> > &output_lanes);
 	void drawPoints(cv::Mat &frame);
 	void homography(cv::Mat input_frame, cv::Mat &homography_frame);
 	void printInfoParams();
@@ -83,7 +88,7 @@ class LaneDetector
 	float getAproxY(std::vector<float> coeff, float x);
 	void calcValuesForMasks();
 	void initRecognizeLines();
-	void linesApproximation(std::vector<std::vector<cv::Point> > lanes_vector);
+	void linesApproximation(std::vector<std::vector<cv::Point2f> > lanes_vector);
 
 	void pointsRVIZVisualization();
 	void aproxVisualization();
@@ -94,6 +99,8 @@ class LaneDetector
 	void lanesVectorVisualization(cv::Mat &visualization_frame);
 	void removeCar(cv::Mat &frame);
 	void addBottomPoint();
+	bool polyfit(int nDegree, std::vector<cv::Point2f> line, std::vector<float> &coeff);
+	std::vector<float> adjust(std::vector<float> good_poly_coeff, std::vector<cv::Point2f> line);
 
 	float min_length_search_line_;
 	float min_length_lane_;
