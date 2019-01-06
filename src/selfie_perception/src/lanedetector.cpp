@@ -28,9 +28,10 @@ LaneDetector::LaneDetector(const ros::NodeHandle &nh, const ros::NodeHandle &pnh
 
 	max_delta_y_lane_(0.1),
 	nominal_center_line_Y_(0.2),
-	min_length_to_aprox_(0.4),
+	min_length_to_aprox_(0.5),
 
 	lane_width_(0.4),
+	points_density_(15),
 
 	left_line_index_(-1),
 	right_line_index_(-1),
@@ -120,6 +121,10 @@ void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr &msg)
 		cv::bitwise_not(crossing_ROI_,crossing_ROI_);
 
 		cv::bitwise_and(binary_frame_,crossing_ROI_,masked_frame_);
+
+		//crossingLaneLeft(binary_frame_, crossing_frame_, aprox_lines_frame_coordinate_);
+		//cv::bitwise_not(crossing_ROI_,crossing_ROI_);
+		//cv::bitwise_and(masked_frame_,crossing_ROI_,masked_frame_);
 	}
 	else
 		masked_frame_ = binary_frame_.clone();
@@ -151,6 +156,8 @@ void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr &msg)
 		{
 			recognizeLines();
 			filterPoints();
+			generatePoints();
+			
 			calcRoadWidth();
 			addBottomPoint();
 			linesApproximation(lanes_vector_converted_);
@@ -506,6 +513,39 @@ void LaneDetector::crossingLane(cv::Mat &input_frame, cv::Mat &output_frame, std
 	cv::bitwise_and(input_frame, crossing_ROI_, output_frame);
 }
 
+void LaneDetector::crossingLaneLeft(cv::Mat &input_frame, cv::Mat &output_frame, std::vector<std::vector<cv::Point2f> > lanes_vector_last_frame)
+{
+	crossing_ROI_ = cv::Mat::zeros(cv::Size(input_frame.cols, input_frame.rows), CV_8UC1);
+	output_frame = input_frame.clone();
+	int offset_left = 20;
+	int offset_center = 15;
+	int length;
+
+	int l, k, m = 0;
+
+	length = lanes_vector_last_frame[0].size() + lanes_vector_last_frame[1].size();
+	cv::Point points[length];
+	for (l = 0; l < lanes_vector_last_frame[1].size(); l++)
+	{
+		points[m] = cv::Point(lanes_vector_last_frame[1][l].x - offset_center, lanes_vector_last_frame[1][l].y);
+		m++;
+	}
+	for (k = lanes_vector_last_frame[0].size() - 1; k >= 0; k--)
+	{
+		points[m] = cv::Point(lanes_vector_last_frame[0][k].x + offset_left, lanes_vector_last_frame[0][k].y);
+		m++;
+	}
+
+	for (int n = 0; n < length - 1; n++)
+	{
+		cv::line(output_frame, points[n], points[n + 1], cv::Scalar(0, 0, 255), 2);
+	}
+
+	cv::fillConvexPoly(crossing_ROI_, points, length, cv::Scalar(255, 0, 0));
+
+	cv::bitwise_and(input_frame, crossing_ROI_, output_frame);
+}
+
 void LaneDetector::filterSmallLines()
 {
 	for(int i = 0;i < lanes_vector_converted_.size(); i++)
@@ -640,7 +680,7 @@ void LaneDetector::pointsRVIZVisualization()
     geometry_msgs::Point32 point;
 	point.z = 0;
 	points_cloud_.points.clear();
-	points_cloud_.header.frame_id = "laser";
+	points_cloud_.header.frame_id = "road_markings";
 
 	for(int i = 0; i < lanes_vector_converted_.size(); i++)
 	{
@@ -659,7 +699,7 @@ void LaneDetector::aproxVisualization()
 {
 	visualization_msgs::Marker marker;
 
-	marker.header.frame_id = "laser";
+	marker.header.frame_id = "road_markings";
     marker.header.stamp = ros::Time::now();
     marker.ns = "line";
     marker.type = visualization_msgs::Marker::LINE_STRIP;
@@ -1086,7 +1126,7 @@ void LaneDetector::addBottomPoint()
 	{
 		if(lanes_vector_converted_[left_line_index_][lanes_vector_converted_[left_line_index_].size() - 1].x - lanes_vector_converted_[left_line_index_][0].x > 0.1)
 		{
-			temp.x = TOPVIEW_MIN_X;
+			temp.x = 0;
 			temp.y = getAproxY(last_left_coeff_, TOPVIEW_MIN_X);
 			lanes_vector_converted_[left_line_index_].insert(lanes_vector_converted_[left_line_index_].begin(), temp);
 		}
@@ -1096,7 +1136,7 @@ void LaneDetector::addBottomPoint()
 	{
 		if(lanes_vector_converted_[right_line_index_][lanes_vector_converted_[right_line_index_].size() - 1].x - lanes_vector_converted_[right_line_index_][0].x > 0.1)
 		{
-			temp.x = TOPVIEW_MIN_X;
+			temp.x = 0;
 			temp.y = getAproxY(last_right_coeff_, TOPVIEW_MIN_X);
 			lanes_vector_converted_[right_line_index_].insert(lanes_vector_converted_[right_line_index_].begin(), temp);
 		}
@@ -1106,7 +1146,7 @@ void LaneDetector::addBottomPoint()
 	{
 		if(lanes_vector_converted_[center_line_index_][lanes_vector_converted_[center_line_index_].size() - 1].x - lanes_vector_converted_[center_line_index_][0].x > 0.1)
 		{
-			temp.x = TOPVIEW_MIN_X;
+			temp.x = 0;
 			temp.y = getAproxY(last_middle_coeff_, TOPVIEW_MIN_X);
 			float diff = temp.y - getAproxY(last_right_coeff_, TOPVIEW_MIN_X) - lane_width_;
 			temp.y -= diff / 2;
@@ -1248,4 +1288,88 @@ void LaneDetector::calcRoadWidth()
 
 	if(widthSum / aprox_lines_frame_coordinate_[1].size() < 0.47 && widthSum / aprox_lines_frame_coordinate_[1].size() > 0.35)
     	lane_width_ = widthSum / aprox_lines_frame_coordinate_[1].size();
+}
+
+void LaneDetector::generatePoints()
+{
+	if(left_line_index_ != -1)
+	{
+		if(lanes_vector_converted_[left_line_index_].size() / cv::arcLength(lanes_vector_converted_[left_line_index_], false) < points_density_)
+		{
+			for(int i = 0; i < lanes_vector_converted_[left_line_index_].size() - 1; i++)
+			{
+				float distance = getDistance(lanes_vector_converted_[left_line_index_][i], lanes_vector_converted_[left_line_index_][i + 1]);
+				if(distance > 1 / points_density_)
+				{
+					int add = distance * points_density_;
+					cv::Point2f p;
+					float x1 = lanes_vector_converted_[left_line_index_][i].x;
+					float y1 = lanes_vector_converted_[left_line_index_][i].y;
+					float x_dif = (lanes_vector_converted_[left_line_index_][i + 1].x - lanes_vector_converted_[left_line_index_][i].x) / (add + 1);
+					float y_dif = (lanes_vector_converted_[left_line_index_][i + 1].y - lanes_vector_converted_[left_line_index_][i].y) / (add + 1);
+					for(int j = 0; j < add; j++)
+					{
+						p.x = x1 + x_dif * (j + 1);
+						p.y = y1 + y_dif * (j + 1);
+						lanes_vector_converted_[left_line_index_].insert(lanes_vector_converted_[left_line_index_].begin() + i + 1, p);
+						i++;
+					}
+				}
+			}
+		}
+	}
+
+	if(center_line_index_ != -1)
+	{
+		if(lanes_vector_converted_[center_line_index_].size() / cv::arcLength(lanes_vector_converted_[center_line_index_], false) < points_density_)
+		{
+			for(int i = 0; i < lanes_vector_converted_[center_line_index_].size() - 1; i++)
+			{
+				float distance = getDistance(lanes_vector_converted_[center_line_index_][i], lanes_vector_converted_[center_line_index_][i + 1]);
+				if(distance > 1 / points_density_)
+				{
+					int add = distance * points_density_;
+					cv::Point2f p;
+					float x1 = lanes_vector_converted_[center_line_index_][i].x;
+					float y1 = lanes_vector_converted_[center_line_index_][i].y;
+					float x_dif = (lanes_vector_converted_[center_line_index_][i + 1].x - lanes_vector_converted_[center_line_index_][i].x) / (add + 1);
+					float y_dif = (lanes_vector_converted_[center_line_index_][i + 1].y - lanes_vector_converted_[center_line_index_][i].y) / (add + 1);
+					for(int j = 0; j < add; j++)
+					{
+						p.x = x1 + x_dif * (j + 1);
+						p.y = y1 + y_dif * (j + 1);
+						lanes_vector_converted_[center_line_index_].insert(lanes_vector_converted_[center_line_index_].begin() + i + 1, p);
+						i++;
+					}
+				}
+			}
+		}
+	}
+
+	if(right_line_index_ != -1)
+	{
+		if(lanes_vector_converted_[right_line_index_].size() / cv::arcLength(lanes_vector_converted_[right_line_index_], false) < points_density_)
+		{
+			for(int i = 0; i < lanes_vector_converted_[right_line_index_].size() - 1; i++)
+			{
+				float distance = getDistance(lanes_vector_converted_[right_line_index_][i], lanes_vector_converted_[right_line_index_][i + 1]);
+				if(distance > 1 / points_density_)
+				{
+					int add = distance * points_density_;
+					cv::Point2f p;
+					float x1 = lanes_vector_converted_[right_line_index_][i].x;
+					float y1 = lanes_vector_converted_[right_line_index_][i].y;
+					float x_dif = (lanes_vector_converted_[right_line_index_][i + 1].x - lanes_vector_converted_[right_line_index_][i].x) / (add + 1);
+					float y_dif = (lanes_vector_converted_[right_line_index_][i + 1].y - lanes_vector_converted_[right_line_index_][i].y) / (add + 1);
+					for(int j = 0; j < add; j++)
+					{
+						p.x = x1 + x_dif * (j + 1);
+						p.y = y1 + y_dif * (j + 1);
+						lanes_vector_converted_[right_line_index_].insert(lanes_vector_converted_[right_line_index_].begin() + i + 1, p);
+						i++;
+					}
+				}
+			}
+		}
+	}
 }

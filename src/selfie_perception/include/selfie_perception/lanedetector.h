@@ -83,6 +83,7 @@ class LaneDetector
 	void printInfoParams();
 	void dynamicMask(cv::Mat &input_frame, cv::Mat &output_frame, std::vector<std::vector<cv::Point> > lanes_vector_last_frame);
 	void crossingLane(cv::Mat &input_frame, cv::Mat &output_frame, std::vector<std::vector<cv::Point2f> > lanes_vector);
+	void crossingLaneLeft(cv::Mat &input_frame, cv::Mat &output_frame, std::vector<std::vector<cv::Point2f> > lanes_vector);
 	void filterSmallLines();
 	void convertCoordinates();
 	float getAproxY(std::vector<float> coeff, float x);
@@ -102,6 +103,7 @@ class LaneDetector
 	bool polyfit(int nDegree, std::vector<cv::Point2f> line, std::vector<float> &coeff);
 	std::vector<float> adjust(std::vector<float> good_poly_coeff, std::vector<cv::Point2f> line);
 	void calcRoadWidth();
+	void generatePoints();
 
 	float min_length_search_line_;
 	float min_length_lane_;
@@ -116,4 +118,5 @@ class LaneDetector
 	float max_mid_line_gap_;
 	bool init_imageCallback_;
 	float nominal_center_line_Y_;
+	float points_density_;
 };
