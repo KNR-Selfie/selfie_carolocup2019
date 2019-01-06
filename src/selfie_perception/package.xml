@@ -76,6 +76,8 @@
   <exec_depend>selfie_msgs</exec_depend>
   <exec_depend>message_runtime</exec_depend>
 
+  <exec_depend>rospy</exec_depend>
+  <exec_depend>python-scipy</exec_depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>
