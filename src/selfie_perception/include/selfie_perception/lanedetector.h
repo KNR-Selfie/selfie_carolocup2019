@@ -74,7 +74,7 @@ class LaneDetector
 	void mergeMiddleLane();
 	void quickSortLinesY(int left, int right);
 	void quickSortPointsY(std::vector<cv::Point> &vector_in, int left, int right);
-	float getDistance(cv::Point p1, cv::Point p2);
+	float getDistance(cv::Point2f p1, cv::Point2f p2);
 	void recognizeLines();
 	void publishMarkings();
 	void detectLines(cv::Mat &input_frame, std::vector<std::vector<cv::Point> > &output_lanes);
@@ -82,7 +82,7 @@ class LaneDetector
 	void homography(cv::Mat input_frame, cv::Mat &homography_frame);
 	void printInfoParams();
 	void dynamicMask(cv::Mat &input_frame, cv::Mat &output_frame, std::vector<std::vector<cv::Point> > lanes_vector_last_frame);
-	void crossingLane(cv::Mat &input_frame, cv::Mat &output_frame, std::vector<std::vector<cv::Point> > lanes_vector);
+	void crossingLane(cv::Mat &input_frame, cv::Mat &output_frame, std::vector<std::vector<cv::Point2f> > lanes_vector);
 	void filterSmallLines();
 	void convertCoordinates();
 	float getAproxY(std::vector<float> coeff, float x);
@@ -108,7 +108,6 @@ class LaneDetector
 	float max_delta_y_lane_;
 	float min_length_to_aprox_;
 	float lane_width_;
-	float lane_avg_width_;
 
 	std::string config_file_;
 	float binary_treshold_;
