@@ -16,6 +16,8 @@ find_package(catkin REQUIRED COMPONENTS
   selfie_msgs
   cv_bridge
   image_transport
+  rospy
+  python-scipy
 )
 
 find_package(OpenCV 3.3.1 REQUIRED)
