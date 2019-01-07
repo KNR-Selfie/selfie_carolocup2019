@@ -4,7 +4,7 @@
 #define TOPVIEW_COLS 640
 
 #define TOPVIEW_MIN_X  0.16
-#define TOPVIEW_MAX_X  1.0
+#define TOPVIEW_MAX_X  1.3
 #define TOPVIEW_MIN_Y -0.7
 #define TOPVIEW_MAX_Y  0.7
 
@@ -28,7 +28,7 @@ LaneDetector::LaneDetector(const ros::NodeHandle &nh, const ros::NodeHandle &pnh
 
 	max_delta_y_lane_(0.1),
 	nominal_center_line_Y_(0.2),
-	min_length_to_aprox_(0.5),
+	min_length_to_aprox_(0.56),
 
 	lane_width_(0.4),
 	points_density_(15),
@@ -112,15 +112,16 @@ void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr &msg)
 
 	if(!init_imageCallback_)
 	{
+		masked_frame_ = binary_frame_.clone(); //!!!!!!!!!!!!!!!!!!
 		//dynamicMask(binary_frame_, masked_frame_, aprox_lines_frame_coordinate_);
 
-		crossingLane(binary_frame_, crossing_frame_, aprox_lines_frame_coordinate_);
+		//crossingLane(binary_frame_, crossing_frame_, aprox_lines_frame_coordinate_);
 
 		//testCrossing = cv::Mat::zeros(homography_frame_.size(),homography_frame_.type());
 		//cv::bitwise_or(homography_frame_,homography_frame_,testCrossing, crossing_ROI_);
-		cv::bitwise_not(crossing_ROI_,crossing_ROI_);
+		//cv::bitwise_not(crossing_ROI_,crossing_ROI_);
 
-		cv::bitwise_and(binary_frame_,crossing_ROI_,masked_frame_);
+		//cv::bitwise_and(binary_frame_,crossing_ROI_,masked_frame_);
 
 		//crossingLaneLeft(binary_frame_, crossing_frame_, aprox_lines_frame_coordinate_);
 		//cv::bitwise_not(crossing_ROI_,crossing_ROI_);
@@ -128,7 +129,7 @@ void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr &msg)
 	}
 	else
 		masked_frame_ = binary_frame_.clone();
-
+	
 	visualization_frame_.rows = homography_frame_.rows;
 	visualization_frame_.cols = homography_frame_.cols;
 
@@ -140,6 +141,7 @@ void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr &msg)
 	filterSmallLines();
 	if(!lanes_vector_converted_.empty())
 	{
+		removeHorizontalLines();
 		mergeMiddleLane();
 
 		if(init_imageCallback_)
@@ -1371,5 +1373,15 @@ void LaneDetector::generatePoints()
 				}
 			}
 		}
+	}
+}
+
+void LaneDetector::removeHorizontalLines()
+{
+	for(int i = 0; i < lanes_vector_converted_.size(); i++)
+	{
+		float dx = lanes_vector_converted_[i][lanes_vector_converted_[i].size() - 1].x - lanes_vector_converted_[i][0].x;
+		if(dx < 0.1)
+			lanes_vector_converted_.erase(lanes_vector_converted_.begin() + i);
 	}
 }

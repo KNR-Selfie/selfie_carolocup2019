@@ -104,6 +104,7 @@ class LaneDetector
 	std::vector<float> adjust(std::vector<float> good_poly_coeff, std::vector<cv::Point2f> line);
 	void calcRoadWidth();
 	void generatePoints();
+	void removeHorizontalLines();
 
 	float min_length_search_line_;
 	float min_length_lane_;
