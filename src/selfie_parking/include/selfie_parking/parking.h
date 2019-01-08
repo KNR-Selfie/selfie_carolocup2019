@@ -8,6 +8,7 @@
 #include <chrono>
 
 #include <geometry_msgs/Polygon.h>
+#include <geometry_msgs/PolygonStamped.h>
 #include <nav_msgs/Odometry.h>
 #include <std_msgs/Float64.h>
 #include <std_msgs/Int16.h>
@@ -34,6 +35,7 @@ private:
   ros::Publisher heading_offset_pub;
   ros::Publisher point_pub;
   ros::Publisher parking_state_pub;
+  ros::Publisher parking_place_pub;
 
   std::vector<Box> boxes_on_the_right_side;
   std::vector<Box> potential_free_places;
@@ -70,6 +72,7 @@ public:
   bool find_free_place();
   double get_dist_from_first_free_place();
   void generate_offsets();
+  void publish_place();
   void display_bottom_lines();
   void display_left_lines();
   void display_free_place();

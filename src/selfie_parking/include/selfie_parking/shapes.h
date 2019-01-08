@@ -177,6 +177,28 @@ public:
         bottom_horizontal_line.a = 0;
         bottom_horizontal_line.b = 0;
       }
+      
+      void make_poly(geometry_msgs::Polygon &poly)
+      {
+       geometry_msgs::Point32 top_l;
+       top_l.x = top_left.x;
+       top_l.y = top_left.y;
+       top_l.z = 0;
+       geometry_msgs::Point32 top_r;
+       top_r.x = top_right.x;
+       top_r.y = top_right.y;
+       top_r.z = 0;
+       geometry_msgs::Point32 bottom_r;
+       bottom_r.x = bottom_right.x;
+       bottom_r.y = bottom_right.y;
+       bottom_r.z = 0;
+       geometry_msgs::Point32 bottom_l;
+       bottom_l.x = bottom_left.x;
+       bottom_l.y = bottom_left.y;
+       bottom_l.z = 0;
+
+        poly.points = {top_l, bottom_l, bottom_r, top_r};
+      }
 
       void make_lines()
       {

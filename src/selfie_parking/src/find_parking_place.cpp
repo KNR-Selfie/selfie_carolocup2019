@@ -17,6 +17,7 @@ bool Parking::init()
   this->position_offset_pub = nh_.advertise<std_msgs::Float64>("/position_offset",200);
   this->heading_offset_pub = nh_.advertise<std_msgs::Float64>("/heading_offset",200);
   this->parking_state_pub = nh_.advertise<std_msgs::Int16>("parking_state", 200);
+  this->parking_place_pub = nh_.advertise<geometry_msgs::PolygonStamped>("parking_place", 10);
 }
 
 void Parking::manager(const selfie_msgs::PolygonArray &msg)
@@ -66,6 +67,7 @@ void Parking::manager(const selfie_msgs::PolygonArray &msg)
         first_free_place.print_box_dimensions();
         first_free_place.visualize(point_pub);
         state = parking;
+        publish_place();
         display_free_place();
       }
     }
@@ -263,6 +265,17 @@ void Parking::generate_offsets()
 }
 
 
+
+void Parking::publish_place()
+{
+  geometry_msgs::PolygonStamped msg;
+  msg.header.frame_id = "laser";
+  msg.header.stamp = ros::Time::now();
+  first_free_place.make_poly(msg.polygon);
+  first_free_place.top_left.x;
+
+  parking_place_pub.publish(msg);
+}
 
 
 void Parking::display_left_lines()
