@@ -14,6 +14,9 @@
 #include <visualization_msgs/Marker.h>
 #include <selfie_msgs/PolygonArray.h>
 
+#include <actionlib/server/simple_action_server.h>
+#include <selfie_msgs/parkingAction.h>
+
 #include "shapes.h"
 
 using namespace std;

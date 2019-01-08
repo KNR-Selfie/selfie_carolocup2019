@@ -1,3 +1,4 @@
+#include<chrono>
 #include <selfie_perception/obstacles_generator.h>
 
 ObstaclesGenerator::ObstaclesGenerator(const ros::NodeHandle& nh, const ros::NodeHandle& pnh):
@@ -53,6 +54,8 @@ bool ObstaclesGenerator::init()
 
 void ObstaclesGenerator::laserScanCallback(const sensor_msgs::LaserScan& msg)
 {
+    auto begin = std::chrono::high_resolution_clock::now();
+    auto without_vis = std::chrono::high_resolution_clock::now();
     scan_ = msg;
     generateLines();
     if(!line_array_.empty())
@@ -61,11 +64,17 @@ void ObstaclesGenerator::laserScanCallback(const sensor_msgs::LaserScan& msg)
         deleteSmallLines();
     }
     generateObstacles();
+    without_vis = std::chrono::high_resolution_clock::now();
     if (visualize_)
         {
             visualizeLines();
             visualizeObstacles();
         }
+    auto end_of_callback = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> diff = without_vis - begin;
+ //   std::cout << "pure callback: " << diff.count() * 1000000<< " [microseconds]" << std::endl;
+    diff = end_of_callback - begin;
+ //   std::cout << "with visualization : " << diff.count() * 1000000 << " [microseconds]" << std::endl;
 }
 
 void ObstaclesGenerator::generateLines()

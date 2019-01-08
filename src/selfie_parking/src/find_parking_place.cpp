@@ -215,9 +215,9 @@ void Parking::search(const selfie_msgs::PolygonArray &msg)
     
     auto end_of_callback = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> diff = end_of_box_creation - begin;
- //   cout << "box_creation: " << diff.count() * 1000000<< " [microseconds]" << endl;
+  //  cout << "box_creation: " << diff.count() * 1000000<< " [microseconds]" << endl;
     diff = end_of_callback - begin;
- //   cout << "whole callback : : " << diff.count() * 1000000 << " [microseconds]" << endl;
+  //  cout << "whole callback : : " << diff.count() * 1000000 << " [microseconds]" << endl;
 }//obstacle_callback
 
 Point odom_callback(const nav_msgs::Odometry &msg)
