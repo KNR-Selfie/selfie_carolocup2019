@@ -14,13 +14,11 @@ find_package(catkin REQUIRED COMPONENTS
   selfie_msgs
   std_msgs
   visualization_msgs
-<<<<<<< HEAD
   ackermann_msgs
-=======
+
   nav_msgs
   ackermann_msgs
   tf
->>>>>>> park
 )
 
 
