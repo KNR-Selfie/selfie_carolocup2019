@@ -1,7 +1,7 @@
 #include "usb.hpp"
 
 #define USB_SEND_SIZE 18+2
-#define USB_RECEIVE_SIZE 36+1
+#define USB_RECEIVE_SIZE 36+2
 
 int USB_STM::init(int speed)
 {
@@ -62,7 +62,7 @@ int USB_STM::init(int speed)
   return 1;
 }
 
-void USB_STM::usb_read_buffer(int buf_size, uint32_t& timestamp, int32_t& distance, int16_t& velocity, int16_t& quaternion_x, int16_t& quaternion_y, int16_t& quaternion_z, int16_t& quaternion_w, uint16_t yaw, int16_t& ang_vel_x, int16_t& ang_vel_y, int16_t& ang_vel_z, int16_t& lin_acc_x, int16_t& lin_acc_y, int16_t& lin_acc_z, int8_t& start_button)
+void USB_STM::usb_read_buffer(int buf_size, uint32_t& timestamp, int32_t& distance, int16_t& velocity, int16_t& quaternion_x, int16_t& quaternion_y, int16_t& quaternion_z, int16_t& quaternion_w, uint16_t yaw, int16_t& ang_vel_x, int16_t& ang_vel_y, int16_t& ang_vel_z, int16_t& lin_acc_x, int16_t& lin_acc_y, int16_t& lin_acc_z, uint8_t& start_button1, uint8_t& start_button2)
 {
 
   struct UsbFrame_s
@@ -79,7 +79,8 @@ void USB_STM::usb_read_buffer(int buf_size, uint32_t& timestamp, int32_t& distan
     uint16_t yaw;
     int16_t rates[3];
     int16_t acc[3];
-    int8_t start_button;
+    uint8_t start_button1;
+    uint8_t start_button2;
 
     uint8_t endByte;
   } __attribute__((__packed__));
@@ -119,12 +120,12 @@ void USB_STM::usb_read_buffer(int buf_size, uint32_t& timestamp, int32_t& distan
     lin_acc_z = Data.frame.acc[2];
 
     //start_button
-    start_button = Data.frame.start_button;
-
+    start_button1 = Data.frame.start_button1;
+    start_button2 = Data.frame.start_button2;
   }
 }
 
-void USB_STM::usb_send_buffer(uint32_t timestamp_ms, float steering_angle, float steering_angle_velocity, float speed, float acceleration, float jerk, int8_t left_indicator, int8_t right_indicator)
+void USB_STM::usb_send_buffer(uint32_t timestamp_ms, float steering_angle, float steering_angle_velocity, float speed, float acceleration, float jerk, uint8_t left_indicator, uint8_t right_indicator)
 {
   struct UsbFrame_s
   {
@@ -137,8 +138,8 @@ void USB_STM::usb_send_buffer(uint32_t timestamp_ms, float steering_angle, float
     int16_t speed;
     int16_t acceleration;
     int16_t jerk;
-    int8_t left_indicator;
-    int8_t right_indicator;
+    uint8_t left_indicator;
+    uint8_t right_indicator;
     uint8_t endbyte;
   } __attribute__((__packed__));
 
@@ -157,8 +158,8 @@ void USB_STM::usb_send_buffer(uint32_t timestamp_ms, float steering_angle, float
   Data.frame.speed = (int16_t)(speed * 1000);
   Data.frame.acceleration = (int16_t)(acceleration * 1000);
   Data.frame.jerk = (int16_t)(jerk * 1000);
-  Data.frame.left_indicator = (int8_t)(left_indicator);
-  Data.frame.right_indicator = (int8_t)(right_indicator);
+  Data.frame.left_indicator = (uint8_t)(left_indicator);
+  Data.frame.right_indicator = (uint8_t)(right_indicator);
   Data.frame.endbyte = control.commands.endbyte;
   write(fd, &Data.bytes, USB_SEND_SIZE);
 }
