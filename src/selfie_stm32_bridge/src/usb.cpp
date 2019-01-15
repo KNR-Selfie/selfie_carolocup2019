@@ -6,9 +6,12 @@
 int USB_STM::init(int speed)
 {
   char port[] = "/dev/serial/by-id/usb-KNR_Selfie_F7_00000000001A-if00";
+  //char port[] = "/dev/serial/by-id/STM32F407";
   fd = open(port, O_RDWR | O_NOCTTY | O_SYNC);
-  if (fd < 0)
+  if (fd < 0){
     ROS_ERROR("Could not open serial communication on port!\n");
+    std::cout<<port<<std::endl;
+}
   else
   {
     ROS_INFO("Opened serial communication on port\n");

@@ -53,7 +53,8 @@ int main(int argc, char **argv)
   {
     ros::Time now = ros::Time::now();
     uint32_t send_ms = (now.sec - begin.sec) * 1000 + (now.nsec / 1000000);
-
+	Usb.indicators.left = 1;
+Usb.indicators.right = 3;
     Usb.usb_read_buffer(128, timestamp, distance, velocity, quaternion_x, quaternion_y, quaternion_z, quaternion_w, yaw, ang_vel_x,  ang_vel_y, ang_vel_z, lin_acc_x, lin_acc_y, lin_acc_z, start_button1, start_button2);
     Usb.usb_send_buffer(send_ms, Usb.control.steering_angle, Usb.control.steering_angle_velocity, Usb.control.speed, Usb.control.acceleration, Usb.control.jerk, Usb.indicators.left, Usb.indicators.right);
 
@@ -86,7 +87,13 @@ int main(int argc, char **argv)
     
     //send stat button status to msg
     static std_msgs::Bool button_msg;
-    button_msg.data = (bool)start_button1;
+	if (start_button2 ==2){
+    button_msg.data = false;
+
+}
+	else{
+button_msg.data = true;
+}
 
     //publishing msg
     imu_publisher.publish(imu_msg);
