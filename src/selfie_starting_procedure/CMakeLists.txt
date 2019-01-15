@@ -11,8 +11,12 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
+  sensor_msgs
+  image_transport
+  cv_bridge
 )
 
+find_package(OpenCV 3.3.1 REQUIRED)
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
 
@@ -118,6 +122,7 @@ catkin_package(
 include_directories(
   include
   ${catkin_INCLUDE_DIRS}
+  ${OpenCV_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
@@ -177,7 +182,11 @@ include_directories(
 #   FILES_MATCHING PATTERN "*.h"
 #   PATTERN ".svn" EXCLUDE
 # )
-
+install(DIRECTORY include/${PROJECT_NAME}/
+  DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
+  FILES_MATCHING PATTERN "*.hpp" PATTERN "*.h"
+  PATTERN ".svn" EXCLUDE
+)
 ## Mark other files for installation (e.g. launch and bag files, etc.)
 # install(FILES
 #   # myfile1
@@ -197,5 +206,6 @@ include_directories(
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
-add_executable(RRT src/main.cpp)
-target_link_libraries(RRT ${catkin_LIBRARIES})
+add_executable(starting_procedure src/main.cpp src/starting_procedure.cpp src/qr_decoder.cpp)
+target_link_libraries(starting_procedure ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${ZBAR_LIBRARIES}zbar)
+add_dependencies(starting_procedure ${catkin_EXPORTED_TARGETS})
