@@ -1,9 +1,11 @@
 <launch>
   <include file="$(find selfie_race)/launch/parking1.launch" >
     <arg name="gui" value="true"/>
+    <arg name="paused" value="false"/>
   </include>
 
-  <node pkg="selfie_sim_control" type="sim_manager.py" name="sim_manager"/>
+  <!--<node pkg="selfie_sim_control" type="sim_manager.py" name="sim_manager"/>
+-->
   <node pkg="selfie_parking" type="parking_drive.py" name="parking_drive"/> 
 
   <node pkg="selfie_perception" type="detect_obstacles" name="selfie_obstacle_detector">

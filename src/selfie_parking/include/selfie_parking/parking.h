@@ -18,6 +18,10 @@
 #include <actionlib/server/simple_action_server.h>
 #include <selfie_msgs/parkingAction.h>
 
+
+#include <selfie_park/parkAction.h>
+#include <actionlib/client/simple_action_client.h>
+
 #include "shapes.h"
 
 using namespace std;
@@ -36,6 +40,8 @@ private:
   ros::Publisher point_pub;
   ros::Publisher parking_state_pub;
   ros::Publisher parking_place_pub;
+
+  actionlib::SimpleActionClient<selfie_park::parkAction> ac_;
 
   std::vector<Box> boxes_on_the_right_side;
   std::vector<Box> potential_free_places;
@@ -77,4 +83,5 @@ public:
   void display_left_lines();
   void display_free_place();
   void reset();
+  void send_goal();
 };

@@ -1,8 +1,10 @@
 #include "../../selfie_parking/include/selfie_parking/parking.h"
 
+
 Parking::Parking(const ros::NodeHandle &nh, const ros::NodeHandle &pnh):
                 nh_(nh),
-                pnh_(pnh)
+                pnh_(pnh),
+                ac_("park", true)
 {}
 
 Parking::~Parking(){}
@@ -12,7 +14,7 @@ bool Parking::init()
 {
   this->obstacles_sub = nh_.subscribe("/obstacles", 10, &Parking::manager, this);
   this->visualize_lines_pub = nh_.advertise<visualization_msgs::Marker>( "/visualization_lines", 1 );
-  this->visualize_free_place  = nh_.advertise<visualization_msgs::Marker>( "/free_places", 1 );
+  this->visualize_free_place  = nh_.advertise<visualization_msgs::Marker>( "/free_place", 1 );
   this->point_pub = nh_.advertise<visualization_msgs::Marker>("/box_points", 5);
   this->position_offset_pub = nh_.advertise<std_msgs::Float64>("/position_offset",200);
   this->heading_offset_pub = nh_.advertise<std_msgs::Float64>("/heading_offset",200);
@@ -32,21 +34,25 @@ void Parking::manager(const selfie_msgs::PolygonArray &msg)
     search(msg);
     bool place_found = find_free_place();
     first_free_place.visualize(point_pub);
-    if(place_found && abs(get_dist_from_first_free_place()) < distance_to_stop)
+    if(place_found && (get_dist_from_first_free_place()) <= distance_to_stop)
     {
       state = planning;
       planning_scan_counter = 0;
+      cout << "state switched to planning\n";
     }
-    display_bottom_lines();
+    //display_bottom_lines();
    // display_left_lines();
-  }  
+  }
   else if(state == planning || state == planning_failed)
     {
-      if(planning_scan_counter < 5)
+      // ignore first two scans to give time to stop the car
+      if(planning_scan_counter < 2)
       {
-        if(!planning_scan_counter)
-       // cout << "planning_scan_counter == 0\n0.5s sleep \n";
-          ros::Duration(1).sleep();
+        ++planning_scan_counter;
+        return;
+      }
+      else if(planning_scan_counter < 7)
+      {
         search(msg);
         if(find_free_place())
         {
@@ -55,20 +61,22 @@ void Parking::manager(const selfie_msgs::PolygonArray &msg)
           cout << "ok\n";
         }
       }
-      if(planning_scan_counter == 5)
+      else if(planning_scan_counter == 7)
       {
-        first_free_place.visualize(point_pub);
-        first_free_place.print_box_dimensions();
-       // cout << "1s sleep\n";
-      //  ros::Duration(0.5).sleep();
+       // first_free_place.visualize(point_pub);
+       // first_free_place.print_box_dimensions();
+        cout << "getting exact dimensions\n";
+       // ros::Duration(0.5).sleep();
+       // takes the vector of laser scans and aproximates real parking place dimensions
         get_exact_measurements();
         planning_scan_counter = 0;
+        display_free_place();
         for_planning.clear();
         first_free_place.print_box_dimensions();
         first_free_place.visualize(point_pub);
         state = parking;
-        publish_place();
-        display_free_place();
+        send_goal();
+
       }
     }
     if(planning_error_counter == 5)
@@ -104,7 +112,7 @@ bool Parking::find_free_place()
       cout << "error, place not found!!!!\n";
       ++planning_error_counter;
     }
-    
+
   //}
   return false;
 //  potential_free_places.push_back();
@@ -143,7 +151,7 @@ void Parking::get_exact_measurements()
       max_top_left_y = (*box_it).top_left.y;
 
     if((*box_it).bottom_left.y > max_bottom_left_y)
-      max_bottom_left_y = (*box_it).bottom_left.y;    
+      max_bottom_left_y = (*box_it).bottom_left.y;
 
     if((*box_it).bottom_right.x > max_bottom_right_x)
       max_bottom_right_x = (*box_it).bottom_right.x;
@@ -157,12 +165,14 @@ void Parking::get_exact_measurements()
   real_place.top_left.x = min_top_left_x;
   real_place.top_left.y = max_top_left_y;
   real_place.top_right.x = real_place.top_left.x;
+  // na sztywno
   real_place.top_right.y = real_place.top_left.y-0.3;
   real_place.bottom_left.y = max_bottom_left_y;
   real_place.bottom_left.x = max_bottom_left_x;
   real_place.bottom_right.x = real_place.bottom_left.x;
+  // na sztywno
   real_place.bottom_right.y = real_place.bottom_left.y-0.3;
-  
+
   first_free_place = real_place;
   // TODO
 }
@@ -172,9 +182,29 @@ double Parking::count_surface_area(Box box)
   float bottom_edge = box.bottom_left.get_distance(box.bottom_right);
   float top_edge = box.top_left.get_distance(box.top_right);
   float right_edge = box.top_right.get_distance(box.bottom_right);
-  float left_edge = box.top_left.get_distance(box.bottom_left); 
+  float left_edge = box.top_left.get_distance(box.bottom_left);
 
   return max(bottom_edge, top_edge) * max(left_edge, right_edge);
+}
+
+void Parking::send_goal()
+{
+    selfie_park::parkGoal msg;
+    geometry_msgs::Point32 p;
+    p.x = first_free_place.bottom_left.x;
+    p.y = first_free_place.bottom_left.y;
+    msg.parking_spot.points.push_back(p);
+    p.x = first_free_place.bottom_right.x;
+    p.y = first_free_place.bottom_right.y;
+    msg.parking_spot.points.push_back(p);
+    p.x = first_free_place.top_right.x;
+    p.y = first_free_place.top_right.y;
+    msg.parking_spot.points.push_back(p);
+    p.x = first_free_place.top_left.x;
+    p.y = first_free_place.top_left.y;
+    msg.parking_spot.points.push_back(p);
+    msg.park = true;
+    ac_.sendGoal(msg);
 }
 
 void Parking::search(const selfie_msgs::PolygonArray &msg)
@@ -209,12 +239,12 @@ void Parking::search(const selfie_msgs::PolygonArray &msg)
      min_x = temp_box.top_left.x;
      this->boxes_on_the_right_side.push_back(temp_box);
     // cout << "box_created\n";
-    }  
+    }
       //now we reset, but later
       //TODO: use odometry to find yourself in space
     end_of_box_creation = std::chrono::high_resolution_clock::now();
   }//box_nr for
-    
+
     auto end_of_callback = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> diff = end_of_box_creation - begin;
   //  cout << "box_creation: " << diff.count() * 1000000<< " [microseconds]" << endl;
@@ -264,18 +294,6 @@ void Parking::generate_offsets()
   cout << mean.data  <<endl;
 }
 
-
-
-void Parking::publish_place()
-{
-  geometry_msgs::PolygonStamped msg;
-  msg.header.frame_id = "laser";
-  msg.header.stamp = ros::Time::now();
-  first_free_place.make_poly(msg.polygon);
-  first_free_place.top_left.x;
-
-  parking_place_pub.publish(msg);
-}
 
 
 void Parking::display_left_lines()
@@ -418,11 +436,11 @@ void Parking::display_free_place()
 
           marker_point.x = first_free_place.top_left.x;
           marker_point.y = first_free_place.top_left.y;
-          marker.points.push_back(marker_point); 
+          marker.points.push_back(marker_point);
           marker_point.x = first_free_place.bottom_left.x;
           marker_point.y = first_free_place.bottom_left.y;
-          marker.points.push_back(marker_point);                   
+          marker.points.push_back(marker_point);
 
           visualize_free_place.publish(marker);
-    
+
 }

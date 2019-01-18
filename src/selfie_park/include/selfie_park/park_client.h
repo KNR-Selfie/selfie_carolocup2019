@@ -3,6 +3,7 @@
 #include <ros/ros.h>
 #include <actionlib/client/simple_action_client.h>
 #include <selfie_park/parkAction.h>
+#include <geometry_msgs/Polygon.h>
 
 class ParkClient
 {

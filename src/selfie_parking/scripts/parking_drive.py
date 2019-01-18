@@ -5,7 +5,7 @@ from ackermann_msgs.msg import AckermannDriveStamped
 from std_msgs.msg import Int16
 
 SPEED = 0.4
-UPDATE_RATE = 40
+UPDATE_RATE = 50
 
 def state_callback(msg):
     if(msg.data < 2):
@@ -34,9 +34,9 @@ if __name__ == '__main__':
     drive_msg.drive.steering_angle_velocity = 5
 
     global drive_pub
-    drive_pub = rospy.Publisher('drive', AckermannDriveStamped, queue_size=1) 
-    parking_state_sub = rospy.Subscriber('parking_state', Int16, state_callback, queue_size=10)  
+    drive_pub = rospy.Publisher('drive', AckermannDriveStamped, queue_size=1)
+    parking_state_sub = rospy.Subscriber('parking_state', Int16, state_callback, queue_size=10)
     rate = rospy.Rate(UPDATE_RATE)
     while not rospy.is_shutdown():
         drive_pub.publish(drive_msg)
-        rate.sleep()    
+        rate.sleep()
