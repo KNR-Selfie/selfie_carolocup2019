@@ -20,7 +20,8 @@ int main(int argc, char **argv)
   ros::Publisher imu_publisher = n.advertise<sensor_msgs::Imu>("imu", 100);
   ros::Publisher velo_publisher = n.advertise<std_msgs::Float32>("speed", 50);
   ros::Publisher dis_publisher = n.advertise<std_msgs::Float32>("distance", 50);
-  ros::Publisher button_publisher = n.advertise<std_msgs::Bool>("start_button", 50);  
+  ros::Publisher button1_publisher = n.advertise<std_msgs::Bool>("start_button1", 50);  
+  ros::Publisher button2_publisher = n.advertise<std_msgs::Bool>("start_button2", 50);  
 
   ros::Subscriber ackerman_subscriber = n.subscribe("drive", 1, ackermanCallback);
   ros::Subscriber left_turn_indicator_subscriber = n.subscribe("left_turn_indicator", 1, left_turn_indicatorCallback);
@@ -86,20 +87,18 @@ Usb.indicators.right = 3;
     dis_msg.data = (float)distance / 1000;
     
     //send stat button status to msg
-    static std_msgs::Bool button_msg;
-	if (start_button2 ==2){
-    button_msg.data = false;
+    static std_msgs::Bool button1_msg;
+    button1_msg.data = start_button1;
+    static std_msgs::Bool button2_msg;
+    button2_msg.data = start_button2;
 
-}
-	else{
-button_msg.data = true;
-}
 
     //publishing msg
     imu_publisher.publish(imu_msg);
     velo_publisher.publish(velo_msg);
     dis_publisher.publish(dis_msg);
-    button_publisher.publish(button_msg);
+    button1_publisher.publish(button1_msg);
+    button2_publisher.publish(button2_msg);
 
     ros::spinOnce();
   }

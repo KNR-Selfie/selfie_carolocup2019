@@ -9,18 +9,12 @@ int USB_STM::init(int speed)
   //char port[] = "/dev/serial/by-id/STM32F407";
   fd = open(port, O_RDWR | O_NOCTTY | O_SYNC);
   if (fd < 0){
-    ROS_ERROR("Could not open serial communication on port!\n");
-    std::cout<<port<<std::endl;
-}
+    ROS_ERROR("Could not open serial communication on port!.\n Make sure you did: chmod u +rw /dev/serial/by-id/usb-KNR_Selfie_F7_00000000001A-if00\n");
+    return -1;
+  }
   else
   {
     ROS_INFO("Opened serial communication on port\n");
-  }
-
-  if (fd < 0)
-  {
-    ROS_ERROR("Could not open any USB port");
-    return -1;
   }
 
   // Get attributes of transmission
