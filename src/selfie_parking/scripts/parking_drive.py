@@ -34,7 +34,7 @@ if __name__ == '__main__':
     drive_msg.drive.steering_angle_velocity = 5
 
     global drive_pub
-    drive_pub = rospy.Publisher('drive', AckermannDriveStamped, queue_size=1)
+    drive_pub = rospy.Publisher('/drive', AckermannDriveStamped, queue_size=1)
     parking_state_sub = rospy.Subscriber('parking_state', Int16, state_callback, queue_size=10)
     rate = rospy.Rate(UPDATE_RATE)
     while not rospy.is_shutdown():
