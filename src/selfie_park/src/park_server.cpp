@@ -7,14 +7,14 @@ pnh_(pnh),
 as_(nh_, "park",  false)
 {
   pnh_.param<std::string>("odom_topic", odom_topic,"/vesc/odom");
-  pnh_.param<std::string>("ackermann_topic", ackermann_topic,"/drive");
+  pnh_.param<std::string>("ackermann_topic", ackermann_topic,"/sim_drive");
   pnh_.param<float>("minimal_start_parking_x", minimal_start_parking_x, -0.1);
   pnh_.param<float>("maximal_start_parking_x", maximal_start_parking_x, 0.0);
   pnh_.param<float>("traffic_lane_marigin",traffic_lane_marigin, 0.05);
   pnh_.param<float>("earlier_turn", earlier_turn, 0.01);
   pnh_.param<float>("first_to_second_phase_x_frontwards",first_to_second_phase_x_frontwards, 1.0/3.0);
   pnh_.param<float>("first_to_second_phase_x_backwards", first_to_second_phase_x_backwards, 1.0/2.0);
-  pnh_.param<bool>("state_msgs",state_msgs, false);
+  pnh_.param<bool>("state_msgs",state_msgs, true);
   pnh_.param<float>("max_distance_to_wall", max_distance_to_wall, 0.03);
   move_state = init_move;
   parking_state = not_parking;
@@ -61,6 +61,8 @@ void ParkService::odom_callback(const nav_msgs::Odometry &msg)
 
 		case parked:
 		if(state_msgs) ROS_INFO("PARKED");
+		ros::Duration(2).sleep();
+		parking_state = going_out;
 		break;
 
 		case going_out:
@@ -106,16 +108,8 @@ void ParkService::goalCB()
 {
   std::cout<<"got goal"<<std::endl;
   selfie_park::parkGoal goal = *as_.acceptNewGoal();
-  bool parking = goal.park;
-  if(parking)
-  {
-    init_parking_spot(goal.parking_spot);
-    parking_state = go_to_parking_spot;
-  }
-  else
-  {
-    parking_state = going_out;
-  }
+  init_parking_spot(goal.parking_spot);
+  parking_state = go_to_parking_spot;
 }
 
 void ParkService::preemptCB()
