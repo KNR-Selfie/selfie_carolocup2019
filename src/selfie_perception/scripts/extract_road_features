@@ -1,0 +1,54 @@
+#!/usr/bin/env python
+
+import rospy
+
+import numpy as np
+from scipy.optimize import minimize
+from numpy.polynomial.polynomial import Polynomial
+
+from selfie_msgs.msg import RoadMarkings
+from std_msgs.msg import Float64
+
+def road_markings_callback(msg):
+    c_poly = Polynomial(msg.center_line)
+    r_poly = Polynomial(msg.right_line)
+
+    c_poly_dist_sq = [0, 0, 1] + c_poly**2
+    r_poly_dist_sq = [0, 0, 1] + r_poly**2
+
+    c_x = np.max(0, minimize(c_poly_dist_sq, 0).x[0])
+    r_x = np.max(0, minimize(r_poly_dist_sq, 0).x[0])
+
+    c_y = c_poly(c_x)
+    r_y = r_poly(r_x)
+
+    c_dist = np.sqrt(c_poly_dist_sq(c_x))
+    r_dist = np.sqrt(r_poly_dist_sq(r_x))
+
+    slope = c_poly.deriv()(c_x)
+    theta = np.arctan(slope)
+
+    if np.arctan2(c_y, c_x) - theta < 0:
+        c_dist = -c_dist
+
+    if np.arctan2(r_y, r_x) - theta < 0:
+        r_dist = -r_dist
+
+    position = -(c_dist + r_dist) / 2
+
+    heading_offset_pub.publish(-theta)
+    position_offset_pub.publish(position)
+
+if __name__ == '__main__':
+    rospy.init_node('extract_road_features')
+
+    road_markings_sub = rospy.Subscriber('road_markings',
+                                          RoadMarkings,
+                                          road_markings_callback,
+                                          queue_size=1)
+
+    global heading_offset_pub, position_offset_pub
+    heading_offset_pub = rospy.Publisher('heading_offset', Float64, queue_size=1)
+    position_offset_pub = rospy.Publisher('position_offset', Float64, queue_size=1)
+
+    rospy.spin()

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(selfie_perception)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
- add_compile_options(-std=c++11)
+add_compile_options(-std=c++11)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -16,6 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
   selfie_msgs
   cv_bridge
   image_transport
+  rospy
 )
 
 find_package(OpenCV 3.3.1 REQUIRED)
@@ -208,7 +209,7 @@ include_directories(
 
 install(DIRECTORY include/${PROJECT_NAME}/
     DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION}
-    FILES_MATCHING PATTERN "*.h"
+    FILES_MATCHING PATTERN "*.hpp" PATTERN "*.h"
     PATTERN ".svn" EXCLUDE
 )
 
@@ -221,6 +222,6 @@ add_executable(detect_obstacles src/detect_obstacles.cpp src/obstacles_generator
 target_link_libraries(detect_obstacles ${catkin_LIBRARIES})
 add_dependencies(detect_obstacles ${catkin_EXPORTED_TARGETS})
 
-add_executable(detect_markings src/cam.cpp src/lanedetector.cpp)
+add_executable(detect_markings src/cam.cpp src/lanedetector.cpp src/polyfit.cpp)
 target_link_libraries(detect_markings ${catkin_LIBRARIES} ${OpenCV_LIBRARIES})
 add_dependencies(detect_markings ${catkin_EXPORTED_TARGETS})

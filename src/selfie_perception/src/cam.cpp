@@ -1,4 +1,5 @@
 #include <selfie_perception/lanedetector.h>
+#include <selfie_perception/polyfit.h>
 
 int main(int argc, char **argv)
 {

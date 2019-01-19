@@ -1,7 +1,7 @@
-<?xml version="1.0"?>
+<?xml version="1.1"?>
 <package format="2">
   <name>selfie_stm32_bridge</name>
-  <version>1.0.0</version>
+  <version>1.1.0</version>
   <description>The selfie_msgs package</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
