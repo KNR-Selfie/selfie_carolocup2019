@@ -55,8 +55,8 @@ private:
   double planning_error_counter = 0;
 
   // jednostki w metrach
-  const float point_min_x = -0.3;
-  const float point_max_x = 5;
+  const float point_min_x = -0.2;
+  const float point_max_x = 3;
 
   const float point_min_y = -1;
   const float point_max_y = 0.2;

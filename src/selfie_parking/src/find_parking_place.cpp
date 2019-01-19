@@ -103,7 +103,7 @@ bool Parking::find_free_place()
     {
       Box tmp_box((*iter).top_left, (*iter).top_right, (*(iter+1)).bottom_left, (*(iter+1)).bottom_right);
       first_free_place = tmp_box;
-    //  first_free_place.print();
+      //first_free_place.print();
       tmp_box.visualize(point_pub);
       return true;
     }
