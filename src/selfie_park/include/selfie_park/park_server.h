@@ -17,7 +17,7 @@
 #define ODOM_TO_BACK -0.05
 #define ODOM_TO_LASER 0.15
 #define CAR_WIDTH 0.22
-#define PARKING_SPEED 0.2
+#define PARKING_SPEED 0.4
 #define MAX_TURN 0.5
 
 class ParkService

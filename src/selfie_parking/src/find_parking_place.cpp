@@ -5,7 +5,13 @@ Parking::Parking(const ros::NodeHandle &nh, const ros::NodeHandle &pnh):
                 nh_(nh),
                 pnh_(pnh),
                 ac_("park", true)
-{}
+{
+  pnh_.param<float>("point_min_x", point_min_x, 0);
+  pnh_.param<float>("point_max_x", point_max_x, 2);
+  pnh_.param<float>("point_min_y", point_min_y, -1);
+  pnh_.param<float>("point_max_y", point_max_y, 0.2);
+  pnh_.param<float>("distance_to_stop", distance_to_stop, 0.2);
+}
 
 Parking::~Parking(){}
 
@@ -214,14 +220,14 @@ void Parking::search(const selfie_msgs::PolygonArray &msg)
     auto begin = std::chrono::high_resolution_clock::now();
     auto end_of_box_creation = std::chrono::high_resolution_clock::now();
 
-  for(size_t box_nr = 0;  box_nr < msg.polygons.size();  ++box_nr)
+  for(int box_nr = msg.polygons.size()-1;  box_nr >= 0;  --box_nr)
   {
     float min_x = point_min_x;
     float max_x = point_max_x;
     float min_y = point_min_y;
     float max_y = point_max_y;
-
-    begin = std::chrono::high_resolution_clock::now();
+   //  cout << "box_nr:" << box_nr << endl;
+   // begin = std::chrono::high_resolution_clock::now();
     geometry_msgs::Polygon polygon = msg.polygons[box_nr];
     bool box_ok = true;
     for(int a = 0;  a < 4;  ++a)
@@ -238,18 +244,19 @@ void Parking::search(const selfie_msgs::PolygonArray &msg)
      Box temp_box(polygon);
      min_x = temp_box.top_left.x;
      this->boxes_on_the_right_side.push_back(temp_box);
-    // cout << "box_created\n";
+   //  cout << "box_created\n";
     }
       //now we reset, but later
       //TODO: use odometry to find yourself in space
-    end_of_box_creation = std::chrono::high_resolution_clock::now();
+   // end_of_box_creation = std::chrono::high_resolution_clock::now();
   }//box_nr for
 
-    auto end_of_callback = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> diff = end_of_box_creation - begin;
+    //auto end_of_callback = std::chrono::high_resolution_clock::now();
+   // std::chrono::duration<double> diff = end_of_box_creation - begin;
   //  cout << "box_creation: " << diff.count() * 1000000<< " [microseconds]" << endl;
-    diff = end_of_callback - begin;
+//diff = end_of_callback - begin;
   //  cout << "whole callback : : " << diff.count() * 1000000 << " [microseconds]" << endl;
+  //cout << "end_of_obs callback\n";
 }//obstacle_callback
 
 Point odom_callback(const nav_msgs::Odometry &msg)
@@ -261,6 +268,7 @@ Point odom_callback(const nav_msgs::Odometry &msg)
 
 double inline Parking::get_dist_from_first_free_place()
 {
+  cout << first_free_place.bottom_left.x << endl;
   return first_free_place.bottom_left.x;
 }
 

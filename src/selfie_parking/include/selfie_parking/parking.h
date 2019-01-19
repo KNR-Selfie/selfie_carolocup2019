@@ -48,18 +48,18 @@ private:
   // for now only this is used
   std::vector<Box> for_planning;
   Box first_free_place;
-  double distance_to_stop = 0.3;
+  float distance_to_stop;
 
   parking_state state = searching;
   double planning_scan_counter=0;
   double planning_error_counter = 0;
 
   // jednostki w metrach
-  const float point_min_x = -0.2;
-  const float point_max_x = 3;
+  float point_min_x = 0;
+  float point_max_x = 2;
 
-  const float point_min_y = -1;
-  const float point_max_y = 0.2;
+  float point_min_y = -1;
+  float point_max_y = 0.2;
 
   struct global_box{
     Box box;

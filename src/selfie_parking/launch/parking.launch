@@ -1,5 +1,8 @@
 <launch>
-  <node pkg="selfie_parking" type="parking_drive.py" name="parking_drive"/> 
+<!--
+  <node pkg="selfie_parking" type="parking_drive.py" name="parking_drive"/>
+   --> 
+
 <!--
   <node pkg="urg_node" type="urg_node" name="urg_NODE"/>
 -->
