@@ -1,6 +1,7 @@
 #include "ros/ros.h"
 #include "sensor_msgs/Imu.h"
 #include "std_msgs/Float32.h"
+#include "std_msgs/Bool.h"
 #include "ackermann_msgs/AckermannDriveStamped.h"
 #include "usb.hpp"
 #include <sstream>
@@ -8,6 +9,8 @@
 USB_STM Usb;
 
 void ackermanCallback(const ackermann_msgs::AckermannDriveStamped::ConstPtr& msg);
+void left_turn_indicatorCallback(const std_msgs::Bool::ConstPtr& msg);
+void right_turn_indicatorCallback(const std_msgs::Bool::ConstPtr& msg);
 
 int main(int argc, char **argv)
 {
@@ -17,9 +20,13 @@ int main(int argc, char **argv)
   ros::Publisher imu_publisher = n.advertise<sensor_msgs::Imu>("imu", 100);
   ros::Publisher velo_publisher = n.advertise<std_msgs::Float32>("speed", 50);
   ros::Publisher dis_publisher = n.advertise<std_msgs::Float32>("distance", 50);
+  ros::Publisher button1_publisher = n.advertise<std_msgs::Bool>("start_button1", 50);  
+  ros::Publisher button2_publisher = n.advertise<std_msgs::Bool>("start_button2", 50);  
 
   ros::Subscriber ackerman_subscriber = n.subscribe("drive", 1, ackermanCallback);
-
+  ros::Subscriber left_turn_indicator_subscriber = n.subscribe("left_turn_indicator", 1, left_turn_indicatorCallback);
+  ros::Subscriber right_turn_indicator_subscriber = n.subscribe("right_turn_indicator", 1, right_turn_indicatorCallback);
+  
   //usb communication - read
   uint32_t timestamp = 1;
 
@@ -36,6 +43,8 @@ int main(int argc, char **argv)
   int16_t lin_acc_x = 1;
   int16_t lin_acc_y = 1;
   int16_t lin_acc_z = 1;
+  uint8_t start_button1 = 1;
+  uint8_t start_button2 = 1;
 
   Usb.init();
 
@@ -45,12 +54,13 @@ int main(int argc, char **argv)
   {
     ros::Time now = ros::Time::now();
     uint32_t send_ms = (now.sec - begin.sec) * 1000 + (now.nsec / 1000000);
-
-    Usb.usb_read_buffer(128, timestamp, distance, velocity, quaternion_x, quaternion_y, quaternion_z, quaternion_w, yaw, ang_vel_x,  ang_vel_y, ang_vel_z, lin_acc_x, lin_acc_y, lin_acc_z);
-    Usb.usb_send_buffer(send_ms, Usb.control.steering_angle, Usb.control.steering_angle_velocity, Usb.control.speed, Usb.control.acceleration, Usb.control.jerk);
+	Usb.indicators.left = 1;
+Usb.indicators.right = 3;
+    Usb.usb_read_buffer(128, timestamp, distance, velocity, quaternion_x, quaternion_y, quaternion_z, quaternion_w, yaw, ang_vel_x,  ang_vel_y, ang_vel_z, lin_acc_x, lin_acc_y, lin_acc_z, start_button1, start_button2);
+    Usb.usb_send_buffer(send_ms, Usb.control.steering_angle, Usb.control.steering_angle_velocity, Usb.control.speed, Usb.control.acceleration, Usb.control.jerk, Usb.indicators.left, Usb.indicators.right);
 
     //send imu to msg
-    sensor_msgs::Imu imu_msg;
+    static sensor_msgs::Imu imu_msg;
 
     imu_msg.header.frame_id = "imu";
     imu_msg.header.stamp = ros::Time::now();
@@ -69,17 +79,26 @@ int main(int argc, char **argv)
     imu_msg.angular_velocity.z = (float)(ang_vel_z / 65.535f);
 
     //send velocity to msg
-    std_msgs::Float32 velo_msg;
+    static std_msgs::Float32 velo_msg;
     velo_msg.data = (float)velocity / 1000;
 
     //send distance to msg
-    std_msgs::Float32 dis_msg;
+    static std_msgs::Float32 dis_msg;
     dis_msg.data = (float)distance / 1000;
+    
+    //send stat button status to msg
+    static std_msgs::Bool button1_msg;
+    button1_msg.data = start_button1;
+    static std_msgs::Bool button2_msg;
+    button2_msg.data = start_button2;
+
 
     //publishing msg
     imu_publisher.publish(imu_msg);
     velo_publisher.publish(velo_msg);
     dis_publisher.publish(dis_msg);
+    button1_publisher.publish(button1_msg);
+    button2_publisher.publish(button2_msg);
 
     ros::spinOnce();
   }
@@ -92,4 +111,14 @@ void ackermanCallback(const ackermann_msgs::AckermannDriveStamped::ConstPtr& msg
   Usb.control.speed = msg->drive.speed;
   Usb.control.acceleration = msg->drive.acceleration;
   Usb.control.jerk = msg->drive.jerk;
+}
+
+void left_turn_indicatorCallback(const std_msgs::Bool::ConstPtr& msg)
+{
+  Usb.indicators.left = (int8_t) msg->data;
+}
+
+void right_turn_indicatorCallback(const std_msgs::Bool::ConstPtr& msg)
+{
+  Usb.indicators.right = (int8_t) msg->data;
 }

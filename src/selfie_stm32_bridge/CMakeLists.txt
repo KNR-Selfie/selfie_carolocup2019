@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(selfie_stm32_bridge)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-# add_compile_options(-std=c++11)
+add_compile_options(-std=c++11)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -202,4 +202,3 @@ include_directories(include ${catkin_INCLUDE_DIRS})
 
 add_executable(selfie_stm32_bridge src/main.cpp src/usb.cpp)
 target_link_libraries(selfie_stm32_bridge ${catkin_LIBRARIES})
-add_dependencies(selfie_stm32_bridge selfie_usb_generate_messages_cpp)
