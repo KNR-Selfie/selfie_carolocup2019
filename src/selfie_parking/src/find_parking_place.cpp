@@ -82,7 +82,8 @@ void Parking::manager(const selfie_msgs::PolygonArray &msg)
         first_free_place.visualize(point_pub);
         state = parking;
         send_goal();
-
+        cout << "state swiched to parking\n";
+        state = parking;
       }
     }
     if(planning_error_counter == 5)

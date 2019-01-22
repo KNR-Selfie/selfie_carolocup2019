@@ -6,7 +6,10 @@
 <!--
   <node pkg="urg_node" type="urg_node" name="urg_NODE"/>
 -->
-  <node pkg="sick_tim" type="sick_tim551_2050001" name="sick_node"/>
+  <node pkg="sick_tim" type="sick_tim551_2050001" name="sick_node">
+    <param name="min_ang" value="-1.57"/>
+    <param name="max_ang" value="1.57"/>
+  </node>
 
   <node pkg="selfie_stm32_bridge" type="selfie_stm32_bridge" name="stm_bridge"/>
 
