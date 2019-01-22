@@ -4,7 +4,8 @@
 ParkService::ParkService(const ros::NodeHandle &nh, const ros::NodeHandle &pnh):
 nh_(nh),
 pnh_(pnh),
-as_(nh_, "park",  false)
+as_(nh_, "park",  false),
+visualize(true)
 {
   pnh_.param<std::string>("odom_topic", odom_topic,"/vesc/odom");
   pnh_.param<std::string>("ackermann_topic", ackermann_topic,"/sim_drive");
@@ -14,7 +15,7 @@ as_(nh_, "park",  false)
   pnh_.param<float>("earlier_turn", earlier_turn, 0.01);
   pnh_.param<float>("first_to_second_phase_x_frontwards",first_to_second_phase_x_frontwards, 1.0/3.0);
   pnh_.param<float>("first_to_second_phase_x_backwards", first_to_second_phase_x_backwards, 1.0/2.0);
-  pnh_.param<bool>("state_msgs",state_msgs, true);
+  pnh_.param<bool>("state_msgs",state_msgs, false);
   pnh_.param<float>("max_distance_to_wall", max_distance_to_wall, 0.03);
   move_state = init_move;
   parking_state = not_parking;
@@ -23,10 +24,137 @@ as_(nh_, "park",  false)
   as_.start();
   odom_sub = nh_.subscribe(odom_topic, 10, &ParkService::odom_callback, this);
   ackermann_pub = nh_.advertise<ackermann_msgs::AckermannDriveStamped>(ackermann_topic, 10);
+	if(visualize) visualization_pub = nh_.advertise<visualization_msgs::MarkerArray>("parking_view", 10);
+	mid_y = 0.0;
+	mid_x = 0.0;
+}
+void ParkService::visualize_parking_spot()
+{
+	tf::Vector3 tf_point;
+	geometry_msgs::Point marker_point;
+	marker_point.z = 0;
+	visualization_msgs::MarkerArray markers;
+	visualization_msgs::Marker marker;
+	marker.header.frame_id = "/map";
+	marker.header.stamp = ros::Time::now();
+	marker.ns = "edges";
+	marker.type = visualization_msgs::Marker::LINE_LIST;
+  marker.action = visualization_msgs::Marker::ADD;
+	marker.color.r = 1.0f;
+  marker.color.g = 120.0f/255.0f;
+  marker.color.b = 0.0f;
+  marker.color.a = 1.0f;
+  marker.scale.x = 0.006;
+  marker.scale.y = 0.006;
+  marker.id = 0;
+	marker.points.push_back(point_parking_to_odom(back_wall, parking_spot_width));
+	marker.points.push_back(point_parking_to_odom(front_wall, parking_spot_width));
+	marker.points.push_back(point_parking_to_odom(back_wall, 0.0));
+	marker.points.push_back(point_parking_to_odom(front_wall, 0.0));
+	markers.markers.push_back(marker);
+	
+
+  visualization_msgs::Marker marker2;
+	marker2.header.frame_id = "/map";
+	marker2.header.stamp = ros::Time::now();
+	marker2.ns = "wall_lines";
+	marker2.type = visualization_msgs::Marker::LINE_LIST;
+  marker2.action = visualization_msgs::Marker::ADD;
+	marker2.color.r = 1.0f;
+  marker2.color.g = 0.0f;
+  marker2.color.b = 0.0f;
+  marker2.color.a = 1.0f;
+  marker2.scale.x = 0.006;
+  marker2.scale.y = 0.006;
+	marker2.id = 1;
+	marker2.points.push_back(point_parking_to_odom(back_wall, parking_spot_width));
+	marker2.points.push_back(point_parking_to_odom(back_wall, 0.0));
+	marker2.points.push_back(point_parking_to_odom(front_wall, parking_spot_width));
+	marker2.points.push_back(point_parking_to_odom(front_wall, 0.0));
+
+	markers.markers.push_back(marker2);
+
+
+	  visualization_msgs::Marker marker3;
+	marker3.header.frame_id = "/map";
+	marker3.header.stamp = ros::Time::now();
+	marker3.ns = "turn_lines";
+	marker3.type = visualization_msgs::Marker::LINE_LIST;
+  marker3.action = visualization_msgs::Marker::ADD;
+	marker3.color.r = 0.5f;
+  marker3.color.g = 1.0f;
+  marker3.color.b = 0.0f;
+  marker3.color.a = 1.0f;
+  marker3.scale.x = 0.006;
+  marker3.scale.y = 0.006;
+	marker3.id = 1;
+	marker3.points.push_back(point_parking_to_odom(back_wall, mid_y));
+	marker3.points.push_back(point_parking_to_odom(front_wall, mid_y));
+	marker3.points.push_back(point_parking_to_odom(mid_x, 0.0));
+	marker3.points.push_back(point_parking_to_odom(mid_x, parking_spot_width));
+	markers.markers.push_back(marker3);
+
+
+	visualization_msgs::Marker marker4;
+	marker4.header.frame_id = "/map";
+	marker4.header.stamp = ros::Time::now();
+	marker4.ns = "odom_pos";
+	marker4.type = visualization_msgs::Marker::LINE_LIST;
+  marker4.action = visualization_msgs::Marker::ADD;
+	marker4.color.r = 1.0f;
+  marker4.color.g = 1.0f;
+  marker4.color.b = 1.0f;
+  marker4.color.a = 1.0f;
+  marker4.scale.x = 0.006;
+  marker4.scale.y = 0.006;
+	marker4.id = 1;
+	geometry_msgs::Point car_point;
+	car_point.z = 0.0;
+	car_point.x = actual_back_odom_position.x - CAR_WIDTH*sin(actual_back_odom_position.rot)/2.0;
+	car_point.y = actual_back_odom_position.y + CAR_WIDTH*cos(actual_back_odom_position.rot)/2.0;
+	marker4.points.push_back(car_point);
+	car_point.x = actual_back_odom_position.x + CAR_WIDTH*sin(actual_back_odom_position.rot)/2.0;
+	car_point.y = actual_back_odom_position.y - CAR_WIDTH*cos(actual_back_odom_position.rot)/2.0;
+	marker4.points.push_back(car_point);
+	marker4.points.push_back(car_point);
+	car_point.x = actual_front_odom_position.x + CAR_WIDTH*sin(actual_back_odom_position.rot)/2.0;
+	car_point.y = actual_front_odom_position.y - CAR_WIDTH*cos(actual_back_odom_position.rot)/2.0;
+	marker4.points.push_back(car_point);
+	marker4.points.push_back(car_point);
+	car_point.x = actual_front_odom_position.x - CAR_WIDTH*sin(actual_back_odom_position.rot)/2.0;
+	car_point.y = actual_front_odom_position.y + CAR_WIDTH*cos(actual_back_odom_position.rot)/2.0;
+	marker4.points.push_back(car_point);
+	marker4.points.push_back(car_point);
+	car_point.x = actual_back_odom_position.x - CAR_WIDTH*sin(actual_back_odom_position.rot)/2.0;
+	car_point.y = actual_back_odom_position.y + CAR_WIDTH*cos(actual_back_odom_position.rot)/2.0;
+	marker4.points.push_back(car_point);
+	
+
+
+	markers.markers.push_back(marker4);
+
+	visualization_pub.publish(markers);
+
+
+	
+}
+
+geometry_msgs::Point ParkService::point_parking_to_odom(float x, float y)
+{
+	tf::Vector3 tf_point;
+	geometry_msgs::Point odom_point;
+	tf_point.setX(x);
+	tf_point.setY(y);
+	tf_point.setZ(0.0);
+	tf_point = parking_spot_position.transform * tf_point;
+	odom_point.x = tf_point.x();
+  odom_point.y = tf_point.y();
+	return odom_point;
 }
 
 void ParkService::odom_callback(const nav_msgs::Odometry &msg)
 {
+	
   actual_odom_position = Position(msg);
   actual_back_odom_position = Position(actual_odom_position, ODOM_TO_BACK);
   actual_front_odom_position = Position(actual_odom_position, ODOM_TO_FRONT);
@@ -36,11 +164,13 @@ void ParkService::odom_callback(const nav_msgs::Odometry &msg)
 
    if(parking_state>not_parking)
    {
+		
     std::cout<<actual_parking_position.x<<"  "<<actual_parking_position.y<<std::endl;
     actual_parking_position = Position(parking_spot_position.transform.inverse()*actual_odom_position.transform);
     actual_back_parking_position = Position(actual_parking_position, ODOM_TO_BACK);
     actual_front_parking_position = Position(actual_parking_position, ODOM_TO_FRONT);
     actual_laser_parking_position = Position(actual_parking_position, ODOM_TO_LASER);
+		if(visualize) visualize_parking_spot();
    }
 
   switch(parking_state)
@@ -103,6 +233,7 @@ void ParkService::init_parking_spot(const geometry_msgs::Polygon &msg)
   front_wall = tr.x()<br.x()?tr.x():br.x();
   middle_of_parking_spot_x = (front_wall - back_wall)/2.0;
   leaving_target = actual_parking_position.y;
+	std::cout<<"parking_spot_width "<<parking_spot_width<<"  "<<"middle_of_parking_spot_y"<<middle_of_parking_spot_y<<"  middle_of_parking_spot_x"<<middle_of_parking_spot_x<<std::endl;
 }
 void ParkService::goalCB()
 {
@@ -141,12 +272,14 @@ void ParkService::drive(float speed, float steering_angle)
 //void go()
 bool ParkService::in_parking_spot()
 {
+	std::cout<<parking_spot_width<<"  "<<actual_back_parking_position.y<<"  "<<actual_front_parking_position.y<<std::endl;
   float l = cos(actual_parking_position.rot)*CAR_WIDTH/2;
 	bool is_in = parking_spot_width > actual_back_parking_position.y + l && actual_back_parking_position.y - l > 0 && parking_spot_width > actual_front_parking_position.y + l && actual_back_parking_position.y - l > 0;
 	return is_in;
 }
 bool ParkService::in_traffic_lane()
 {
+	
   if(actual_back_parking_position.y < leaving_target + traffic_lane_marigin && actual_back_parking_position.y > leaving_target - traffic_lane_marigin &&
   actual_front_parking_position.y < leaving_target + traffic_lane_marigin && actual_front_parking_position.y > leaving_target - traffic_lane_marigin)
   {return true;}
@@ -206,6 +339,7 @@ bool ParkService::park()
 		if(state_msgs) ROS_INFO("get_middles");
 		mid_x = (front?actual_front_parking_position.x  + (front_wall - max_distance_to_wall  - actual_front_parking_position.x)*first_to_second_phase_x_frontwards:  back_wall + (actual_back_parking_position.x + max_distance_to_wall - back_wall)*first_to_second_phase_x_backwards);
 		mid_y = middle_of_parking_spot_y + (actual_back_parking_position.y - middle_of_parking_spot_y)/2.0;
+		std::cout<<mid_x<<"  "<<mid_y<<std::endl;
 		move_state = first_phase;
     right = actual_parking_position.y > middle_of_parking_spot_y;
 		

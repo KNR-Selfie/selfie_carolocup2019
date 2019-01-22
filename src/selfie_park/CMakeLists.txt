@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(selfie_park)
 
-find_package(catkin REQUIRED COMPONENTS roscpp actionlib actionlib_msgs geometry_msgs nav_msgs ackermann_msgs tf selfie_msgs)
+find_package(catkin REQUIRED COMPONENTS roscpp actionlib actionlib_msgs geometry_msgs nav_msgs ackermann_msgs tf selfie_msgs visualization_msgs)
 find_package(Boost REQUIRED COMPONENTS system)
 
 add_action_files(
