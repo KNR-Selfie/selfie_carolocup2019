@@ -52,6 +52,7 @@ class LaneDetector
 	cv::Mat visualization_frame_;
 	cv::Mat homography_frame_;
 	cv::Mat testCrossing;
+	cv::Mat debug_frame_;
 
 	std::vector<std::vector<cv::Point> > lanes_vector_;
 	std::vector<std::vector<cv::Point2f> > lanes_vector_converted_;
@@ -81,7 +82,7 @@ class LaneDetector
 	void drawPoints(cv::Mat &frame);
 	void homography(cv::Mat input_frame, cv::Mat &homography_frame);
 	void printInfoParams();
-	void dynamicMask(cv::Mat &input_frame, cv::Mat &output_frame, std::vector<std::vector<cv::Point> > lanes_vector_last_frame);
+	void dynamicMask(cv::Mat &input_frame, cv::Mat &output_frame, std::vector<std::vector<cv::Point2f> > lanes_vector_last_frame);
 	void crossingLane(cv::Mat &input_frame, cv::Mat &output_frame, std::vector<std::vector<cv::Point2f> > lanes_vector);
 	void crossingLaneLeft(cv::Mat &input_frame, cv::Mat &output_frame, std::vector<std::vector<cv::Point2f> > lanes_vector);
 	void filterSmallLines();

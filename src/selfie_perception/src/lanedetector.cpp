@@ -3,8 +3,8 @@
 #define TOPVIEW_ROWS 480
 #define TOPVIEW_COLS 640
 
-#define TOPVIEW_MIN_X  0.16
-#define TOPVIEW_MAX_X  1.3
+#define TOPVIEW_MIN_X  0.0
+#define TOPVIEW_MAX_X  1.0
 #define TOPVIEW_MIN_Y -0.7
 #define TOPVIEW_MAX_Y  0.7
 
@@ -17,7 +17,7 @@ LaneDetector::LaneDetector(const ros::NodeHandle &nh, const ros::NodeHandle &pnh
 	nh_(nh),
 	pnh_(pnh),
 	it_(nh),
-	binary_treshold_(175),
+	binary_treshold_(33),
 	visualize_(true),
 	init_imageCallback_(true),
 
@@ -26,7 +26,7 @@ LaneDetector::LaneDetector(const ros::NodeHandle &nh, const ros::NodeHandle &pnh
 
 	min_length_search_line_(0.10),
 
-	max_delta_y_lane_(0.1),
+	max_delta_y_lane_(0.08),
 	nominal_center_line_Y_(0.2),
 	min_length_to_aprox_(0.56),
 
@@ -49,7 +49,7 @@ LaneDetector::LaneDetector(const ros::NodeHandle &nh, const ros::NodeHandle &pnh
 	visualization_frame_(),
 	homography_frame_()
 {
-	lanes_pub_ =  nh_.advertise<selfie_msgs::RoadMarkings>("road_markings", 10);
+	lanes_pub_ =  nh_.advertise<selfie_msgs::RoadMarkings>("road_markings", 100);
 	if(visualize_)
 	{
 		points_cloud_pub_ = nh_.advertise<sensor_msgs::PointCloud>("new_coordinates", 10);
@@ -109,6 +109,7 @@ void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr &msg)
 	homography(current_frame_, homography_frame_);
 	removeCar(homography_frame_);
 	cv::threshold(homography_frame_, binary_frame_, binary_treshold_, 255, cv::THRESH_BINARY);
+	
 
 	if(!init_imageCallback_)
 	{
@@ -141,8 +142,15 @@ void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr &msg)
 	filterSmallLines();
 	if(!lanes_vector_converted_.empty())
 	{
-		removeHorizontalLines();
+		//removeHorizontalLines();
 		mergeMiddleLane();
+		
+		if (visualize_)
+		{
+		debug_frame_.rows = homography_frame_.rows;
+		debug_frame_.cols = homography_frame_.cols;
+		lanesVectorVisualization(debug_frame_);
+		}
 
 		if(init_imageCallback_)
 		{
@@ -263,6 +271,9 @@ void LaneDetector::openCVVisualization()
 
 	cv::namedWindow("Homography", cv::WINDOW_NORMAL);
 	cv::imshow("Homography", homography_frame_);
+
+	cv::namedWindow("Debug", cv::WINDOW_NORMAL);
+	cv::imshow("Debug", debug_frame_);
 
 	cv::waitKey(1);
 }
@@ -453,7 +464,7 @@ void LaneDetector::printInfoParams()
     ROS_INFO("visualize: %d\n",visualize_);
 }
 
-void LaneDetector::dynamicMask(cv::Mat &input_frame, cv::Mat &output_frame, std::vector<std::vector<cv::Point> > lanes_vector_last_frame)
+void LaneDetector::dynamicMask(cv::Mat &input_frame, cv::Mat &output_frame, std::vector<std::vector<cv::Point2f> > lanes_vector_last_frame)
 {
 	dynamic_mask_ = cv::Mat::zeros(cv::Size(input_frame.cols, input_frame.rows), CV_8UC1);
 	int length;
@@ -1112,8 +1123,8 @@ void LaneDetector::removeCar(cv::Mat &frame)
 	cv::Point points[4];
 	points[0] = cv::Point(265,480);
 	points[1] = cv::Point(370,480);
-	points[2] = cv::Point(370,350);
-	points[3] = cv::Point(265,350);
+	points[2] = cv::Point(370,280);
+	points[3] = cv::Point(265,280);
 
 	cv::fillConvexPoly(car_mask, points, 4, cv::Scalar(255, 255, 255));
 	cv::bitwise_not(car_mask,car_mask);
@@ -1128,7 +1139,7 @@ void LaneDetector::addBottomPoint()
 	{
 		if(lanes_vector_converted_[left_line_index_][lanes_vector_converted_[left_line_index_].size() - 1].x - lanes_vector_converted_[left_line_index_][0].x > 0.1)
 		{
-			temp.x = 0;
+			temp.x = TOPVIEW_MIN_X;
 			temp.y = getAproxY(last_left_coeff_, TOPVIEW_MIN_X);
 			lanes_vector_converted_[left_line_index_].insert(lanes_vector_converted_[left_line_index_].begin(), temp);
 		}
@@ -1138,7 +1149,7 @@ void LaneDetector::addBottomPoint()
 	{
 		if(lanes_vector_converted_[right_line_index_][lanes_vector_converted_[right_line_index_].size() - 1].x - lanes_vector_converted_[right_line_index_][0].x > 0.1)
 		{
-			temp.x = 0;
+			temp.x = TOPVIEW_MIN_X;
 			temp.y = getAproxY(last_right_coeff_, TOPVIEW_MIN_X);
 			lanes_vector_converted_[right_line_index_].insert(lanes_vector_converted_[right_line_index_].begin(), temp);
 		}
@@ -1148,10 +1159,10 @@ void LaneDetector::addBottomPoint()
 	{
 		if(lanes_vector_converted_[center_line_index_][lanes_vector_converted_[center_line_index_].size() - 1].x - lanes_vector_converted_[center_line_index_][0].x > 0.1)
 		{
-			temp.x = 0;
+			temp.x = TOPVIEW_MIN_X;
 			temp.y = getAproxY(last_middle_coeff_, TOPVIEW_MIN_X);
-			float diff = temp.y - getAproxY(last_right_coeff_, TOPVIEW_MIN_X) - lane_width_;
-			temp.y -= diff / 2;
+			//float diff = temp.y - getAproxY(last_right_coeff_, TOPVIEW_MIN_X) - lane_width_;
+			//temp.y -= diff / 2;
 			lanes_vector_converted_[center_line_index_].insert(lanes_vector_converted_[center_line_index_].begin(), temp);
 		}
 	}
