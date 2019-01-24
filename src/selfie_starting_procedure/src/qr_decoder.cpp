@@ -1,8 +1,8 @@
 #include <selfie_starting_procedure/qr_decoder.h>
 
-qr_decoder::qr_decoder(const ros::NodeHandle& _pnh,const ros::NodeHandle& _nh):pnh(_pnh),nh(_nh)
+Qr_decoder::Qr_decoder(const ros::NodeHandle& _pnh,const ros::NodeHandle& _nh):pnh(_pnh),nh(_nh)
 {
-    sub_image = nh.subscribe("image_raw",10, &qr_decoder::imageRowCallback, this);
+    sub_image = nh.subscribe("image_raw",10, &Qr_decoder::imageRowCallback, this);
 
     scanner.set_config(zbar::ZBAR_NONE, zbar::ZBAR_CFG_ENABLE, 1 );
 
@@ -17,11 +17,11 @@ qr_decoder::qr_decoder(const ros::NodeHandle& _pnh,const ros::NodeHandle& _nh):p
     else
        ROS_INFO("no-preview mode");
 
-    qr_tresh = 5;
+    qr_tresh = 3;
     pnh.getParam("tresh",qr_tresh);
 
 }
-void qr_decoder::decode( cv_bridge::CvImagePtr raw_image)
+void Qr_decoder::decode( cv_bridge::CvImagePtr raw_image)
 {
     cv_ptr = raw_image;
     cv::cvtColor(cv_ptr->image,cv_ptr->image,CV_BGR2GRAY);
@@ -47,11 +47,15 @@ void qr_decoder::decode( cv_bridge::CvImagePtr raw_image)
             cv::destroyAllWindows();
             return;
         }
+
+        if(!preview_param)
+            return;
     }
 
     for(symbol; symbol != img.symbol_end();++symbol)
     {
         std::cout<<symbol->get_type_name()<<" "<<symbol->get_data()<<std::endl<<std::endl; //decode result
+        start_counter = 0;
 
         // display result
         if(preview_param)
@@ -82,18 +86,18 @@ void qr_decoder::decode( cv_bridge::CvImagePtr raw_image)
     }
 }
 
-void qr_decoder::imageRowCallback(const sensor_msgs::Image::ConstPtr msg)
+void Qr_decoder::imageRowCallback(const sensor_msgs::Image::ConstPtr msg)
 {
     if(search_flag)
     {
         this->decode(cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8));
     }
 }
-void qr_decoder::begin_search()
+void Qr_decoder::begin_search()
 {
     search_flag = 1;
 }
-bool qr_decoder::end_search()
+bool Qr_decoder::end_search()
 {
     if(search_flag == 0)
         return true;

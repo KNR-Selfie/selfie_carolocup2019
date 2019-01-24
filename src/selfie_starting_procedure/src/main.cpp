@@ -8,7 +8,7 @@ int main(int argc, char **argv)
     ros::NodeHandle pnh("~");
     ros::NodeHandle nh;
 
-    qr_decoder qr_dec(pnh,nh);
+    Qr_decoder qr_dec(pnh,nh);
     Starting_procedure start_proc(pnh,nh);
 
     ros::Rate loop_rate(30);

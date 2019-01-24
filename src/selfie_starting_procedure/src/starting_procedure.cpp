@@ -12,7 +12,7 @@ Starting_procedure::Starting_procedure(const ros::NodeHandle& _pnh, const ros::N
     driven_dist = 0;
     start_flag = -1;
 
-    dist_tresh = 30;
+    dist_tresh = 1.5;
     pnh.getParam("dist",dist_tresh);
 }
 
@@ -21,7 +21,7 @@ void Starting_procedure::odomCallback(const nav_msgs::Odometry::ConstPtr msg)
 
 }
 void Starting_procedure::distCallback(const std_msgs::Float32::ConstPtr msg)
-{   ROS_INFO("rec %f",msg->data);
+{
     if(start_flag)
         driven_dist = msg->data;
 }
@@ -68,14 +68,20 @@ void Starting_procedure::send_reset_flag()
 void Starting_procedure::drive()
 {
     start_flag = 1;
+    ackermann_msgs::AckermannDriveStamped cmd;
+    float speed;
 
     if(driven_dist>dist_tresh)
     {
         send_reset_flag();
+        speed = 0; //hard stop afer goin out
+    }
+    else
+    {
+        speed = 1.5; //how fast we drive out box
     }
 
-    ackermann_msgs::AckermannDriveStamped cmd;
-    cmd.drive.speed = 5;
+    cmd.drive.speed = speed;
     cmd.drive.steering_angle = 0;
     cmd.drive.steering_angle_velocity = 15;
 
