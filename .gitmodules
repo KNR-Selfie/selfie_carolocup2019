@@ -1,0 +1,6 @@
+[submodule "src/deps/pylon_camera"]
+	path = src/deps/pylon_camera
+	url = https://github.com/magazino/pylon_camera.git
+[submodule "src/deps/camera_control_msgs"]
+	path = src/deps/camera_control_msgs
+	url = https://github.com/magazino/camera_control_msgs.git
