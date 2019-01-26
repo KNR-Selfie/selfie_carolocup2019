@@ -1,18 +1,12 @@
 #include <ros/ros.h>
 #include <tf/transform_broadcaster.h>
-<<<<<<< HEAD
-=======
 #include <tf/transform_listener.h>
->>>>>>> master
 #include <nav_msgs/Odometry.h>
 #include <std_msgs/Float32.h>
 #include <sensor_msgs/Imu.h>
 
 #define ODOM_FRAME "odom"
-<<<<<<< HEAD
-=======
 #define IMU_FRAME "imu"
->>>>>>> master
 
 double speed = 0;
 
@@ -44,10 +38,7 @@ ros::Publisher odom_pub;
 geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromYaw(yaw);
 
 std::string rear_axis_frame;
-<<<<<<< HEAD
-=======
 tf::StampedTransform imu_transform;
->>>>>>> master
 
 void distanceCallback(const std_msgs::Float32 &msg)
 {
