@@ -2,7 +2,7 @@
 
 Qr_decoder::Qr_decoder(const ros::NodeHandle& _pnh,const ros::NodeHandle& _nh):pnh(_pnh),nh(_nh)
 {
-    sub_image = nh.subscribe("image_raw",10, &Qr_decoder::imageRowCallback, this);
+    sub_image = nh.subscribe("image_raw",1, &Qr_decoder::imageRowCallback, this);
 
     scanner.set_config(zbar::ZBAR_NONE, zbar::ZBAR_CFG_ENABLE, 1 );
 
@@ -42,7 +42,7 @@ void Qr_decoder::decode( cv_bridge::CvImagePtr raw_image)
 
         if(start_counter > qr_tresh)
         {
-            ROS_INFO("GO!"); //decide to go
+            ROS_INFO("GO!");
             search_flag = 0;
             cv::destroyAllWindows();
             return;
@@ -88,7 +88,7 @@ void Qr_decoder::decode( cv_bridge::CvImagePtr raw_image)
 
 void Qr_decoder::imageRowCallback(const sensor_msgs::Image::ConstPtr msg)
 {
-    if(search_flag)
+    if(search_flag == 1)
     {
         this->decode(cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::BGR8));
     }

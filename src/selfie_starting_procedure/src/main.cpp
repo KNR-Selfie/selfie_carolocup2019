@@ -11,7 +11,7 @@ int main(int argc, char **argv)
     Qr_decoder qr_dec(pnh,nh);
     Starting_procedure start_proc(pnh,nh);
 
-    ros::Rate loop_rate(30);
+    ros::Rate loop_rate(300);
 
     while(ros::ok())
     {

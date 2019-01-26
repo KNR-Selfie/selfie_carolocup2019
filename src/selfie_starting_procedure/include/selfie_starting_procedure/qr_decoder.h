@@ -7,7 +7,7 @@
 #include <std_msgs/Float32.h>
 #include <iostream>
 #include <zbar.h>
-#include <cstddef>
+
 class Qr_decoder
 {
 
