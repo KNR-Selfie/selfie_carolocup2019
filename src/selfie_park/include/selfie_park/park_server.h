@@ -15,12 +15,12 @@
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
 
-#define ODOM_TO_FRONT 0.25
-#define ODOM_TO_BACK -0.05
-#define ODOM_TO_LASER 0.15
+#define ODOM_TO_FRONT 0.1
+#define ODOM_TO_BACK -0.2
+#define ODOM_TO_LASER 0.1
 #define CAR_WIDTH 0.22
-#define PARKING_SPEED 0.2
-#define MAX_TURN 0.5
+#define PARKING_SPEED 0.4
+#define MAX_TURN 0.7
 
 class ParkService
 {
