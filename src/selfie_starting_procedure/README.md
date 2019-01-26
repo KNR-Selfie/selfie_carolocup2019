@@ -26,7 +26,7 @@ responsible for detecting qr_code
 
 Subscibed topics:
 
-`image_row` - row camera frames
+`/image_row` - row camera frames
 
 <br></br>
 
@@ -36,11 +36,14 @@ responsible for handling button click and drive event.
 
 Subscribed topics:
 
-`distance` - distance driven by a car 
+`/distance` - distance driven by a car 
 
-`odom` - odometry info
+`/odom` - odometry info
 
+`/start_button` - info about pressed button
 
 Published topics:
 
-`drive` - steering commands
+`/drive` - steering commands
+
+`/start` - flag send to inform that the car is out the box
