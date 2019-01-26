@@ -108,7 +108,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES selfie_launch
-#  CATKIN_DEPENDS path_planner selfie_control selfie_msgs selfie_perception selfie_stm32_bridge libuvc_camera
+#  CATKIN_DEPENDS selfie_path_planner selfie_control selfie_msgs selfie_perception selfie_stm32_bridge libuvc_camera
 #  DEPENDS system_lib
 )
 
