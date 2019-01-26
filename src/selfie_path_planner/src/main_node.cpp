@@ -37,7 +37,7 @@ void road_markingsCallback(const selfie_msgs::RoadMarkings::ConstPtr& msg)
     right_line.x_raw_pts.clear();
     right_line.y_raw_pts.clear();
 
-    for(float i = 0; i < 100; i++)
+    for(float i = 0; i < 0.7; i += 0.05)
     {
         center_line.x_raw_pts.push_back(i);
         center_line.y_raw_pts.push_back(left_line.polyval(i));

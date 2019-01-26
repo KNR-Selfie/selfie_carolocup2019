@@ -22,7 +22,7 @@ cd selfie_carolocup2019
 Lastly, the following set of commands will in turn download all external dependencies, build the packages in `src` directory and include them in your environment.
 
 ```bash
-rosdep install --from-paths src --ignore-src -r -y
+./resolve-dependencies.sh
 catkin_make
 source ./devel/setup.bash
 ```

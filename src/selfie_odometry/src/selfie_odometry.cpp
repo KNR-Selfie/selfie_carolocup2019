@@ -1,10 +1,18 @@
 #include <ros/ros.h>
 #include <tf/transform_broadcaster.h>
+<<<<<<< HEAD
+=======
+#include <tf/transform_listener.h>
+>>>>>>> master
 #include <nav_msgs/Odometry.h>
 #include <std_msgs/Float32.h>
 #include <sensor_msgs/Imu.h>
 
 #define ODOM_FRAME "odom"
+<<<<<<< HEAD
+=======
+#define IMU_FRAME "imu"
+>>>>>>> master
 
 double speed = 0;
 
@@ -36,6 +44,10 @@ ros::Publisher odom_pub;
 geometry_msgs::Quaternion odom_quat = tf::createQuaternionMsgFromYaw(yaw);
 
 std::string rear_axis_frame;
+<<<<<<< HEAD
+=======
+tf::StampedTransform imu_transform;
+>>>>>>> master
 
 void distanceCallback(const std_msgs::Float32 &msg)
 {
@@ -68,14 +80,16 @@ void distanceCallback(const std_msgs::Float32 &msg)
 
 void imuCallback(const sensor_msgs::Imu &msg)
 {
-
-  vyaw = msg.angular_velocity.z;
+  static tf::TransformListener listener;
 
   tf::Quaternion q(
     msg.orientation.x,
     msg.orientation.y,
     msg.orientation.z,
-    msg.orientation.w);
+    msg.orientation.w
+  );
+
+  q = imu_transform * q;
 
   tf::Matrix3x3 m(q);
   m.getRPY(roll, pitch, yaw);
@@ -86,6 +100,7 @@ void imuCallback(const sensor_msgs::Imu &msg)
   }
 
   yaw -= base_yaw;
+  vyaw = msg.angular_velocity.z;
 
   // quaternion created from yaw
   odom_quat = tf::createQuaternionMsgFromYaw(yaw);
@@ -104,6 +119,22 @@ int main(int argc, char** argv)
 
   rear_axis_frame = n.param<std::string>("rear_axis_frame", "base_link");
   tf::TransformBroadcaster odom_broadcaster;
+
+  ros::Time now = ros::Time::now();
+
+  tf::TransformListener listener;
+  listener.waitForTransform(
+    rear_axis_frame,
+    IMU_FRAME,
+    now,
+    ros::Duration(3.0)
+  );
+  listener.lookupTransform(
+    rear_axis_frame,
+    IMU_FRAME,
+    ros::Time(0),
+    imu_transform
+  );
 
   ros::Rate loop_rate(10);
 
