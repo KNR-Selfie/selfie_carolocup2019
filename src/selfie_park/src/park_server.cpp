@@ -7,13 +7,13 @@ pnh_(pnh),
 as_(nh_, "park",  false),
 visualize(true)
 {
-  pnh_.param<std::string>("odom_topic", odom_topic,"/vesc/odom");
-  pnh_.param<std::string>("ackermann_topic", ackermann_topic,"/sim_drive");
-  pnh_.param<float>("minimal_start_parking_x", minimal_start_parking_x, -0.1);
+  pnh_.param<std::string>("odom_topic", odom_topic,"/odom");
+  pnh_.param<std::string>("ackermann_topic", ackermann_topic,"/drive");
+  pnh_.param<float>("minimal_start_parking_x", minimal_start_parking_x, 0.02);
   pnh_.param<float>("maximal_start_parking_x", maximal_start_parking_x, 0.0);
   pnh_.param<float>("traffic_lane_marigin",traffic_lane_marigin, 0.05);
   pnh_.param<float>("earlier_turn", earlier_turn, 0.01);
-  pnh_.param<float>("first_to_second_phase_x_frontwards",first_to_second_phase_x_frontwards, 1.0/3.0);
+  pnh_.param<float>("first_to_second_phase_x_frontwards",first_to_second_phase_x_frontwards, 1.0/2.0);
   pnh_.param<float>("first_to_second_phase_x_backwards", first_to_second_phase_x_backwards, 1.0/2.0);
   pnh_.param<bool>("state_msgs",state_msgs, false);
   pnh_.param<float>("max_distance_to_wall", max_distance_to_wall, 0.03);
@@ -35,7 +35,7 @@ void ParkService::visualize_parking_spot()
 	marker_point.z = 0;
 	visualization_msgs::MarkerArray markers;
 	visualization_msgs::Marker marker;
-	marker.header.frame_id = "/map";
+	marker.header.frame_id = "/odom";
 	marker.header.stamp = ros::Time::now();
 	marker.ns = "edges";
 	marker.type = visualization_msgs::Marker::LINE_LIST;
@@ -55,7 +55,7 @@ void ParkService::visualize_parking_spot()
 	
 
   visualization_msgs::Marker marker2;
-	marker2.header.frame_id = "/map";
+	marker2.header.frame_id = "/odom";
 	marker2.header.stamp = ros::Time::now();
 	marker2.ns = "wall_lines";
 	marker2.type = visualization_msgs::Marker::LINE_LIST;
@@ -76,7 +76,7 @@ void ParkService::visualize_parking_spot()
 
 
 	  visualization_msgs::Marker marker3;
-	marker3.header.frame_id = "/map";
+	marker3.header.frame_id = "/odom";
 	marker3.header.stamp = ros::Time::now();
 	marker3.ns = "turn_lines";
 	marker3.type = visualization_msgs::Marker::LINE_LIST;
@@ -96,7 +96,7 @@ void ParkService::visualize_parking_spot()
 
 
 	visualization_msgs::Marker marker4;
-	marker4.header.frame_id = "/map";
+	marker4.header.frame_id = "/odom";
 	marker4.header.stamp = ros::Time::now();
 	marker4.ns = "odom_pos";
 	marker4.type = visualization_msgs::Marker::LINE_LIST;
@@ -129,14 +129,9 @@ void ParkService::visualize_parking_spot()
 	car_point.y = actual_back_odom_position.y + CAR_WIDTH*cos(actual_back_odom_position.rot)/2.0;
 	marker4.points.push_back(car_point);
 	
-
-
 	markers.markers.push_back(marker4);
 
 	visualization_pub.publish(markers);
-
-
-	
 }
 
 geometry_msgs::Point ParkService::point_parking_to_odom(float x, float y)
@@ -233,7 +228,7 @@ void ParkService::init_parking_spot(const geometry_msgs::Polygon &msg)
   front_wall = tr.x()<br.x()?tr.x():br.x();
   middle_of_parking_spot_x = (front_wall - back_wall)/2.0;
   leaving_target = actual_parking_position.y;
-	std::cout<<"parking_spot_width "<<parking_spot_width<<"  "<<"middle_of_parking_spot_y"<<middle_of_parking_spot_y<<"  middle_of_parking_spot_x"<<middle_of_parking_spot_x<<std::endl;
+	std::cout<<"parking spot position  "<<parking_spot_position.x<<"  "<<parking_spot_position.y<<std::endl;
 }
 void ParkService::goalCB()
 {
@@ -252,12 +247,13 @@ void ParkService::preemptCB()
 
 float ParkService::front_distance()
 {
-  return front_wall - actual_front_parking_position.x - sin(actual_parking_position.rot) * CAR_WIDTH/2.0;
+  return front_wall - actual_front_parking_position.x;// - sin(actual_parking_position.rot) * CAR_WIDTH/2.0;
+
 }
 
 float ParkService::back_distance()
 {
-  return actual_back_parking_position.x - back_wall - sin(actual_parking_position.rot) * CAR_WIDTH/2.0;
+  return actual_back_parking_position.x - back_wall;// - sin(actual_parking_position.rot) * CAR_WIDTH/2.0;
 }
 
 void ParkService::drive(float speed, float steering_angle)
@@ -272,7 +268,7 @@ void ParkService::drive(float speed, float steering_angle)
 //void go()
 bool ParkService::in_parking_spot()
 {
-	std::cout<<parking_spot_width<<"  "<<actual_back_parking_position.y<<"  "<<actual_front_parking_position.y<<std::endl;
+	//std::cout<<parking_spot_width<<"  "<<actual_back_parking_position.y<<"  "<<actual_front_parking_position.y<<std::endl;
   float l = cos(actual_parking_position.rot)*CAR_WIDTH/2;
 	bool is_in = parking_spot_width > actual_back_parking_position.y + l && actual_back_parking_position.y - l > 0 && parking_spot_width > actual_front_parking_position.y + l && actual_back_parking_position.y - l > 0;
 	return is_in;
@@ -302,7 +298,7 @@ bool ParkService::park()
   selfie_park::parkFeedback feedback;
   feedback.distance = actual_parking_position.y - middle_of_parking_spot_y;
   as_.publishFeedback(feedback);
-  
+  std::cout<<"back pos  "<<actual_back_parking_position.x<<"  back wall  "<<back_wall<<"  front pos  "<<actual_front_parking_position.x<<"  front wall  "<<front_wall<<std::endl;
 	switch(move_state)
 	{
 		case init_move:
@@ -310,6 +306,7 @@ bool ParkService::park()
 		front = front_distance() > back_distance();
 		right = actual_parking_position.y > middle_of_parking_spot_y;
 		move_state = get_straigth;
+		
 
 		case get_straigth:
 		if(state_msgs) ROS_INFO("get_straigth");
