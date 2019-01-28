@@ -13,8 +13,8 @@ visualize(true)
   pnh_.param<float>("maximal_start_parking_x", maximal_start_parking_x, 0.0);
   pnh_.param<float>("traffic_lane_marigin",traffic_lane_marigin, 0.05);
   pnh_.param<float>("earlier_turn", earlier_turn, 0.01);
-  pnh_.param<float>("first_to_second_phase_x_frontwards",first_to_second_phase_x_frontwards, 1.0/2.0);
-  pnh_.param<float>("first_to_second_phase_x_backwards", first_to_second_phase_x_backwards, 1.0/2.0);
+  pnh_.param<float>("first_to_second_phase_x_frontwards",first_to_second_phase_x_frontwards, 0.85/2.0);
+  pnh_.param<float>("first_to_second_phase_x_backwards", first_to_second_phase_x_backwards, 0.85/2.0);
   pnh_.param<bool>("state_msgs",state_msgs, false);
   pnh_.param<float>("max_distance_to_wall", max_distance_to_wall, 0.03);
   move_state = init_move;
