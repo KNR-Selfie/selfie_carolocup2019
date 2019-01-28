@@ -13,8 +13,8 @@ visualize(true)
   pnh_.param<float>("maximal_start_parking_x", maximal_start_parking_x, 0.0);
   pnh_.param<float>("traffic_lane_marigin",traffic_lane_marigin, 0.05);
   pnh_.param<float>("earlier_turn", earlier_turn, 0.01);
-  pnh_.param<float>("first_to_second_phase_x_frontwards",first_to_second_phase_x_frontwards, 0.85/2.0);
-  pnh_.param<float>("first_to_second_phase_x_backwards", first_to_second_phase_x_backwards, 0.85/2.0);
+  pnh_.param<float>("first_to_second_phase_x_frontwards",first_to_second_phase_x_frontwards, 1.0/2.0);
+  pnh_.param<float>("first_to_second_phase_x_backwards", first_to_second_phase_x_backwards, 1.0/2.0);
   pnh_.param<bool>("state_msgs",state_msgs, false);
   pnh_.param<float>("max_distance_to_wall", max_distance_to_wall, 0.03);
   move_state = init_move;
@@ -210,18 +210,21 @@ void ParkService::init_parking_spot(const geometry_msgs::Polygon &msg)
   tf::Vector3 bl = odom_parking_spot[1];
   tf::Vector3 br = odom_parking_spot[2];
   tf::Vector3 tr = odom_parking_spot[3];
+	std::cout<<" tl "<<tl.x()<<"  "<<tl.y()<<" bl "<<bl.x()<<"  "<<bl.y()<<" br "<<br.x()<<"  "<<br.y()<<" tr "<<tr.x()<<"  "<<tr.y()<<std::endl;
   parking_spot_position = Position(bl.x(), bl.y(), atan2(br.y()-bl.y(), br.x()-bl.x()));
   actual_parking_position = Position(parking_spot_position.transform.inverse()*actual_odom_position.transform);
+	actual_laser_parking_position = Position(actual_parking_position, ODOM_TO_LASER);
   std::vector<tf::Vector3> parking_parking_spot;
   for(std::vector<geometry_msgs::Point32>::const_iterator it = msg.points.begin(); it<msg.points.end(); it++)
   {
     tf::Vector3 vec(it->x, it->y, 0);
-    parking_parking_spot.push_back(actual_parking_position.transform*vec);
+    parking_parking_spot.push_back(actual_laser_parking_position.transform*vec);
   }
   tl = parking_parking_spot[0];
   bl = parking_parking_spot[1];
   br = parking_parking_spot[2];
   tr = parking_parking_spot[3];
+	std::cout<<" tl "<<tl.x()<<"  "<<tl.y()<<" bl "<<bl.x()<<"  "<<bl.y()<<" br "<<br.x()<<"  "<<br.y()<<" tr "<<tr.x()<<"  "<<tr.y()<<std::endl;
   parking_spot_width = tl.y()<tr.y()?tl.y():tr.y();
   middle_of_parking_spot_y = parking_spot_width/2.0;
   back_wall = tl.x()>bl.x()?tl.x():bl.x();
