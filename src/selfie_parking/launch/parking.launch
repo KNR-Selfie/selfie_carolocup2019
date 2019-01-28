@@ -17,12 +17,12 @@
   <node pkg="selfie_odometry" type="selfie_odometry" name="odometry"/>
 <!--
   <node pkg="selfie_parking" type="parking_node" name="search_node"/>
--->
+
   <node pkg="selfie_park" type="park_server" name="parking_action">
     <param name="odom_topic" value="/odom"/>
     <param name="ackermann_topic" value="/drive"/>
   </node>
-
+-->
   <node pkg="selfie_perception" type="detect_obstacles" name="selfie_obstacle_detector">
     <param name="upside_down" value="true"/>
     <param name="visualize" value="true" />

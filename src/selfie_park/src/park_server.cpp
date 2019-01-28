@@ -9,7 +9,7 @@ visualize(true)
 {
   pnh_.param<std::string>("odom_topic", odom_topic,"/odom");
   pnh_.param<std::string>("ackermann_topic", ackermann_topic,"/drive");
-  pnh_.param<float>("minimal_start_parking_x", minimal_start_parking_x, 0.02);
+  pnh_.param<float>("minimal_start_parking_x", minimal_start_parking_x, -0.1);
   pnh_.param<float>("maximal_start_parking_x", maximal_start_parking_x, 0.0);
   pnh_.param<float>("traffic_lane_marigin",traffic_lane_marigin, 0.05);
   pnh_.param<float>("earlier_turn", earlier_turn, 0.01);
