@@ -85,7 +85,7 @@ generate_messages(DEPENDENCIES actionlib_msgs)
 ## Generate dynamic reconfigure parameters in the 'cfg' folder
 generate_dynamic_reconfigure_options(
   cfg/Speed.cfg
-  cfg/AngularCoeff.cfg
+  cfg/HeadingCoeff.cfg
 )
 
 ###################################

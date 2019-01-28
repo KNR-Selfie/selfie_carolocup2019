@@ -1,0 +1,10 @@
+<launch>
+  <node pkg = "selfie_stm32_bridge" type="selfie_stm32_bridge" name="selfie_stm32_bridge"/>
+
+  <node pkg="libuvc_camera" type="camera_node" name="selfie_camera" />
+
+  <node pkg="selfie_starting_procedure" type="starting_procedure" name="starting_procedure" output="screen">
+    <param name="preview" value="0" />
+  </node>
+
+</launch>

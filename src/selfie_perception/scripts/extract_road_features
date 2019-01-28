@@ -13,11 +13,11 @@ def road_markings_callback(msg):
     c_poly = Polynomial(msg.center_line)
     r_poly = Polynomial(msg.right_line)
 
-    c_poly_dist_sq = [0, 0, 1] + c_poly**2
-    r_poly_dist_sq = [0, 0, 1] + r_poly**2
+    c_poly_dist_sq = [lookahead**2, -2*lookahead, 1] + c_poly**2
+    r_poly_dist_sq = [lookahead**2, -2*lookahead, 1] + r_poly**2
 
-    c_x = np.max(0, minimize(c_poly_dist_sq, 0).x[0])
-    r_x = np.max(0, minimize(r_poly_dist_sq, 0).x[0])
+    c_x = np.max(lookahead, minimize(c_poly_dist_sq, lookahead).x[0])
+    r_x = np.max(lookahead, minimize(r_poly_dist_sq, lookahead).x[0])
 
     c_y = c_poly(c_x)
     r_y = r_poly(r_x)
@@ -28,10 +28,10 @@ def road_markings_callback(msg):
     slope = c_poly.deriv()(c_x)
     theta = np.arctan(slope)
 
-    if np.arctan2(c_y, c_x) - theta < 0:
+    if np.arctan2(c_y, c_x - lookahead) - theta < 0:
         c_dist = -c_dist
 
-    if np.arctan2(r_y, r_x) - theta < 0:
+    if np.arctan2(r_y, r_x - lookahead) - theta < 0:
         r_dist = -r_dist
 
     position = -(c_dist + r_dist) / 2
@@ -46,6 +46,9 @@ if __name__ == '__main__':
                                           RoadMarkings,
                                           road_markings_callback,
                                           queue_size=1)
+
+    global lookahead
+    lookahead = rospy.get_param('~lookahead', 0.0)
 
     global heading_offset_pub, position_offset_pub
     heading_offset_pub = rospy.Publisher('heading_offset', Float64, queue_size=1)
