@@ -38,7 +38,7 @@ class LaneDetector
 	cv::Mat world2cam_;
 	cv::Mat topview2world_;
 	cv::Mat topview2cam_;
-  cv::Mat world2topview_;
+  	cv::Mat world2topview_;
 
 	cv::Mat kernel_v_;
 	cv::Mat current_frame_;
@@ -46,12 +46,13 @@ class LaneDetector
 	cv::Mat binary_frame_;
 	cv::Mat dynamic_mask_;
 	cv::Mat masked_frame_;
-	cv::Mat crossing_ROI_;
-	cv::Mat crossing_frame_;
+	cv::Mat left_lane_ROI_;
+	cv::Mat left_lane_frame_;
+	cv::Mat right_lane_ROI_;
+	cv::Mat right_lane_frame_;
 	cv::Mat canny_frame_;
 	cv::Mat visualization_frame_;
 	cv::Mat homography_frame_;
-	cv::Mat testCrossing;
 	cv::Mat debug_frame_;
 
 	std::vector<std::vector<cv::Point> > lanes_vector_;
@@ -83,8 +84,8 @@ class LaneDetector
 	void homography(cv::Mat input_frame, cv::Mat &homography_frame);
 	void printInfoParams();
 	void dynamicMask(cv::Mat &input_frame, cv::Mat &output_frame);
-	void crossingLane(cv::Mat &input_frame, cv::Mat &output_frame, std::vector<std::vector<cv::Point2f> > lanes_vector);
-	void crossingLaneLeft(cv::Mat &input_frame, cv::Mat &output_frame, std::vector<std::vector<cv::Point2f> > lanes_vector);
+	void ROILaneLeft(cv::Mat &input_frame, cv::Mat &output_frame);
+	void ROILaneRight(cv::Mat &input_frame, cv::Mat &output_frame);
 	void filterSmallLines();
 	void convertCoordinates();
 	float getAproxY(std::vector<float> coeff, float x);
@@ -112,7 +113,8 @@ class LaneDetector
 	float min_length_lane_;
 	float max_delta_y_lane_;
 	float min_length_to_aprox_;
-	float lane_width_;
+	float left_lane_width_;
+	float right_lane_width_;
 
 	std::string config_file_;
 	float binary_treshold_;
