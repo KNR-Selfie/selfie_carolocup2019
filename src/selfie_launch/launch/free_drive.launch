@@ -1,5 +1,6 @@
 <launch>
   <arg name="homography_file" />
+  <arg name="lookahead" default="0.3" />
 
   <group ns="camera">
     <include file="$(find selfie_camera)/launch/basler.launch" />
