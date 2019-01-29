@@ -273,7 +273,7 @@ bool ParkService::in_parking_spot()
 {
 	//std::cout<<parking_spot_width<<"  "<<actual_back_parking_position.y<<"  "<<actual_front_parking_position.y<<std::endl;
   float l = cos(actual_parking_position.rot)*CAR_WIDTH/2;
-	bool is_in = parking_spot_width > actual_back_parking_position.y + l && actual_back_parking_position.y - l > 0 && parking_spot_width > actual_front_parking_position.y + l && actual_back_parking_position.y - l > 0;
+	bool is_in = (parking_spot_width > actual_back_parking_position.y + l && actual_back_parking_position.y - l > 0 && parking_spot_width > actual_front_parking_position.y + l && actual_back_parking_position.y - l > 0)&& abs(actual_parking_position.rot)<0.1;
 	return is_in;
 }
 bool ParkService::in_traffic_lane()
