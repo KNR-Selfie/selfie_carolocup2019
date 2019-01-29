@@ -76,7 +76,7 @@ void USB_STM::usb_read_buffer(int buf_size, uint32_t& timestamp, int32_t& distan
     uint16_t yaw;
     int16_t rates[3];
     int16_t acc[3];
-    uint8_t flags
+    uint8_t flags;
 
     uint8_t endByte;
   } __attribute__((__packed__));
