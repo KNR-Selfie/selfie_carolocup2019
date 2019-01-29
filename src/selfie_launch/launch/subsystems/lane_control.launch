@@ -11,9 +11,11 @@
     <remap from="control_effort" to="steering_angle" />
   </node>
 
-  <node name="const_setpoint" pkg="selfie_control" type="const_float64.py" >
-    <param name="topic" value="setpoint" />
-    <param name="value" value="-0.2" />
+  <node name="change_lane" pkg="selfie_control" type="change_lane" >
+    <param name="lane_width" value="0.4" />
+    <param name="error_margin" value="0.01" />
+
+    <remap from="target_offset" to="setpoint" />
   </node>
 
   <node name="offset_combiner" pkg="selfie_control" type="offset_combiner.py" />
