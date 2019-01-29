@@ -10,7 +10,7 @@ device_user_id: ""
 #  from the ROS-CameraInfoManager:
 #  http://docs.ros.org/api/camera_info_manager/html/classcamera__info__manager_
 #  1_1CameraInfoManager.html#details
-camera_info_url: "file://~/selfie_carolocup2019/src/selfie_camera/config/dist_fisheye_01.yaml"
+camera_info_url: "file://$(find selfie_camera)/config/dist_fisheye_01.yaml"
 
 #  The encoding of the pixels -- channel meaning, ordering, size
 #  taken from the list of strings in include/sensor_msgs/image_encodings.h

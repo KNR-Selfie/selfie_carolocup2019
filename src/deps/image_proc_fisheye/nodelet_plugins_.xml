@@ -1,6 +1,4 @@
-<library path="image_proc_fisheye">
-  
-
+<library path="lib/libimage_proc_fisheye">
    <class name="image_proc_fisheye/RectifyNodelet"
 	  type="image_proc_fisheye::RectifyNodelet"
 	 base_class_type="nodelet::Nodelet">
@@ -8,7 +6,4 @@
       Nodelet to rectify an unrectified camera image stream using gpu
     </description>
   </class>
-  
-  
-  
 </library>
