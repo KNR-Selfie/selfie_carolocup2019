@@ -1,7 +1,7 @@
 #include "usb.hpp"
 
 #define USB_SEND_SIZE 18+2
-#define USB_RECEIVE_SIZE 36+2
+#define USB_RECEIVE_SIZE 36+1
 
 int USB_STM::init(int speed)
 {
@@ -9,7 +9,7 @@ int USB_STM::init(int speed)
   //char port[] = "/dev/serial/by-id/STM32F407";
   fd = open(port, O_RDWR | O_NOCTTY | O_SYNC);
   if (fd < 0){
-    ROS_ERROR("Could not open serial communication on port!.\n Make sure you did: chmod u +rw /dev/serial/by-id/usb-KNR_Selfie_F7_00000000001A-if00\n");
+    ROS_ERROR("Could not open serial communication on port!.\n Make sure you did: chmod u+rw /dev/serial/by-id/usb-KNR_Selfie_F7_00000000001A-if00\n");
     return -1;
   }
   else
@@ -59,7 +59,7 @@ int USB_STM::init(int speed)
   return 1;
 }
 
-void USB_STM::usb_read_buffer(int buf_size, uint32_t& timestamp, int32_t& distance, int16_t& velocity, int16_t& quaternion_x, int16_t& quaternion_y, int16_t& quaternion_z, int16_t& quaternion_w, uint16_t yaw, int16_t& ang_vel_x, int16_t& ang_vel_y, int16_t& ang_vel_z, int16_t& lin_acc_x, int16_t& lin_acc_y, int16_t& lin_acc_z, uint8_t& start_button1, uint8_t& start_button2)
+void USB_STM::usb_read_buffer(int buf_size, uint32_t& timestamp, int32_t& distance, int16_t& velocity, int16_t& quaternion_x, int16_t& quaternion_y, int16_t& quaternion_z, int16_t& quaternion_w, uint16_t yaw, int16_t& ang_vel_x, int16_t& ang_vel_y, int16_t& ang_vel_z, int16_t& lin_acc_x, int16_t& lin_acc_y, int16_t& lin_acc_z, uint8_t& flags)
 {
 
   struct UsbFrame_s
@@ -76,8 +76,7 @@ void USB_STM::usb_read_buffer(int buf_size, uint32_t& timestamp, int32_t& distan
     uint16_t yaw;
     int16_t rates[3];
     int16_t acc[3];
-    uint8_t start_button1;
-    uint8_t start_button2;
+    uint8_t flags
 
     uint8_t endByte;
   } __attribute__((__packed__));
@@ -117,8 +116,7 @@ void USB_STM::usb_read_buffer(int buf_size, uint32_t& timestamp, int32_t& distan
     lin_acc_z = Data.frame.acc[2];
 
     //start_button
-    start_button1 = Data.frame.start_button1;
-    start_button2 = Data.frame.start_button2;
+    flags = Data.frame.flags;
   }
 }
 
@@ -159,4 +157,17 @@ void USB_STM::usb_send_buffer(uint32_t timestamp_ms, float steering_angle, float
   Data.frame.right_indicator = (uint8_t)(right_indicator);
   Data.frame.endbyte = control.commands.endbyte;
   write(fd, &Data.bytes, USB_SEND_SIZE);
+}
+
+bool USB_STM::getBit(uint8_t byte, uint8_t bit){
+  return bool((byte>>bit) &1U);
+}
+
+void USB_STM::convert_flag(uint8_t flags, bool &start_button1, bool &start_button2, bool &start_mode_acro, bool &start_mode_semi, bool &start_mode_autonomous, bool &start_reset){
+  start_button1 = getBit(flags, START_BUTTON1_FLAG_BIT);
+  start_button2 = getBit(flags, START_BUTTON2_FLAG_BIT);
+  start_mode_acro = getBit(flags, START_MODE_ACRO_FLAG_BIT);
+  start_mode_semi = getBit(flags, START_MODE_SEMI_FLAG_BIT);
+  start_mode_autonomous = getBit(flags, START_MODE_AUTONOMOUS_FLAG_BIT);
+  start_reset = getBit(flags, START_RESET_FLAG_BIT);
 }

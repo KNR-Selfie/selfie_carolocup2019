@@ -13,6 +13,13 @@
 #include "ros/ros.h"
 #include "ackermann_msgs/AckermannDriveStamped.h"
 
+#define START_BUTTON1_FLAG_BIT 0
+#define START_BUTTON2_FLAG_BIT 1
+#define START_MODE_ACRO_FLAG_BIT 2
+#define START_MODE_SEMI_FLAG_BIT 3
+#define START_MODE_AUTONOMOUS_FLAG_BIT 4
+#define START_RESET_FLAG_BIT 5
+
 struct data_container
 {
   const uint8_t startbyte = 0xFF;
@@ -61,8 +68,10 @@ public:
   Indicator_control indicators;
   usb_command command;
   int init(int speed = B115200);
-  void usb_read_buffer(int buf_size, uint32_t& timestamp, int32_t& distance, int16_t& velocity, int16_t& quaternion_x, int16_t& quaternion_y, int16_t& quaternion_z, int16_t& quaternion_w, uint16_t yaw, int16_t& ang_vel_x, int16_t& ang_vel_y, int16_t& ang_vel_z, int16_t& lin_acc_x, int16_t& lin_acc_y, int16_t& lin_acc_z, uint8_t& start_button1, uint8_t& start_button2);
+  void usb_read_buffer(int buf_size, uint32_t& timestamp, int32_t& distance, int16_t& velocity, int16_t& quaternion_x, int16_t& quaternion_y, int16_t& quaternion_z, int16_t& quaternion_w, uint16_t yaw, int16_t& ang_vel_x, int16_t& ang_vel_y, int16_t& ang_vel_z, int16_t& lin_acc_x, int16_t& lin_acc_y, int16_t& lin_acc_z, uint8_t& flags);
   void usb_send_buffer(uint32_t timestamp_ms, float steering_angle, float steering_angle_velocity, float speed, float acceleration, float jerk, uint8_t left_indicator, uint8_t right_indicator);
+  bool getBit(uint8_t byte, uint8_t bit);
+  void convert_flag(uint8_t flags, bool &start_button1, bool &start_button2, bool &start_mode_acro, bool &start_mode_semi, bool &start_mode_autonomous, bool &start_reset);
 };
 
 #endif // USB_HPP

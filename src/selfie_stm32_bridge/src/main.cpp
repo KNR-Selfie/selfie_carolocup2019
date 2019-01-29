@@ -22,6 +22,11 @@ int main(int argc, char **argv)
   ros::Publisher dis_publisher = n.advertise<std_msgs::Float32>("distance", 50);
   ros::Publisher button1_publisher = n.advertise<std_msgs::Bool>("start_button1", 50);  
   ros::Publisher button2_publisher = n.advertise<std_msgs::Bool>("start_button2", 50);  
+      
+  ros::Publisher start_mode_acro_publisher = n.advertise<std_msgs::Bool>("start_mode_acro", 50);  
+  ros::Publisher start_mode_semi_publisher = n.advertise<std_msgs::Bool>("start_mode_semi", 50);
+  ros::Publisher start_mode_autonomous_publisher = n.advertise<std_msgs::Bool>("start_mode_autonomous", 50);
+  ros::Publisher start_reset_publisher = n.advertise<std_msgs::Bool>("start_reset", 50);
 
   ros::Subscriber ackerman_subscriber = n.subscribe("drive", 1, ackermanCallback);
   ros::Subscriber left_turn_indicator_subscriber = n.subscribe("left_turn_indicator", 1, left_turn_indicatorCallback);
@@ -43,8 +48,14 @@ int main(int argc, char **argv)
   int16_t lin_acc_x = 1;
   int16_t lin_acc_y = 1;
   int16_t lin_acc_z = 1;
-  uint8_t start_button1 = 1;
-  uint8_t start_button2 = 1;
+  uint8_t flags = 0;
+
+  bool start_button1 = 0;
+  bool start_button2 = 0;
+  bool start_mode_acro = 0;
+  bool start_mode_semi = 0;
+  bool start_mode_autonomous = 0;
+  bool start_reset = 0;
 
   Usb.init();
 
@@ -54,11 +65,11 @@ int main(int argc, char **argv)
   {
     ros::Time now = ros::Time::now();
     uint32_t send_ms = (now.sec - begin.sec) * 1000 + (now.nsec / 1000000);
-	Usb.indicators.left = 1;
-Usb.indicators.right = 3;
-    Usb.usb_read_buffer(128, timestamp, distance, velocity, quaternion_x, quaternion_y, quaternion_z, quaternion_w, yaw, ang_vel_x,  ang_vel_y, ang_vel_z, lin_acc_x, lin_acc_y, lin_acc_z, start_button1, start_button2);
+  	Usb.indicators.left = 1;
+    Usb.indicators.right = 3;
+    Usb.usb_read_buffer(128, timestamp, distance, velocity, quaternion_x, quaternion_y, quaternion_z, quaternion_w, yaw, ang_vel_x,  ang_vel_y, ang_vel_z, lin_acc_x, lin_acc_y, lin_acc_z, flags);
     Usb.usb_send_buffer(send_ms, Usb.control.steering_angle, Usb.control.steering_angle_velocity, Usb.control.speed, Usb.control.acceleration, Usb.control.jerk, Usb.indicators.left, Usb.indicators.right);
-
+    Usb.convert_flag(flags, start_button1, start_button2, start_mode_acro, start_mode_semi, start_mode_autonomous, start_reset);
     //send imu to msg
     static sensor_msgs::Imu imu_msg;
 
@@ -92,6 +103,16 @@ Usb.indicators.right = 3;
     static std_msgs::Bool button2_msg;
     button2_msg.data = start_button2;
 
+    //start mode status msg
+    static std_msgs::Bool start_mode_acro_msg;
+    start_mode_acro_msg.data = start_mode_acro;
+    static std_msgs::Bool start_mode_semi_msg;
+    start_mode_semi_msg.data = start_mode_semi;
+    static std_msgs::Bool start_mode_autonomous_msg;
+    start_mode_autonomous_msg.data = start_mode_autonomous;
+    static std_msgs::Bool start_reset_msg;
+    start_reset_msg.data = start_reset;
+
 
     //publishing msg
     imu_publisher.publish(imu_msg);
@@ -99,6 +120,10 @@ Usb.indicators.right = 3;
     dis_publisher.publish(dis_msg);
     button1_publisher.publish(button1_msg);
     button2_publisher.publish(button2_msg);
+    start_mode_acro_publisher.publish(start_mode_acro_msg);
+    start_mode_semi_publisher.publish(start_mode_semi_msg);
+    start_mode_autonomous_publisher.publish(start_mode_autonomous_msg);
+    start_reset_publisher.publish(start_reset_msg);
 
     ros::spinOnce();
   }

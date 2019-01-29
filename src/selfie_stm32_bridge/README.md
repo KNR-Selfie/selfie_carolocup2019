@@ -28,3 +28,15 @@ Status of the start button1 (0 - no start, 1 - start).
 
 `start_button2` ([std_msgs/Bool](http://docs.ros.org/api/std_msgs/html/msg/Bool.html))
 Status of the start button2 (0 - no start, 1 - start).
+
+`start_mode_acro` ([std_msgs/Bool](http://docs.ros.org/api/std_msgs/html/msg/Bool.html))
+start_mode_acro
+
+`start_mode_semi` ([std_msgs/Bool](http://docs.ros.org/api/std_msgs/html/msg/Bool.html))
+start_mode_semi
+
+`start_mode_autonomous` ([std_msgs/Bool](http://docs.ros.org/api/std_msgs/html/msg/Bool.html))
+start_mode_autonomous
+
+`start_reset` ([std_msgs/Bool](http://docs.ros.org/api/std_msgs/html/msg/Bool.html))
+Restarting of stm msg.
