@@ -49,19 +49,16 @@
   <!-- Use doc_depend for packages you need only for building documentation: -->
   <!--   <doc_depend>doxygen</doc_depend> -->
   <buildtool_depend>catkin</buildtool_depend>
-  <build_depend>selfie_path_planner</build_depend>
   <build_depend>selfie_control</build_depend>
   <build_depend>selfie_msgs</build_depend>
   <build_depend>selfie_perception</build_depend>
   <build_depend>selfie_stm32_bridge</build_depend>
   <build_depend>libuvc_camera</build_depend>
-  <build_export_depend>selfie_path_planner</build_export_depend>
   <build_export_depend>selfie_control</build_export_depend>
   <build_export_depend>selfie_msgs</build_export_depend>
   <build_export_depend>selfie_perception</build_export_depend>
   <build_export_depend>selfie_stm32_bridge</build_export_depend>
   <build_export_depend>libuvc_camera</build_export_depend>
-  <exec_depend>selfie_path_planner</exec_depend>
   <exec_depend>selfie_control</exec_depend>
   <exec_depend>selfie_msgs</exec_depend>
   <exec_depend>selfie_perception</exec_depend>
