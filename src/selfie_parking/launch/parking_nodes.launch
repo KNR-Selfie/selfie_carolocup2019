@@ -1,0 +1,37 @@
+<launch>
+
+  <node pkg="selfie_parking" type="parking_drive.py" name="parking_drive"/> 
+
+
+<!--
+
+ pnh_.param<float>("min_spot_lenght", min_spot_lenght, 0.7);
+  pnh_.param<float>("point_min_x", point_min_x, 0);
+  pnh_.param<float>("point_max_x", point_max_x, 2);
+  pnh_.param<float>("point_min_y", point_min_y, -1);
+  pnh_.param<float>("point_max_y", point_max_y, 0.2);
+  pnh_.param<float>("distance_to_stop", distance_to_stop, 0.2);
+  // 1->to_rviz  2-> funcion execution time 3->text_only
+  pnh_.param<int>("visualization_type", visualization_type, 0);
+
+  <node pkg="selfie_parking" type="parking_node" name="search_node"/>
+
+  <node pkg="selfie_park" type="park_server" name="parking_action">
+    <param name="odom_topic" value="/odom"/>
+    <param name="ackermann_topic" value="/drive"/>
+  </node>
+-->
+
+  <node pkg="selfie_parking" type="parking_node" name="selfie_parking_finder">
+    <param name="point_min_x" value="0"/>
+    <param name="point_max_x" value="2"/>
+    <param name="point_min_y" value="-1"/>
+    <param name="point_max_y" value="0.2"/>
+    <param name="distance_to_stop" value="0.4"/>
+    <param name="min_spot_lenght" value="0.4"/>
+    <param name="visualization_type" value="13"/>
+  </node>
+
+    
+-->
+</launch>

@@ -22,6 +22,8 @@
 #include <selfie_park/parkAction.h>
 #include <actionlib/client/simple_action_client.h>
 
+#include <ros/console.h>
+
 #include "shapes.h"
 
 using namespace std;
@@ -49,6 +51,12 @@ private:
   std::vector<Box> for_planning;
   Box first_free_place;
   float distance_to_stop;
+  float min_spot_lenght;
+  int visualization_type;
+  int scans_ignored;
+  int scans_taken;
+
+
 
   parking_state state = searching;
   double planning_scan_counter=0;

@@ -22,6 +22,7 @@ def state_callback(msg):
         rospy.loginfo('planning')
     else:
         rospy.loginfo('parking')
+        rospy.signal_shutdown('parking_server took control over')
 
 
 

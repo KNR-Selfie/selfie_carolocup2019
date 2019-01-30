@@ -15,6 +15,8 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   visualization_msgs
   ackermann_msgs
+  actionlib 
+  actionlib_msgs
 
   nav_msgs
   ackermann_msgs
