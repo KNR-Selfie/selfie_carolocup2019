@@ -4,11 +4,11 @@
 Parking::Parking(const ros::NodeHandle &nh, const ros::NodeHandle &pnh):
                 nh_(nh),
                 pnh_(pnh),
-                ac_(nh_, "simple_parking", true),
-                search_server_(nh_, "search",  true)
+                search_server_(nh_, "search",  false)
 {
   search_server_.registerGoalCallback(boost::bind(&Parking::manager_init, this));
-  search_server_.registerPreemptCallback(boost::bind(&Parking::fake_preemptCB, this));
+  search_server_.registerPreemptCallback(boost::bind(&Parking::preemptCB, this));
+  //search_server_.regi
   search_server_.start();
   pnh_.param<float>("/point_min_x", point_min_x, 0);
   pnh_.param<float>("/point_max_x", point_max_x, 2);
@@ -24,16 +24,24 @@ Parking::Parking(const ros::NodeHandle &nh, const ros::NodeHandle &pnh):
 
 Parking::~Parking(){}
 
-void Parking::fake_preemptCB()
-{}
+void Parking::preemptCB()
+{
+  ROS_FATAL("preemted : ");
+  search_server_.setPreempted();
+  if(!search_server_.isActive())
+  {
+    reset();
+    state = searching;
+  }
+}
 
 bool Parking::init()
 {
   this->obstacles_sub = nh_.subscribe("/obstacles", 10, &Parking::manager, this);
   this->visualize_lines_pub = nh_.advertise<visualization_msgs::Marker>( "/visualization_lines", 1 );
   this->visualize_free_place  = nh_.advertise<visualization_msgs::Marker>( "/free_place", 1 );
-  this->point_pub = nh_.advertise<visualization_msgs::Marker>("/box_points", 5);
-  this->parking_state_pub = nh_.advertise<std_msgs::Int16>("parking_state", 200);
+//  this->point_pub = nh_.advertise<visualization_msgs::Marker>("/box_points", 5);
+//  this->parking_state_pub = nh_.advertise<std_msgs::Int16>("parking_state", 200);
   goal_set = false;
 //  ROS_INFO("viz type: %d", visualization_type);
 }
@@ -48,21 +56,23 @@ void Parking::manager_init()
 
 void Parking::manager(const selfie_msgs::PolygonArray &msg)
 { 
-
+  // to save cpu time just do nothing when new scan comes
   if(search_server_.isActive())
     ROS_INFO("server is active");
-  // to save cpu time just do nothing when new scan comes
-  if(!goal_set)
+  else
   {
-    //ROS_INFO("goal wasn't set yet");
+    ROS_INFO("server is not active!");
     return;
   }
-    
+  
+
   if(state == planning_failed)
   {
+    /*
     std_msgs::Int16 state_msg;
     state_msg.data = state;
     parking_state_pub.publish(state_msg);
+*/
     ROS_WARN("recovery after failed planning");
     reset();
     ros::Duration(1).sleep();
@@ -82,13 +92,21 @@ void Parking::manager(const selfie_msgs::PolygonArray &msg)
       planning_error_counter = 0;
       search(msg);
       bool place_found = find_free_place();
-      if(place_found && (get_dist_from_first_free_place()) <= distance_to_stop)
+      float dist = 9999;
+      if(place_found)
+        dist = get_dist_from_first_free_place();
+      feedback_msg.distance_to_first_place = dist;
+      if(place_found && dist <= distance_to_stop)
       {
+        feedback_msg.info = "place found, getting exact measurements initialized";
         state = planning;
         planning_scan_counter = 0;
         if(visualization_type  >= 3)
           ROS_INFO( "state switched to planning");
       }
+      else
+        feedback_msg.info = "place too far";
+      search_server_.publishFeedback(feedback_msg);
       break;
     }// end searching
 
@@ -138,6 +156,10 @@ void Parking::manager(const selfie_msgs::PolygonArray &msg)
       }//end place was ok, send result
       if(planning_error_counter >= scans_taken)
       {
+        feedback_msg.info = "error occured, place is too small, move forward!!";
+        feedback_msg.distance_to_first_place = get_dist_from_first_free_place();
+        search_server_.publishFeedback(feedback_msg);
+
         planning_error_counter = 0;
         planning_scan_counter = 0;
         state = planning_failed;
@@ -268,6 +290,8 @@ void Parking::send_goal()
     msg.park = true;
     ac_.sendGoal(msg);
 */
+
+    geometry_msgs::Point32 p;
     p.x = first_free_place.bottom_left.x;
     p.y = first_free_place.bottom_left.y;
     result.parking_spot.points.push_back(p);
@@ -280,6 +304,9 @@ void Parking::send_goal()
     p.x = first_free_place.top_left.x;
     p.y = first_free_place.top_left.y;
     result.parking_spot.points.push_back(p);
+
+    reset();
+    state = searching;
 
     search_server_.setSucceeded(result);
 }

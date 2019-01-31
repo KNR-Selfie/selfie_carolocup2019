@@ -43,8 +43,6 @@ private:
 
   actionlib::SimpleActionServer<selfie_msgs::searchAction> search_server_;
 
-  actionlib::SimpleActionClient<selfie_park::parkAction> ac_;
-
   std::vector<Box> boxes_on_the_right_side;
   std::vector<Box> potential_free_places;
   // for now only this is used
@@ -93,5 +91,5 @@ public:
   void display_free_place();
   void reset();
   void send_goal();
-  void fake_preemptCB();
+  void preemptCB();
 };

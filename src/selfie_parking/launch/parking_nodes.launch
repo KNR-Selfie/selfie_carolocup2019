@@ -2,8 +2,13 @@
 
 
 
-  <node pkg="selfie_parking" type="parking_drive.py" name="parking_drive" output="screen"/> 
+ <!-- <node pkg="selfie_parking" type="parking_drive.py" name="parking_drive" output="screen"/> 
+ -->
 
+  <node pkg="selfie_park" type="park_server" name="park_server" output="screen">
+    <param name="ackermann_topic" value="/drive"/>
+    <param name="odom_topic" value="/odom"/>
+  </node>
 
 <!--
 
