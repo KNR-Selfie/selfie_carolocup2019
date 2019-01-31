@@ -16,7 +16,7 @@
 #include <selfie_msgs/PolygonArray.h>
 
 #include <actionlib/server/simple_action_server.h>
-#include <selfie_msgs/parkingAction.h>
+#include <selfie_msgs/searchAction.h>
 
 
 #include <selfie_park/parkAction.h>
@@ -37,8 +37,6 @@ private:
   ros::Subscriber obstacles_sub;
   ros::Publisher visualize_lines_pub;
   ros::Publisher visualize_free_place;
-  ros::Publisher position_offset_pub;
-  ros::Publisher heading_offset_pub;
   ros::Publisher point_pub;
   ros::Publisher parking_state_pub;
   ros::Publisher parking_place_pub;
@@ -68,11 +66,6 @@ private:
 
   float point_min_y = -1;
   float point_max_y = 0.2;
-
-  struct global_box{
-    Box box;
-    Point pose;
-  };
 
 public:
   Parking(const ros::NodeHandle &nh, const ros::NodeHandle &pnh);

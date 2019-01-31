@@ -280,9 +280,9 @@ public:
         float right_edge = top_right.get_distance(bottom_right);
         float left_edge = top_left.get_distance(bottom_left);
 
-        cout << "bottom_edge: " << bottom_edge <<endl;
-        cout << "top_edge: " << top_edge <<endl;
-        cout << "right_edge: " << right_edge <<endl;
-        cout << "left_edge: " << left_edge <<endl;
+        ROS_WARN("bottom_edge: %f", bottom_edge);
+        ROS_WARN("top_edge: %f", top_edge);
+        ROS_WARN("right_edge:  %f", right_edge);
+        ROS_WARN("left_edge: %f", left_edge);
       }
 };

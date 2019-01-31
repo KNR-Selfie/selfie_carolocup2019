@@ -9,19 +9,16 @@ UPDATE_RATE = 50
 
 def state_callback(msg):
     if(msg.data < 2):
-        if(msg.data == 1):
-            rospy.loginfo('planning failed')
-            rospy.sleep(1)
-        rospy.loginfo('searching ')
+        #rospy.loginfo_throttle(1, "searching for a place")
         drive_msg.drive.steering_angle = 0
         drive_msg.drive.speed = SPEED
         drive_msg.drive.steering_angle_velocity = 5
     elif(msg.data == 2):
         drive_msg.drive.speed = 0
         drive_msg.drive.steering_angle = 0
-        rospy.loginfo('planning')
+        #rospy.loginfo_throttle(1, 'planning')
     else:
-        rospy.loginfo('parking')
+        rospy.loginfo_throttle(1, 'parking')
         rospy.signal_shutdown('parking_server took control over')
 
 

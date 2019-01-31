@@ -4,19 +4,18 @@
 Parking::Parking(const ros::NodeHandle &nh, const ros::NodeHandle &pnh):
                 nh_(nh),
                 pnh_(pnh),
-                ac_("park", true)
+                ac_("simple_parking", true)
 {
-  
-  pnh_.param<float>("point_min_x", point_min_x, 0);
-  pnh_.param<float>("point_max_x", point_max_x, 2);
-  pnh_.param<float>("point_min_y", point_min_y, -1);
-  pnh_.param<float>("point_max_y", point_max_y, 0.2);
-  pnh_.param<float>("distance_to_stop", distance_to_stop, 0.2);
-  pnh_.param<float>("min_spot_lenght", min_spot_lenght, 0.7);
-  pnh_.param<int>("scans_to_ignore_when_stopped", scans_ignored, 2);
-  pnh_.param<int>("scans_taken", scans_taken, 5);
+  pnh_.param<float>("/point_min_x", point_min_x, 0);
+  pnh_.param<float>("/point_max_x", point_max_x, 2);
+  pnh_.param<float>("/point_min_y", point_min_y, -1);
+  pnh_.param<float>("/point_max_y", point_max_y, 0.2);
+  pnh_.param<float>("/distance_to_stop", distance_to_stop, 0.2);
+  pnh_.param<float>("/min_spot_lenght", min_spot_lenght, 0.7);
+  pnh_.param<int>("/scans_to_ignore_when_stopped", scans_ignored, 2);
+  pnh_.param<int>("/scans_taken", scans_taken, 5);
   // 1->to_rviz  2-> funcion execution time 3->text_only
-  pnh_.param<int>("visualization_type", visualization_type, 1);
+  pnh_.param<int>("/visualization_type", visualization_type, 3);
 }
 
 Parking::~Parking(){}
@@ -28,36 +27,45 @@ bool Parking::init()
   this->visualize_lines_pub = nh_.advertise<visualization_msgs::Marker>( "/visualization_lines", 1 );
   this->visualize_free_place  = nh_.advertise<visualization_msgs::Marker>( "/free_place", 1 );
   this->point_pub = nh_.advertise<visualization_msgs::Marker>("/box_points", 5);
-  this->position_offset_pub = nh_.advertise<std_msgs::Float64>("/position_offset",200);
-  this->heading_offset_pub = nh_.advertise<std_msgs::Float64>("/heading_offset",200);
   this->parking_state_pub = nh_.advertise<std_msgs::Int16>("parking_state", 200);
-  this->parking_place_pub = nh_.advertise<geometry_msgs::PolygonStamped>("parking_place", 10);
-  ROS_INFO("viz type: %d", visualization_type);
+//  ROS_INFO("viz type: %d", visualization_type);
 }
 
 void Parking::manager(const selfie_msgs::PolygonArray &msg)
-{
+{ 
+  if(state == planning_failed)
+  {
+    std_msgs::Int16 state_msg;
+    state_msg.data = state;
+    parking_state_pub.publish(state_msg);
+    ROS_WARN("recovery after failed planning");
+    reset();
+    ros::Duration(1).sleep();
+    state = searching;
+    return;
+  }
   reset();
   std_msgs::Int16 state_msg;
   state_msg.data = state;
   parking_state_pub.publish(state_msg);
-  if(state == searching)
+  switch (state)
   {
-    planning_error_counter = 0;
-    search(msg);
-    bool place_found = find_free_place();
- //   first_free_place.visualize(point_pub);
-    if(place_found && (get_dist_from_first_free_place()) <= distance_to_stop)
+    case searching:
     {
-      state = planning;
-      planning_scan_counter = 0;
-      if(visualization_type  >= 3)
-        cout << "state switched to planning\n";
-    }
-    //display_bottom_lines();
-   // display_left_lines();
-  }
-  else if(state == planning || state == planning_failed)
+      planning_error_counter = 0;
+      search(msg);
+      bool place_found = find_free_place();
+      if(place_found && (get_dist_from_first_free_place()) <= distance_to_stop)
+      {
+        state = planning;
+        planning_scan_counter = 0;
+        if(visualization_type  >= 3)
+          ROS_INFO( "state switched to planning");
+      }
+      break;
+    }// end searching
+
+    case planning:
     {
       // ignore first two scans to give time to stop the car
       if(planning_scan_counter < scans_ignored)
@@ -73,21 +81,21 @@ void Parking::manager(const selfie_msgs::PolygonArray &msg)
           for_planning.push_back(first_free_place);
           ++planning_scan_counter;
           if(visualization_type >= 3)
-            cout << "ok\n";
+            ROS_INFO("scan ok");
         }
-      }
-      else if(planning_scan_counter == scans_taken)
+      }// place ok, waiting for the next scan
+      else if(planning_scan_counter >= scans_taken)
       {
-       // first_free_place.visualize(point_pub);
-       // first_free_place.print_box_dimensions();
+        // first_free_place.visualize(point_pub);
+        // first_free_place.print_box_dimensions();
        if(visualization_type >= 3)
-        ROS_DEBUG("getting exact dimensions\n");
-       // ros::Duration(0.5).sleep();
-       // takes the vector of laser scans and aproximates real parking place dimensions
+        ROS_INFO("getting exact dimensions\n");
+        // ros::Duration(0.5).sleep();
+        // takes the vector of laser scans and aproximates real parking place dimensions
         get_exact_measurements();
         planning_scan_counter = 0; 
         for_planning.clear();
-        if(visualization_type == 1 || visualization_type == 13)    
+        if(visualization_type >= 3)    
         {
           display_free_place();
           first_free_place.visualize(point_pub);
@@ -97,19 +105,20 @@ void Parking::manager(const selfie_msgs::PolygonArray &msg)
         if(visualization_type >= 3)
         {
           first_free_place.print_box_dimensions();
-          cout << "state swiched to parking\n";
-        }
-          
+          ROS_INFO("state swiched to parking");
+        }     
+      }//end place was ok, send result
+      if(planning_error_counter >= scans_taken)
+      {
+        planning_error_counter = 0;
+        planning_scan_counter = 0;
+        state = planning_failed;
+        first_free_place.reset();
+        reset();
       }
-    }
-    if(planning_error_counter == 5)
-    {
-      planning_error_counter = 0;
-      planning_scan_counter = 0;
-      state = planning_failed;
-      first_free_place.reset();
-      reset();
-    }
+    }//end planning case
+  }//end switch
+
 }
 
 bool Parking::find_free_place()
@@ -126,7 +135,6 @@ bool Parking::find_free_place()
     {
       Box tmp_box((*iter).top_left, (*iter).top_right, (*(iter+1)).bottom_left, (*(iter+1)).bottom_right);
       first_free_place = tmp_box;
-      //first_free_place.print();
       if(visualization_type >= 3)
         tmp_box.visualize(point_pub);
       return true;
@@ -134,7 +142,7 @@ bool Parking::find_free_place()
     if(state == planning)
     {
       if(visualization_type >= 3)
-        cout << "error, place not found!!!!\n";
+        ROS_WARN("error, place too small!!!!");
       ++planning_error_counter;
     }
 
@@ -239,8 +247,10 @@ void Parking::search(const selfie_msgs::PolygonArray &msg)
     auto begin = std::chrono::high_resolution_clock::now();
     auto end_of_box_creation = std::chrono::high_resolution_clock::now();
     auto end_of_callback = begin;
-
-  for(int box_nr = msg.polygons.size()-1;  box_nr >= 0;  --box_nr)
+//
+//int box_nr = msg.polygons.size()-1;  box_nr >= 0;  --box_nr
+//
+  for(auto box_nr=0;  box_nr != msg.polygons.size();  ++box_nr)
   {
     float min_x = point_min_x;
     float max_x = point_max_x;
@@ -283,42 +293,15 @@ void Parking::search(const selfie_msgs::PolygonArray &msg)
 }//obstacle_callback
 
 double inline Parking::get_dist_from_first_free_place()
-{
-  cout << first_free_place.bottom_left.x << endl;
+{ 
   return first_free_place.bottom_left.x;
 }
 
 void Parking::reset()
 {
   boxes_on_the_right_side.clear();
- // first_free_place.reset();
+  first_free_place.reset();
 }
-
-void Parking::generate_offsets()
-{
-  if(boxes_on_the_right_side.empty())
-    return;
-
-//  cout << "nr_of boxes saved: " << boxes_on_the_right_side.size() <<endl;
-  double sum = 0;
-  std_msgs::Float64 mean;
-  mean.data = 0;
-  vector<Box>::iterator iter = boxes_on_the_right_side.begin();
-
-  Point top = (*(--boxes_on_the_right_side.end())).bottom_left;
-  Point down = (*iter).bottom_left;
-
-  if(abs(top.y - down.y) < 0.05)
-    mean.data = 0;
-  else
-  {
-    mean.data = (top.y - down.y)/(top.x - down.x);
-  }
-  heading_offset_pub.publish(mean);
-  cout << mean.data  <<endl;
-}
-
-
 
 void Parking::display_left_lines()
 {

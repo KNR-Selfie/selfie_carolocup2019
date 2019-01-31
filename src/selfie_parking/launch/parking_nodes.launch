@@ -1,6 +1,8 @@
 <launch>
 
-  <node pkg="selfie_parking" type="parking_drive.py" name="parking_drive"/> 
+
+
+  <node pkg="selfie_parking" type="parking_drive.py" name="parking_drive" output="screen"/> 
 
 
 <!--
@@ -22,14 +24,19 @@
   </node>
 -->
 
-  <node pkg="selfie_parking" type="parking_node" name="selfie_parking_finder">
+  <node pkg="selfie_parking" type="parking_node" name="selfie_parking_finder" output="screen">
     <param name="point_min_x" value="0"/>
-    <param name="point_max_x" value="2"/>
+    <param name="point_max_x" value="3"/>
     <param name="point_min_y" value="-1"/>
     <param name="point_max_y" value="0.2"/>
-    <param name="distance_to_stop" value="0.4"/>
+
+    <param name="distance_to_stop" value="0.2"/>
     <param name="min_spot_lenght" value="0.4"/>
-    <param name="visualization_type" value="13"/>
+
+    <param name="visualization_type" value="3"/>
+
+    <param name="scans_to_ignore_when_stopped" value="3"/>
+    <param name="scans_taken" value="2"/>
   </node>
 
     

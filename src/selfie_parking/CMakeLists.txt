@@ -212,7 +212,17 @@ add_executable(parking_node src/parking.cpp src/find_parking_place.cpp)
 target_link_libraries(parking_node ${catkin_LIBRARIES})
 add_dependencies(parking_node ${catkin_EXPORTED_TARGETS})
 
+add_executable(simple_parking src/simple_parking.cpp src/simple_parking.cpp)
+target_link_libraries(simple_parking ${catkin_LIBRARIES})
+add_dependencies(simple_parking ${catkin_EXPORTED_TARGETS})
 
+add_executable(mock_manager src/mock_manager.cpp)
+target_link_libraries(mock_manager ${catkin_LIBRARIES})
+add_dependencies(mock_manager ${catkin_EXPORTED_TARGETS})
+
+#add_executable(crossing_handler src/new_parking_stuff.cpp)
+#target_link_libraries(crossing_handler ${catkin_LIBRARIES})
+#add_dependencies(crossing_handler ${catkin_EXPORTED_TARGETS})
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
