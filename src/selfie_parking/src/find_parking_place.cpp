@@ -4,8 +4,12 @@
 Parking::Parking(const ros::NodeHandle &nh, const ros::NodeHandle &pnh):
                 nh_(nh),
                 pnh_(pnh),
-                ac_("simple_parking", true)
+                ac_(nh_, "simple_parking", true),
+                search_server_(nh_, "search",  true)
 {
+  search_server_.registerGoalCallback(boost::bind(&Parking::manager_init, this));
+  search_server_.registerPreemptCallback(boost::bind(&Parking::fake_preemptCB, this));
+  search_server_.start();
   pnh_.param<float>("/point_min_x", point_min_x, 0);
   pnh_.param<float>("/point_max_x", point_max_x, 2);
   pnh_.param<float>("/point_min_y", point_min_y, -1);
@@ -20,6 +24,8 @@ Parking::Parking(const ros::NodeHandle &nh, const ros::NodeHandle &pnh):
 
 Parking::~Parking(){}
 
+void Parking::fake_preemptCB()
+{}
 
 bool Parking::init()
 {
@@ -28,11 +34,30 @@ bool Parking::init()
   this->visualize_free_place  = nh_.advertise<visualization_msgs::Marker>( "/free_place", 1 );
   this->point_pub = nh_.advertise<visualization_msgs::Marker>("/box_points", 5);
   this->parking_state_pub = nh_.advertise<std_msgs::Int16>("parking_state", 200);
+  goal_set = false;
 //  ROS_INFO("viz type: %d", visualization_type);
+}
+
+void Parking::manager_init()
+{
+  ROS_INFO("goal set!!!");
+  min_spot_lenght = (*search_server_.acceptNewGoal()).min_spot_lenght;
+  goal_set = true;
+
 }
 
 void Parking::manager(const selfie_msgs::PolygonArray &msg)
 { 
+
+  if(search_server_.isActive())
+    ROS_INFO("server is active");
+  // to save cpu time just do nothing when new scan comes
+  if(!goal_set)
+  {
+    //ROS_INFO("goal wasn't set yet");
+    return;
+  }
+    
   if(state == planning_failed)
   {
     std_msgs::Int16 state_msg;
@@ -45,9 +70,11 @@ void Parking::manager(const selfie_msgs::PolygonArray &msg)
     return;
   }
   reset();
+  /*      //{old} parking state publishing
   std_msgs::Int16 state_msg;
   state_msg.data = state;
   parking_state_pub.publish(state_msg);
+  */
   switch (state)
   {
     case searching:
@@ -101,6 +128,7 @@ void Parking::manager(const selfie_msgs::PolygonArray &msg)
           first_free_place.visualize(point_pub);
         }    
         state = parking;
+
         send_goal();
         if(visualization_type >= 3)
         {
@@ -222,6 +250,7 @@ double Parking::count_surface_area(Box box)
 
 void Parking::send_goal()
 {
+  /*
     selfie_park::parkGoal msg;
     geometry_msgs::Point32 p;
     p.x = first_free_place.bottom_left.x;
@@ -238,7 +267,24 @@ void Parking::send_goal()
     msg.parking_spot.points.push_back(p);
     msg.park = true;
     ac_.sendGoal(msg);
+*/
+    p.x = first_free_place.bottom_left.x;
+    p.y = first_free_place.bottom_left.y;
+    result.parking_spot.points.push_back(p);
+    p.x = first_free_place.bottom_right.x;
+    p.y = first_free_place.bottom_right.y;
+    result.parking_spot.points.push_back(p);
+    p.x = first_free_place.top_right.x;
+    p.y = first_free_place.top_right.y;
+    result.parking_spot.points.push_back(p);
+    p.x = first_free_place.top_left.x;
+    p.y = first_free_place.top_left.y;
+    result.parking_spot.points.push_back(p);
+
+    search_server_.setSucceeded(result);
 }
+
+
 
 void Parking::search(const selfie_msgs::PolygonArray &msg)
 {

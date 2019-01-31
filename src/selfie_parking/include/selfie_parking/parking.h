@@ -41,6 +41,8 @@ private:
   ros::Publisher parking_state_pub;
   ros::Publisher parking_place_pub;
 
+  actionlib::SimpleActionServer<selfie_msgs::searchAction> search_server_;
+
   actionlib::SimpleActionClient<selfie_park::parkAction> ac_;
 
   std::vector<Box> boxes_on_the_right_side;
@@ -53,6 +55,11 @@ private:
   int visualization_type;
   int scans_ignored;
   int scans_taken;
+
+  bool goal_set;
+
+  selfie_msgs::searchFeedback feedback_msg;
+  selfie_msgs::searchResult result;
 
 
 
@@ -72,6 +79,7 @@ public:
   ~Parking();
 
   bool init();
+  void manager_init();
   void manager(const selfie_msgs::PolygonArray &);
   void search(const selfie_msgs::PolygonArray &);
   void get_exact_measurements();
@@ -85,4 +93,5 @@ public:
   void display_free_place();
   void reset();
   void send_goal();
+  void fake_preemptCB();
 };
