@@ -17,6 +17,7 @@
 #include <boost/numeric/ublas/lu.hpp>
 #include <vector>
 #include <stdexcept>
+#include <std_srvs/Empty.h>
 
 #include <visualization_msgs/Marker.h>
 
@@ -25,6 +26,7 @@ class LaneDetector
   public:
 	LaneDetector(const ros::NodeHandle &nh, const ros::NodeHandle &pnh);
 	~LaneDetector();
+	bool resetVisionCallback(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response);
 	bool init();
 
   private:
@@ -69,6 +71,9 @@ class LaneDetector
 	int left_line_index_;
 	int center_line_index_;
 	int right_line_index_;
+	bool short_left_line_;
+	bool short_center_line_;
+	bool short_right_line_;
 
 	void imageCallback(const sensor_msgs::ImageConstPtr &msg);
 	void computeTopView();
@@ -121,8 +126,8 @@ class LaneDetector
 	bool debug_mode_;
 	float max_mid_line_distance_;
 	float max_mid_line_gap_;
-	bool init_imageCallback_;
 	float nominal_center_line_Y_;
 	float points_density_;
 	int poly_nDegree_;
+	bool init_imageCallback_;
 };
