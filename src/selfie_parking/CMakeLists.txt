@@ -212,6 +212,10 @@ add_executable(parking_node src/parking.cpp src/find_parking_place.cpp)
 target_link_libraries(parking_node ${catkin_LIBRARIES})
 add_dependencies(parking_node ${catkin_EXPORTED_TARGETS})
 
+add_executable(line_change_detection src/line_change_detection.cpp)
+target_link_libraries(line_change_detection ${catkin_LIBRARIES})
+add_dependencies(line_change_detection ${catkin_EXPORTED_TARGETS})
+
 
 
 ## Add folders to be run by python nosetests
