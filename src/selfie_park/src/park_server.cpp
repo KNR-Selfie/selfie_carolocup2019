@@ -13,8 +13,8 @@ visualize(true)
   pnh_.param<float>("maximal_start_parking_x", maximal_start_parking_x, 0.0);
   pnh_.param<float>("traffic_lane_marigin",traffic_lane_marigin, 0.05);
   pnh_.param<float>("earlier_turn", earlier_turn, 0.01);
-  pnh_.param<float>("first_to_second_phase_x_frontwards",first_to_second_phase_x_frontwards, 1.0/2.0);
-  pnh_.param<float>("first_to_second_phase_x_backwards", first_to_second_phase_x_backwards, 1.0/2.0);
+  pnh_.param<float>("first_to_second_phase_x_frontwards",first_to_second_phase_x_frontwards, 0.9/2.0);
+  pnh_.param<float>("first_to_second_phase_x_backwards", first_to_second_phase_x_backwards, 0.9/2.0);
   pnh_.param<bool>("state_msgs",state_msgs, false);
   pnh_.param<float>("max_distance_to_wall", max_distance_to_wall, 0.03);
   move_state = init_move;
@@ -207,6 +207,7 @@ void ParkService::init_parking_spot(const geometry_msgs::Polygon &msg)
     odom_parking_spot.push_back(actual_laser_odom_position.transform*vec);
   }
   tf::Vector3 tl = odom_parking_spot[0];
+  
   tf::Vector3 bl = odom_parking_spot[1];
   tf::Vector3 br = odom_parking_spot[2];
   tf::Vector3 tr = odom_parking_spot[3];
@@ -273,8 +274,7 @@ bool ParkService::in_parking_spot()
 {
 	//std::cout<<parking_spot_width<<"  "<<actual_back_parking_position.y<<"  "<<actual_front_parking_position.y<<std::endl;
   float l = cos(actual_parking_position.rot)*CAR_WIDTH/2;
-	bool is_in = (parking_spot_width > actual_back_parking_position.y + l && actual_back_parking_position.y - l > 0 && parking_spot_width > actual_front_parking_position.y + l && actual_back_parking_position.y - l > 0)&& abs(actual_parking_position.rot)<0.1;
-	return is_in;
+  return abs(actual_parking_position.y - middle_of_parking_spot_y)<0.04 && abs(actual_parking_position.rot)<0.05;
 }
 bool ParkService::in_traffic_lane()
 {
