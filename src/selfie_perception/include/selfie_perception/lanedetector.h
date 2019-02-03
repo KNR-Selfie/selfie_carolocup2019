@@ -126,7 +126,6 @@ class LaneDetector
 	float right_lane_width_;
 
 	std::string config_file_;
-	float binary_treshold_;
 	bool debug_mode_;
 	float max_mid_line_distance_;
 	float max_mid_line_gap_;
@@ -134,4 +133,7 @@ class LaneDetector
 	float points_density_;
 	int poly_nDegree_;
 	bool init_imageCallback_;
+	int treshold_block_size_;
+	float real_window_size_;
+	int threshold_c_;
 };

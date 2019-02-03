@@ -17,7 +17,6 @@ LaneDetector::LaneDetector(const ros::NodeHandle &nh, const ros::NodeHandle &pnh
 	nh_(nh),
 	pnh_(pnh),
 	it_(nh),
-	binary_treshold_(29),
 	debug_mode_(false),
 	init_imageCallback_(true),
 
@@ -40,7 +39,10 @@ LaneDetector::LaneDetector(const ros::NodeHandle &nh, const ros::NodeHandle &pnh
 	center_line_index_(-1),
 	short_left_line_(false),
 	short_center_line_(false),
-	short_right_line_(false)
+	short_right_line_(false),
+
+	real_window_size_(0.1),
+	threshold_c_(-40)
 {
 	lanes_pub_ =  nh_.advertise<selfie_msgs::RoadMarkings>("road_markings", 100);
 	intersection_pub_ =  nh_.advertise<std_msgs::Float32>("intersection", 100);
@@ -68,9 +70,14 @@ bool LaneDetector::init()
 	kernel_v_.at<float>(0, 2) = 1;
 
 	pnh_.getParam("config_file", config_file_);
-	pnh_.getParam("binary_treshold", binary_treshold_);
+	pnh_.getParam("real_window_size", real_window_size_);
+	pnh_.getParam("threshold_c", threshold_c_);
 	pnh_.getParam("debug_mode", debug_mode_);
 	pnh_.getParam("max_mid_line_gap", max_mid_line_gap_);
+
+	treshold_block_size_ = int(TOPVIEW_COLS / (TOPVIEW_MAX_Y - TOPVIEW_MIN_Y) * real_window_size_);
+	if(treshold_block_size_ % 2 == 0)
+		treshold_block_size_++;
 
 	image_sub_ = it_.subscribe("/image_rect", 1, &LaneDetector::imageCallback, this);
 	if(debug_mode_)
@@ -102,7 +109,8 @@ void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr &msg)
 	}
 	homography(current_frame_, homography_frame_);
 	//removeCar(homography_frame_);
-	cv::threshold(homography_frame_, binary_frame_, binary_treshold_, 255, cv::THRESH_BINARY);
+
+	cv::adaptiveThreshold(homography_frame_, binary_frame_, 255, cv::ADAPTIVE_THRESH_MEAN_C, CV_THRESH_BINARY, treshold_block_size_, threshold_c_);
 	
 	if(!init_imageCallback_)
 	{
@@ -510,7 +518,9 @@ void LaneDetector::publishMarkings()
 
 void LaneDetector::printInfoParams()
 {
-    ROS_INFO("binary_treshold: %.3f", binary_treshold_);
+	ROS_INFO("real_window_size: %.3f", real_window_size_);
+    ROS_INFO("treshold_block_size: %d", treshold_block_size_);
+	ROS_INFO("threshold_c: %d", threshold_c_);
     ROS_INFO("max_mid_line_gap: %.3f", max_mid_line_gap_);
 
     ROS_INFO("debug_mode: %d\n", debug_mode_);
