@@ -1,11 +1,14 @@
 <launch>
 
   <include file="$(find selfie_race)/launch/parking1.launch" >
-    <arg name="gui" value="true"/>
+    <arg name="gui" value="false"/>
   </include>
 
  <node pkg="selfie_sim_control" type="sim_manager.py" name="sim_manager"/>
 
+  <node pkg="selfie_perception" type="detect_markings" name="selfie_markings_detector">
+    <param name="visualize" value="true" />
+  </node>
   
   <!--
   <node pkg="urg_node" type="urg_node" name="urg_NODE"/>

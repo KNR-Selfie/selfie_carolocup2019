@@ -212,9 +212,11 @@ add_executable(parking_node src/parking.cpp src/find_parking_place.cpp)
 target_link_libraries(parking_node ${catkin_LIBRARIES})
 add_dependencies(parking_node ${catkin_EXPORTED_TARGETS})
 
-add_executable(simple_parking src/simple_parking.cpp src/simple_parking.cpp)
-target_link_libraries(simple_parking ${catkin_LIBRARIES})
-add_dependencies(simple_parking ${catkin_EXPORTED_TARGETS})
+
+add_executable(line_change_detection src/line_change_detection.cpp)
+target_link_libraries(line_change_detection ${catkin_LIBRARIES})
+add_dependencies(line_change_detection ${catkin_EXPORTED_TARGETS})
+
 
 add_executable(mock_manager src/mock_manager.cpp)
 target_link_libraries(mock_manager ${catkin_LIBRARIES})

@@ -13,9 +13,10 @@
                 "/home/marcel/selfie_carolocup2019/src/selfie_park/include",
                 "/home/marcel/selfie_carolocup2019/src/selfie_path_planner/include",
                 "/home/marcel/selfie_carolocup2019/src/selfie_perception/include",
-                "/home/marcel/selfie_carolocup2019/src",
+
                 "/usr/include",
-                "${workspaceFolder}/devel/include"
+                "${workspaceFolder}/devel/include",
+                "${workspaceFolder}/src/selfie_perception/include"
             ],
             "name": "Linux",
             "compilerPath": "/usr/bin/gcc"
