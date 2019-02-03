@@ -44,8 +44,8 @@ bool ChangeLane::process_target_position(void)
 		else
 		{
 			maneuver_done = false;
-			left_turn_indicator = true;
-			right_turn_indicator = false;
+			left_turn_indicator = false;
+			right_turn_indicator = true;
 		}
 	}
 

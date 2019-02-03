@@ -50,12 +50,19 @@ int main(int argc, char **argv)
 
   ros::Time begin = ros::Time::now();
 
+	Usb.indicators.left = 0;
+  Usb.indicators.right = 0;
+  Usb.control.steering_angle = 0;
+  Usb.control.steering_angle_velocity = 0;
+  Usb.control.speed = 0;
+  Usb.control.acceleration = 0;
+  Usb.control.jerk = 0;
+
+
   while (ros::ok())
   {
     ros::Time now = ros::Time::now();
     uint32_t send_ms = (now.sec - begin.sec) * 1000 + (now.nsec / 1000000);
-	Usb.indicators.left = 1;
-Usb.indicators.right = 3;
     Usb.usb_read_buffer(128, timestamp, distance, velocity, quaternion_x, quaternion_y, quaternion_z, quaternion_w, yaw, ang_vel_x,  ang_vel_y, ang_vel_z, lin_acc_x, lin_acc_y, lin_acc_z, start_button1, start_button2);
     Usb.usb_send_buffer(send_ms, Usb.control.steering_angle, Usb.control.steering_angle_velocity, Usb.control.speed, Usb.control.acceleration, Usb.control.jerk, Usb.indicators.left, Usb.indicators.right);
 
