@@ -9,17 +9,17 @@ void ParkClient::send_goal()
 {
     selfie_park::parkGoal msg;
     geometry_msgs::Point32 p;
-    p.x = 3.1;
-    p.y = -0.2;
+    p.x = 0.3;
+    p.y = -0.25;
     msg.parking_spot.points.push_back(p);
-    p.x = 3.1;
-    p.y = -0.5;
+    p.x = 0.3;
+    p.y = -0.55;
     msg.parking_spot.points.push_back(p);
-    p.x = 3.6;
-    p.y = -0.5;
+    p.x = 1.0;
+    p.y = -0.55;
     msg.parking_spot.points.push_back(p);
-    p.x = 3.6;
-    p.y = -0.2;
+    p.x = 1.0;
+    p.y = -0.25;
     msg.parking_spot.points.push_back(p);
     msg.park = true;
     ac_.sendGoal(msg);
