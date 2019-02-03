@@ -250,6 +250,7 @@ void ParkService::init_parking_spot(const geometry_msgs::Polygon &msg)
   middle_of_parking_spot_x = (front_wall - back_wall)/2.0;
   leaving_target = actual_parking_position.y;
 	std::cout<<"parking spot position  "<<parking_spot_position.x<<"  "<<parking_spot_position.y<<std::endl;
+	mid_y = middle_of_parking_spot_y + (leaving_target - middle_of_parking_spot_y)/2.0;
 }
 void ParkService::goalCB()
 {
@@ -327,6 +328,7 @@ bool ParkService::park()
 		ROS_INFO("1st phase");
 		drive(PARKING_SPEED, -MAX_TURN);
 		if(actual_parking_position.rot < -max_rot){move_state = straight;}
+		if(actual_parking_position.y < mid_y) {move_state =second_phase;}
 		break;
 		case straight:
 		ROS_INFO("straight");
@@ -357,6 +359,7 @@ bool ParkService::leave()
 		ROS_INFO("1st phase");
 		drive(PARKING_SPEED, MAX_TURN);
 		if(actual_parking_position.rot > max_rot){move_state = straight;}
+		if(actual_parking_position.y > mid_y) {move_state =second_phase;}
 		break;
 		case straight:
 		ROS_INFO("straight");
