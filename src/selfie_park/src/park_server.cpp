@@ -337,7 +337,15 @@ bool ParkService::park()
 
 		case get_middles:
 		if(state_msgs) ROS_INFO("get_middles");
-		mid_x = (front?actual_front_parking_position.x  + (front_wall - max_distance_to_wall  - actual_front_parking_position.x)*first_to_second_phase_x_frontwards:  back_wall + (actual_back_parking_position.x + max_distance_to_wall - back_wall)*first_to_second_phase_x_backwards);
+		//mid_x = (front?actual_front_parking_position.x  + (front_wall - max_distance_to_wall  - actual_front_parking_position.x)*first_to_second_phase_x_frontwards:  back_wall + (actual_back_parking_position.x + max_distance_to_wall - back_wall)*first_to_second_phase_x_backwards);
+		if(front)
+		{
+			mid_x = actual_front_parking_position.x  + (front_wall - max_distance_to_wall  - actual_front_parking_position.x)*first_to_second_phase_x_frontwards;
+		}
+		else
+		{
+			mid_x = back_wall + (actual_back_parking_position.x + max_distance_to_wall - back_wall)*(1.-first_to_second_phase_x_backwards);
+		}
 		mid_y = middle_of_parking_spot_y + (actual_back_parking_position.y - middle_of_parking_spot_y)/2.0;
 		std::cout<<mid_x<<"  "<<mid_y<<std::endl;
 		move_state = first_phase;
@@ -444,7 +452,15 @@ bool ParkService::leave()
 
 		case get_middles:
 		if(state_msgs) ROS_INFO("get_middles");
-		mid_x = (front?actual_front_parking_position.x  + (front_wall - max_distance_to_wall  - actual_front_parking_position.x)*first_to_second_phase_x_frontwards:  back_wall + (actual_back_parking_position.x + max_distance_to_wall - back_wall)*first_to_second_phase_x_backwards);
+		//mid_x = (front?actual_front_parking_position.x  + (front_wall - max_distance_to_wall  - actual_front_parking_position.x)*first_to_second_phase_x_frontwards:  back_wall + (actual_back_parking_position.x + max_distance_to_wall - back_wall)*first_to_second_phase_x_backwards);
+		if(front)
+		{
+			mid_x = actual_front_parking_position.x  + (front_wall - max_distance_to_wall  - actual_front_parking_position.x)*first_to_second_phase_x_frontwards;
+		}
+		else
+		{
+			mid_x = back_wall + (actual_back_parking_position.x + max_distance_to_wall - back_wall)*(1.-first_to_second_phase_x_backwards);
+		}
 		mid_y = leaving_target + (actual_back_parking_position.y - leaving_target)/2.0;
 		move_state = first_phase;
     right = actual_parking_position.y > leaving_target;
