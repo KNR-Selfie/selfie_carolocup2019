@@ -31,15 +31,9 @@ void Starting_procedure::drive()
         start_pub.data = true;
 
         pub_start.publish(start_pub);
-
-        speed = 1; //slow down after goin out
-    }
-    else
-    {
-        speed = 1.5;
     }
 
-    cmd.drive.speed = speed;
+    cmd.drive.speed = 0.5;
     cmd.drive.steering_angle = 0;
     cmd.drive.steering_angle_velocity = 15;
 
