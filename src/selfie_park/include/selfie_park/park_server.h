@@ -19,7 +19,7 @@
 #define ODOM_TO_BACK -0.25
 #define ODOM_TO_LASER 0.15
 #define CAR_WIDTH 0.22
-#define PARKING_SPEED 0.5
+#define PARKING_SPEED 0.2
 #define MAX_TURN 1
 
 class ParkService
@@ -74,6 +74,8 @@ class ParkService
 		going_in = 2,
 		parked = 3,
 		going_out = 4,
+        out=5,
+        go_back=6
 	} parking_state;
 
     float front_wall;
@@ -84,14 +86,13 @@ class ParkService
     float parking_spot_length;
     float leaving_target;
 
+
     enum Move_State
 	{
-		init_move = 0,
-		get_straigth = 1,
-		get_middles = 2,
-		first_phase = 3,
-		second_phase = 4,
-		end = 5
+		first_phase=0,
+        straight=1,
+        second_phase=2,
+        end=3
 	} move_state;
 
     float mid_x;
@@ -112,4 +113,6 @@ class ParkService
     float first_to_second_phase_x_backwards;
     bool state_msgs;
     bool visualize;
+    float max_rot;
+    float dist_turn;
 };
