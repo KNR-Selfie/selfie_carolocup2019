@@ -52,7 +52,7 @@ private:
             *place_found = result->parking_spot;
              
 
-            std::cout << ((*place_found).points.begin())->x << std::endl;
+         //   std::cout << ((*place_found).points.begin())->x << std::endl;
             ROS_INFO("place_received!!!");
         }
         else 
@@ -84,13 +84,13 @@ private:
         if(finished)
         {
             auto result = park_client_.getResult();
-  //          ROS_INFO("parking_done!!!");
+            ROS_INFO("parking_done!!!");
             return true;
         }
         else
         {
- //           ROS_INFO("parking took too long");
- //           ROS_FATAL("ABORTING parking");
+            ROS_INFO("parking took too long");
+            ROS_FATAL("ABORTING parking");
             return false;
         }
         

@@ -40,7 +40,7 @@ bool Parking::init()
   this->obstacles_sub = nh_.subscribe("/obstacles", 10, &Parking::manager, this);
   this->visualize_lines_pub = nh_.advertise<visualization_msgs::Marker>( "/visualization_lines", 1 );
   this->visualize_free_place  = nh_.advertise<visualization_msgs::Marker>( "/free_place", 1 );
-//  this->point_pub = nh_.advertise<visualization_msgs::Marker>("/box_points", 5);
+  this->point_pub = nh_.advertise<visualization_msgs::Marker>("/box_points", 5);
 //  this->parking_state_pub = nh_.advertise<std_msgs::Int16>("parking_state", 200);
   goal_set = false;
 //  ROS_INFO("viz type: %d", visualization_type);
@@ -308,7 +308,7 @@ void Parking::send_goal()
     reset();
     state = searching;
 
-    search_server_.setSucceeded(result);
+  //  search_server_.setSucceeded(result);
 }
 
 
@@ -322,8 +322,9 @@ void Parking::search(const selfie_msgs::PolygonArray &msg)
     auto end_of_callback = begin;
 //
 //int box_nr = msg.polygons.size()-1;  box_nr >= 0;  --box_nr
+//auto box_nr=0;  box_nr != msg.polygons.size();  ++box_nr
 //
-  for(auto box_nr=0;  box_nr != msg.polygons.size();  ++box_nr)
+  for(int box_nr = msg.polygons.size()-1;  box_nr >= 0;  --box_nr)
   {
     float min_x = point_min_x;
     float max_x = point_max_x;

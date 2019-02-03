@@ -6,7 +6,7 @@
  -->
 
   <node pkg="selfie_park" type="park_server" name="park_server" output="screen">
-    <param name="ackermann_topic" value="/drive"/>
+    <param name="ackermann_topic" value="/sim_drive"/>
     <param name="odom_topic" value="/odom"/>
   </node>
 
@@ -29,7 +29,7 @@
   </node>
 -->
 
-  <node pkg="selfie_parking" type="parking_node" name="selfie_parking_finder" output="screen">
+  <node pkg="selfie_parking" type="parking_node" name="search_server" output="screen">
     <param name="point_min_x" value="0"/>
     <param name="point_max_x" value="3"/>
     <param name="point_min_y" value="-1"/>
