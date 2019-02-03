@@ -1,0 +1,58 @@
+#!/usr/bin/env python
+
+import rospy
+
+from std_msgs.msg import Float32, Bool
+from ackermann_msgs.msg import AckermannDriveStamped
+
+attempt_started = False
+initial_distance = None
+
+def distance_callback(msg):
+    global attempt_started, initial_distance
+
+    start_pub.publish(attempt_started)
+
+    if attempt_started: return
+
+    # Initialize initial distance
+    if initial_distance is None:
+        initial_distance = msg.data
+        rospy.loginfo('Initial distance initialized to %f', initial_distance)
+        return
+
+    distance_diff = msg.data - initial_distance
+
+    if distance_diff < target_dist:
+        cmd = AckermannDriveStamped()
+        cmd.drive.speed = speed
+        drive_pub.publish(cmd)
+
+    else:
+        rospy.loginfo('Target distance reached at %f', distance_diff)
+        attempt_started = True
+
+def config_callback(config, level):
+    global speed
+    speed = config['speed']
+
+    rospy.loginfo("Reconfigure request: speed=" + str(speed) + "m/s")
+
+    return config
+
+if __name__ == '__main__':
+    rospy.init_node('simple_start')
+
+    delay = rospy.get_param('~delay', 1.0)
+    target_dist = rospy.get_param('~target_dist', 1.0)
+    speed = rospy.get_param('~speed', 0.5)
+
+    rospy.sleep(delay)
+
+    global drive_pub, start_pub
+    drive_pub = rospy.Publisher('drive', AckermannDriveStamped, queue_size=1)
+    start_pub = rospy.Publisher('start', Bool, queue_size=1)
+
+    rospy.Subscriber('distance', Float32, distance_callback)
+
+    rospy.spin()
