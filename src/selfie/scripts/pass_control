@@ -1,0 +1,47 @@
+#!/usr/bin/env python
+
+import rospy
+
+from std_msgs.msg import Bool
+from topic_tools.srv import MuxSelect
+from std_srvs.srv import Empty
+
+attempt_started = False
+
+def pass_control(sys_name):
+    select_drive               ('{}/drive'               .format(sys_name))
+    select_left_turn_indicator ('{}/left_turn_indicator' .format(sys_name))
+    select_right_turn_indicator('{}/right_turn_indicator'.format(sys_name))
+
+def attempt_started_callback(msg):
+    if msg.data == False: return
+
+    global attempt_started
+    if not attempt_started:
+        attempt_started = True
+
+        rospy.loginfo('Attempt started, passing control to /lane_control')
+        reset_vision()
+        pass_control('/lane_control')
+
+if __name__ == '__main__':
+    rospy.init_node('pass_control')
+
+    rospy.loginfo('Waiting for services')
+    rospy.wait_for_service('drive_mux/select')
+    rospy.wait_for_service('left_turn_indicator_mux/select')
+    rospy.wait_for_service('right_turn_indicator_mux/select')
+    rospy.wait_for_service('reset_vision')
+
+    global select_drive, select_left_turn_indicator, select_right_turn_indicator, reset_vision
+    select_drive                = rospy.ServiceProxy('drive_mux/select',                MuxSelect)
+    select_left_turn_indicator  = rospy.ServiceProxy('left_turn_indicator_mux/select',  MuxSelect)
+    select_right_turn_indicator = rospy.ServiceProxy('right_turn_indicator_mux/select', MuxSelect)
+    reset_vision                = rospy.ServiceProxy('reset_vision',                    Empty)
+
+    rospy.Subscriber('attempt_started',       Bool, attempt_started_callback)
+
+    rospy.loginfo('System initialized, passing control to /starting_procedure')
+    pass_control('/starting_procedure')
+
+    rospy.spin()

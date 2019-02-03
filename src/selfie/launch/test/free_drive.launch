@@ -15,10 +15,10 @@
     <remap from="/image_rect" to="/camera/image_rect" />
     <remap from="position_offset" to="/lane_control/position_offset" />
     <remap from="heading_offset" to="/lane_control/heading_offset" />
-    <include file="$(find selfie_launch)/launch/subsystems/vision.launch" pass_all_args="true" />
+    <include file="$(find selfie)/launch/subsystems/vision.launch" pass_all_args="true" />
   </group>
 
   <group ns="lane_control">
-    <include file="$(find selfie_launch)/launch/subsystems/lane_control.launch" />
+    <include file="$(find selfie)/launch/subsystems/lane_control.launch" />
   </group>
 </launch>

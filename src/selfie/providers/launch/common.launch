@@ -1,0 +1,61 @@
+<launch>
+  <arg name="homography_file" default="/home/$(env USER)/.ros/homography_export.yaml" />
+  <arg name="lookahead" default="0.3" />
+
+  <group ns="camera">
+    <include file="$(find selfie_camera)/launch/basler.launch" />
+  </group>
+
+  <group ns="tf">
+    <include file="$(find selfie)/launch/transforms.launch" />
+  </group>
+
+  <group ns="odometry">
+    <remap from="/distance" to="/stm32/distance" />
+    <remap from="/imu" to="/stm32/imu" />
+    <remap from="/odom" to="/odometry/odom" />
+    <node name="odometry" type="selfie_odometry" pkg="selfie_odometry" />
+  </group>
+
+  <group ns="starting_procedure">
+    <remap from="image_raw" to="/camera/image_rect" />
+    <remap from="distance" to="/stm32/distance" />
+    <node name="starting_procedure" type="starting_procedure" pkg="selfie_starting_procedure">
+      <param name="dist" value="1.0" />
+    </node>
+  </group>
+
+  <group ns="vision">
+    <remap from="/image_rect" to="/camera/image_rect" />
+    <remap from="position_offset" to="/lane_control/position_offset" />
+    <remap from="heading_offset" to="/lane_control/heading_offset" />
+    <include file="$(find selfie)/launch/subsystems/vision.launch" pass_all_args="true" />
+  </group>
+
+  <group ns="lane_control">
+    <include file="$(find selfie)/launch/subsystems/lane_control.launch" />
+  </group>
+
+  <group ns="multiplexer">
+    <remap from="mux" to="~" />
+    <remap from="attempt_started" to="/starting_procedure/start" />
+    <remap from="reset_vision" to="/vision/resetVision" />
+
+    <node name="drive_mux" type="mux" pkg="topic_tools"
+          args="/stm32/drive
+                /starting_procedure/drive
+                /lane_control/drive" />
+
+    <node name="left_turn_indicator_mux" type="mux" pkg="topic_tools"
+          args="/stm32/left_turn_indicator
+                /starting_procedure/left_turn_indicator
+                /lane_control/left_turn_indicator" />
+
+    <node name="right_turn_indicator_mux" type="mux" pkg="topic_tools"
+          args="/stm32/right_turn_indicator
+                /starting_procedure/right_turn_indicator
+                /lane_control/right_turn_indicator" />
+
+    <node name="pass_control" type="pass_control" pkg="selfie" />
+  </group>
+</launch>

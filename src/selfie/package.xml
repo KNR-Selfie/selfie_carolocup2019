@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>selfie_launch</name>
+  <name>selfie</name>
   <version>0.0.0</version>
-  <description>The selfie_launch package</description>
+  <description>The selfie package</description>
 
   <!-- One maintainer tag required, multiple allowed, one person per tag -->
   <!-- Example:  -->
@@ -65,10 +65,14 @@
   <exec_depend>selfie_stm32_bridge</exec_depend>
   <exec_depend>libuvc_camera</exec_depend>
 
+  <exec_depend>rospy</exec_depend>
+  <exec_depend>capabilities</exec_depend>
 
   <!-- The export tag contains other, unspecified, tags -->
   <export>
-    <!-- Other tools can request additional information be placed here -->
+    <capability_interface>interfaces/DynamicEvent.yaml</capability_interface>
 
+    <capability_provider>providers/scenario_1.yaml</capability_provider>
+    <capability_provider>providers/scenario_2.yaml</capability_provider>
   </export>
 </package>

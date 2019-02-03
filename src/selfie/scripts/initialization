@@ -1,0 +1,38 @@
+#!/usr/bin/env python
+
+import rospy
+
+from functools import partial
+from std_msgs.msg import Bool
+from capabilities.client import CapabilitiesClient
+
+system_initialized = False
+
+def button_callback(btn, msg):
+    global system_initialized
+
+    # Proceed only if the starting button is pressed
+    if msg.data == False: return
+
+    if not system_initialized:
+        system_initialized = True
+
+        rospy.loginfo('Initializing scenario #%i', btn)
+
+        client.use_capability('selfie/DynamicEvent',
+                              'selfie/scenario_{}'.format(btn))
+
+if __name__ == '__main__':
+    rospy.init_node('initialization')
+
+    global client
+    client = CapabilitiesClient()
+
+    rospy.loginfo('Waiting for Capability Server')
+    client.wait_for_services()
+    rospy.loginfo('Capability Server available')
+
+    b1_sub = rospy.Subscriber('start_button1', Bool, partial(button_callback, 1))
+    b2_sub = rospy.Subscriber('start_button2', Bool, partial(button_callback, 2))
+
+    rospy.spin()

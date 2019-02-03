@@ -13,11 +13,9 @@ int main(int argc, char **argv)
 
     ros::Rate loop_rate(300);
 
+    qr_dec.begin_search();
     while(ros::ok())
     {
-        if(start_proc.button_clicked())
-            qr_dec.begin_search();
-
         if(qr_dec.end_search())
             start_proc.drive();
 
