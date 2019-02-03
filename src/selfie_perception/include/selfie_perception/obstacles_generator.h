@@ -69,6 +69,7 @@ private:
     float line_min_length_;
     float obstacle_nominal_length_;
     bool visualize_;
+    float lidar_offset_;
     std::string visualization_frame_;
     std::string obstacles_frame_;
     
