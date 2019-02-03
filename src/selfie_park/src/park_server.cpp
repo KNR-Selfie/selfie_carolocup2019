@@ -207,7 +207,7 @@ void ParkService::init_parking_spot(const geometry_msgs::Polygon &msg)
     odom_parking_spot.push_back(actual_laser_odom_position.transform*vec);
   }
   tf::Vector3 tl = odom_parking_spot[0];
-  
+
   tf::Vector3 bl = odom_parking_spot[1];
   tf::Vector3 br = odom_parking_spot[2];
   tf::Vector3 tr = odom_parking_spot[3];
@@ -272,9 +272,10 @@ void ParkService::drive(float speed, float steering_angle)
 //void go()
 bool ParkService::in_parking_spot()
 {
-	//std::cout<<parking_spot_width<<"  "<<actual_back_parking_position.y<<"  "<<actual_front_parking_position.y<<std::endl;
-  float l = cos(actual_parking_position.rot)*CAR_WIDTH/2;
-  return abs(actual_parking_position.y - middle_of_parking_spot_y)<0.04 && abs(actual_parking_position.rot)<0.05;
+	if(actual_back_parking_position.y < middle_of_parking_spot_y + traffic_lane_marigin && actual_back_parking_position.y > middle_of_parking_spot_y - traffic_lane_marigin &&
+  actual_front_parking_position.y < middle_of_parking_spot_y + traffic_lane_marigin && actual_front_parking_position.y > middle_of_parking_spot_y - traffic_lane_marigin)
+  {return true;}
+  else return false;
 }
 bool ParkService::in_traffic_lane()
 {
