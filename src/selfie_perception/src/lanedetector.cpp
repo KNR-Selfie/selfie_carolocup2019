@@ -17,7 +17,6 @@ LaneDetector::LaneDetector(const ros::NodeHandle &nh, const ros::NodeHandle &pnh
 	nh_(nh),
 	pnh_(pnh),
 	it_(nh),
-	binary_treshold_(29),
 	debug_mode_(false),
 	init_imageCallback_(true),
 
@@ -40,7 +39,10 @@ LaneDetector::LaneDetector(const ros::NodeHandle &nh, const ros::NodeHandle &pnh
 	center_line_index_(-1),
 	short_left_line_(false),
 	short_center_line_(false),
-	short_right_line_(false)
+	short_right_line_(false),
+
+	real_window_size_(0.1),
+	threshold_c_(-40)
 {
 	lanes_pub_ =  nh_.advertise<selfie_msgs::RoadMarkings>("road_markings", 100);
 	intersection_pub_ =  nh_.advertise<std_msgs::Float32>("intersection", 100);
@@ -68,11 +70,16 @@ bool LaneDetector::init()
 	kernel_v_.at<float>(0, 2) = 1;
 
 	pnh_.getParam("config_file", config_file_);
-	pnh_.getParam("binary_treshold", binary_treshold_);
+	pnh_.getParam("real_window_size", real_window_size_);
+	pnh_.getParam("threshold_c", threshold_c_);
 	pnh_.getParam("debug_mode", debug_mode_);
 	pnh_.getParam("max_mid_line_gap", max_mid_line_gap_);
 
-	image_sub_ = it_.subscribe("/camera/image_rect", 1, &LaneDetector::imageCallback, this);
+	treshold_block_size_ = int(TOPVIEW_COLS / (TOPVIEW_MAX_Y - TOPVIEW_MIN_Y) * real_window_size_);
+	if(treshold_block_size_ % 2 == 0)
+		treshold_block_size_++;
+
+	image_sub_ = it_.subscribe("/image_rect", 1, &LaneDetector::imageCallback, this);
 	if(debug_mode_)
 	{
 		points_cloud_pub_ = nh_.advertise<sensor_msgs::PointCloud>("new_coordinates", 10);
@@ -102,7 +109,8 @@ void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr &msg)
 	}
 	homography(current_frame_, homography_frame_);
 	//removeCar(homography_frame_);
-	cv::threshold(homography_frame_, binary_frame_, binary_treshold_, 255, cv::THRESH_BINARY);
+
+	cv::adaptiveThreshold(homography_frame_, binary_frame_, 255, cv::ADAPTIVE_THRESH_MEAN_C, CV_THRESH_BINARY, treshold_block_size_, threshold_c_);
 	
 	if(!init_imageCallback_)
 	{
@@ -147,7 +155,20 @@ void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr &msg)
 		if(init_imageCallback_)
 		{
 			initRecognizeLines();
-			if((left_line_index_ != -1 && center_line_index_ != -1) || (right_line_index_ != -1 && center_line_index_ != -1))
+			int l = 0,c = 0,r = 0;
+			if(left_line_index_ != -1)
+				if(cv::arcLength(lanes_vector_converted_[left_line_index_], false) > min_length_to_aprox_)
+					l = 1;
+
+			if(center_line_index_ != -1)
+				if(cv::arcLength(lanes_vector_converted_[center_line_index_], false) > min_length_to_aprox_)
+					c = 1;
+
+			if(right_line_index_ != -1)
+				if(cv::arcLength(lanes_vector_converted_[right_line_index_], false) > min_length_to_aprox_)
+					r = 1;
+
+			if((l + r + c) > 1)
 			{
 				linesApproximation(lanes_vector_converted_);
 				init_imageCallback_ = false;
@@ -162,10 +183,9 @@ void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr &msg)
 			calcRoadWidth();
 			addBottomPoint();
 			linesApproximation(lanes_vector_converted_);
+			publishMarkings();
 		}
 	}
-
-	publishMarkings();
 
 	if (debug_mode_)
 	{
@@ -498,7 +518,9 @@ void LaneDetector::publishMarkings()
 
 void LaneDetector::printInfoParams()
 {
-    ROS_INFO("binary_treshold: %.3f", binary_treshold_);
+	ROS_INFO("real_window_size: %.3f", real_window_size_);
+    ROS_INFO("treshold_block_size: %d", treshold_block_size_);
+	ROS_INFO("threshold_c: %d", threshold_c_);
     ROS_INFO("max_mid_line_gap: %.3f", max_mid_line_gap_);
 
     ROS_INFO("debug_mode: %d\n", debug_mode_);
@@ -1165,9 +1187,12 @@ void LaneDetector::linesApproximation(std::vector<std::vector<cv::Point2f> > lan
 		case 0:
 		//"l-  c-  r-"
 		l_state = '-';	c_state = '-';	r_state = '-';
-		left_coeff_ = last_left_coeff_;
-		right_coeff_ = last_right_coeff_;
-		middle_coeff_ = last_middle_coeff_;
+		if(!last_left_coeff_.empty())
+			left_coeff_ = last_left_coeff_;
+		if(!last_right_coeff_.empty())
+			right_coeff_ = last_right_coeff_;
+		if(!last_middle_coeff_.empty())
+			middle_coeff_ = last_middle_coeff_;
 		break;
 	}
 	
