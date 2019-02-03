@@ -72,7 +72,7 @@ bool LaneDetector::init()
 	pnh_.getParam("debug_mode", debug_mode_);
 	pnh_.getParam("max_mid_line_gap", max_mid_line_gap_);
 
-	image_sub_ = it_.subscribe("/camera/image_rect", 1, &LaneDetector::imageCallback, this);
+	image_sub_ = it_.subscribe("/image_rect", 1, &LaneDetector::imageCallback, this);
 	if(debug_mode_)
 	{
 		points_cloud_pub_ = nh_.advertise<sensor_msgs::PointCloud>("new_coordinates", 10);
@@ -147,7 +147,20 @@ void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr &msg)
 		if(init_imageCallback_)
 		{
 			initRecognizeLines();
-			if((left_line_index_ != -1 && center_line_index_ != -1) || (right_line_index_ != -1 && center_line_index_ != -1))
+			int l = 0,c = 0,r = 0;
+			if(left_line_index_ != -1)
+				if(cv::arcLength(lanes_vector_converted_[left_line_index_], false) > min_length_to_aprox_)
+					l = 1;
+
+			if(center_line_index_ != -1)
+				if(cv::arcLength(lanes_vector_converted_[center_line_index_], false) > min_length_to_aprox_)
+					c = 1;
+
+			if(right_line_index_ != -1)
+				if(cv::arcLength(lanes_vector_converted_[right_line_index_], false) > min_length_to_aprox_)
+					r = 1;
+
+			if((l + r + c) > 1)
 			{
 				linesApproximation(lanes_vector_converted_);
 				init_imageCallback_ = false;
@@ -162,10 +175,9 @@ void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr &msg)
 			calcRoadWidth();
 			addBottomPoint();
 			linesApproximation(lanes_vector_converted_);
+			publishMarkings();
 		}
 	}
-
-	publishMarkings();
 
 	if (debug_mode_)
 	{
@@ -1165,9 +1177,12 @@ void LaneDetector::linesApproximation(std::vector<std::vector<cv::Point2f> > lan
 		case 0:
 		//"l-  c-  r-"
 		l_state = '-';	c_state = '-';	r_state = '-';
-		left_coeff_ = last_left_coeff_;
-		right_coeff_ = last_right_coeff_;
-		middle_coeff_ = last_middle_coeff_;
+		if(!last_left_coeff_.empty())
+			left_coeff_ = last_left_coeff_;
+		if(!last_right_coeff_.empty())
+			right_coeff_ = last_right_coeff_;
+		if(!last_middle_coeff_.empty())
+			middle_coeff_ = last_middle_coeff_;
 		break;
 	}
 	
