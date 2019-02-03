@@ -48,20 +48,22 @@ bool Parking::init()
 
 void Parking::manager_init()
 {
-  ROS_INFO("goal set!!!");
+  ROS_WARN("goal set!!!");
   min_spot_lenght = (*search_server_.acceptNewGoal()).min_spot_lenght;
   goal_set = true;
+
+  ROS_INFO("min_y: %f,  max_y: %f", point_min_y, point_max_y);
 
 }
 
 void Parking::manager(const selfie_msgs::PolygonArray &msg)
 { 
   // to save cpu time just do nothing when new scan comes
-  if(search_server_.isActive())
-    ROS_INFO("server is active");
-  else
+ // if(search_server_.isActive())
+  //  ROS_INFO("server is active");
+  if(!search_server_.isActive())
   {
-    ROS_INFO("server is not active!");
+    ROS_INFO_THROTTLE(1, "server is not active!");
     return;
   }
   
@@ -92,9 +94,12 @@ void Parking::manager(const selfie_msgs::PolygonArray &msg)
       planning_error_counter = 0;
       search(msg);
       bool place_found = find_free_place();
+      if(place_found)
+        ROS_INFO("place found!!");
       float dist = 9999;
       if(place_found)
         dist = get_dist_from_first_free_place();
+        ROS_INFO("dist: %f", dist);
       feedback_msg.distance_to_first_place = dist;
       if(place_found && dist <= distance_to_stop)
       {

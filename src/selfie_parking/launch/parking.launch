@@ -13,6 +13,8 @@
 
   <node pkg="selfie_stm32_bridge" type="selfie_stm32_bridge" name="stm_bridge"/>
 
+<include file="$(find selfie_launch)/launch/transforms.launch" />
+ 
 
   <node pkg="selfie_odometry" type="selfie_odometry" name="odometry"/>
 <!--
