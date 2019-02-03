@@ -50,8 +50,6 @@ private:
         {
             auto result = search_client_.getResult();
             *place_found = result->parking_spot;
-             
-
          //   std::cout << ((*place_found).points.begin())->x << std::endl;
             ROS_INFO("place_received!!!");
         }

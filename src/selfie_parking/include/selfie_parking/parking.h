@@ -66,11 +66,11 @@ private:
   double planning_error_counter = 0;
 
   // jednostki w metrach
-  float point_min_x = 0;
-  float point_max_x = 2;
+  float point_min_x;
+  float point_max_x;
 
-  float point_min_y = -1;
-  float point_max_y = 0.2;
+  float point_min_y;
+  float point_max_y;
 
 public:
   Parking(const ros::NodeHandle &nh, const ros::NodeHandle &pnh);
@@ -92,4 +92,5 @@ public:
   void reset();
   void send_goal();
   void preemptCB();
+  void print_planning_stats();
 };

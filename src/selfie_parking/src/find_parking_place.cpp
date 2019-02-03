@@ -10,23 +10,22 @@ Parking::Parking(const ros::NodeHandle &nh, const ros::NodeHandle &pnh):
   search_server_.registerPreemptCallback(boost::bind(&Parking::preemptCB, this));
   //search_server_.regi
   search_server_.start();
-  pnh_.param<float>("/point_min_x", point_min_x, 0);
-  pnh_.param<float>("/point_max_x", point_max_x, 2);
-  pnh_.param<float>("/point_min_y", point_min_y, -1);
-  pnh_.param<float>("/point_max_y", point_max_y, 0.2);
-  pnh_.param<float>("/distance_to_stop", distance_to_stop, 0.2);
-  pnh_.param<float>("/min_spot_lenght", min_spot_lenght, 0.7);
-  pnh_.param<int>("/scans_to_ignore_when_stopped", scans_ignored, 2);
-  pnh_.param<int>("/scans_taken", scans_taken, 5);
+  pnh_.param<float>("point_min_x", point_min_x, 0);
+  pnh_.param<float>("point_max_x", point_max_x, 2);
+  pnh_.param<float>("point_min_y", point_min_y, -1);
+  pnh_.param<float>("point_max_y", point_max_y, 0.2);
+  pnh_.param<float>("distance_to_stop", distance_to_stop, 0.2);
+  pnh_.param<int>("scans_to_ignore_when_stopped", scans_ignored, 2);
+  pnh_.param<int>("scans_taken", scans_taken, 5);
   // 1->to_rviz  2-> funcion execution time 3->text_only
-  pnh_.param<int>("/visualization_type", visualization_type, 3);
+  pnh_.param<int>("visualization_type", visualization_type, 3);
 }
 
 Parking::~Parking(){}
 
 void Parking::preemptCB()
 {
-  ROS_FATAL("preemted : ");
+  ROS_FATAL("preemted");
   search_server_.setPreempted();
   if(!search_server_.isActive())
   {
@@ -43,6 +42,7 @@ bool Parking::init()
   this->point_pub = nh_.advertise<visualization_msgs::Marker>("/box_points", 5);
 //  this->parking_state_pub = nh_.advertise<std_msgs::Int16>("parking_state", 200);
   goal_set = false;
+  min_spot_lenght = 0.6;
 //  ROS_INFO("viz type: %d", visualization_type);
 }
 
@@ -51,17 +51,14 @@ void Parking::manager_init()
   ROS_INFO("goal set!!!");
   min_spot_lenght = (*search_server_.acceptNewGoal()).min_spot_lenght;
   goal_set = true;
-
 }
 
 void Parking::manager(const selfie_msgs::PolygonArray &msg)
 { 
   // to save cpu time just do nothing when new scan comes
-  if(search_server_.isActive())
-    ROS_INFO("server is active");
-  else
+ if(!search_server_.isActive())
   {
-    ROS_INFO("server is not active!");
+    ROS_INFO_THROTTLE(1,"server is not active!");
     return;
   }
   
@@ -98,11 +95,10 @@ void Parking::manager(const selfie_msgs::PolygonArray &msg)
       feedback_msg.distance_to_first_place = dist;
       if(place_found && dist <= distance_to_stop)
       {
-        feedback_msg.info = "place found, getting exact measurements initialized";
+        feedback_msg.info = "place found, waiting to get exact measurements";
         state = planning;
         planning_scan_counter = 0;
-        if(visualization_type  >= 3)
-          ROS_INFO( "state switched to planning");
+        ROS_WARN( "state switched to planning");
       }
       else
         feedback_msg.info = "place too far";
@@ -124,39 +120,30 @@ void Parking::manager(const selfie_msgs::PolygonArray &msg)
         if(find_free_place())
         {
           for_planning.push_back(first_free_place);
+          print_planning_stats();
           ++planning_scan_counter;
-          if(visualization_type >= 3)
-            ROS_INFO("scan ok");
+          ROS_INFO("scan ok");
         }
       }// place ok, waiting for the next scan
       else if(planning_scan_counter >= scans_taken)
       {
-        // first_free_place.visualize(point_pub);
-        // first_free_place.print_box_dimensions();
-       if(visualization_type >= 3)
-        ROS_INFO("getting exact dimensions\n");
+        ROS_WARN("getting exact dimensions\n");
         // ros::Duration(0.5).sleep();
         // takes the vector of laser scans and aproximates real parking place dimensions
         get_exact_measurements();
         planning_scan_counter = 0; 
-        for_planning.clear();
-        if(visualization_type >= 3)    
-        {
-          display_free_place();
-          first_free_place.visualize(point_pub);
-        }    
-        state = parking;
 
+        for_planning.clear();
+        state = parking;
+        first_free_place.print_box_dimensions();
         send_goal();
-        if(visualization_type >= 3)
-        {
-          first_free_place.print_box_dimensions();
-          ROS_INFO("state swiched to parking");
-        }     
+        ROS_WARN("state swiched to parking");  
       }//end place was ok, send result
+
       if(planning_error_counter >= scans_taken)
       {
         feedback_msg.info = "error occured, place is too small, move forward!!";
+        ROS_FATAL("place appeared to be to small for Selfie");
         feedback_msg.distance_to_first_place = get_dist_from_first_free_place();
         search_server_.publishFeedback(feedback_msg);
 
@@ -169,6 +156,24 @@ void Parking::manager(const selfie_msgs::PolygonArray &msg)
     }//end planning case
   }//end switch
 
+}
+
+void Parking::print_planning_stats()
+{
+  vector<float> x_s;
+  vector<float> y_s;
+  float sum_x = 0;
+  float sum_y = 0;
+  for(auto it = for_planning.begin();  it != for_planning.end();  ++it)
+  {
+    sum_x += it->bottom_left.x;
+    sum_y += it->top_left.x;
+  }
+  float avg_x = sum_x/for_planning.size();
+  float avg_y = sum_y/for_planning.size();
+
+  ROS_INFO("avg bottom left: ( %f ,  %f )", avg_x, avg_y);
+  return;
 }
 
 bool Parking::find_free_place()
@@ -308,7 +313,7 @@ void Parking::send_goal()
     reset();
     state = searching;
 
-  //  search_server_.setSucceeded(result);
+    search_server_.setSucceeded(result);
 }
 
 

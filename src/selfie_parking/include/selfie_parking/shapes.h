@@ -45,8 +45,10 @@ public:
       x = 0;
       y = 0;
     }
+
     bool check_position(float min_x, float max_x, float min_y, float max_y)
     {
+    //  ROS_INFO("point limits: %f,    %f,    %f,   %f", min_x, max_x, min_y, max_y);
       if(x < min_x || x > max_x || y < min_y || y >max_y)
         return 0;
       else
@@ -62,7 +64,7 @@ public:
     }
     void print()
     {
-      cout << "(x,y) = " << x << ", " << y << ")\n";
+      ROS_INFO("(x,y) = ( %f, %f )", x, y);
     }
 };  
 
@@ -263,15 +265,14 @@ public:
 
       void print()
       {
-        cout << "bottom left: ";
+        ROS_INFO("  bottom left: ");
         bottom_left.print();
-        cout << "bottom_right: ";
+        ROS_INFO("  bottom_right: ");
         bottom_right.print();
-        cout << "top left: ";
+        ROS_INFO("  top left: ");
         top_left.print();
-        cout << "top right: ";
+        ROS_INFO("  top right: ");
         top_right.print();
-        cout<<endl;
       }
       void print_box_dimensions()
       {
@@ -280,9 +281,9 @@ public:
         float right_edge = top_right.get_distance(bottom_right);
         float left_edge = top_left.get_distance(bottom_left);
 
-        ROS_WARN("bottom_edge: %f", bottom_edge);
-        ROS_WARN("top_edge: %f", top_edge);
-        ROS_WARN("right_edge:  %f", right_edge);
-        ROS_WARN("left_edge: %f", left_edge);
+        ROS_INFO("bottom_edge: %f", bottom_edge);
+        ROS_INFO("top_edge: %f", top_edge);
+        ROS_INFO("right_edge:  %f", right_edge);
+        ROS_INFO("left_edge: %f", left_edge);
       }
 };
