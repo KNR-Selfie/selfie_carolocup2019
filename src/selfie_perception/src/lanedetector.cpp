@@ -4,7 +4,7 @@
 #define TOPVIEW_COLS 640
 
 #define TOPVIEW_MIN_X  0.3
-#define TOPVIEW_MAX_X  1.6
+#define TOPVIEW_MAX_X  1.3
 #define TOPVIEW_MIN_Y -1.2
 #define TOPVIEW_MAX_Y  1.2
 
@@ -43,6 +43,8 @@ LaneDetector::LaneDetector(const ros::NodeHandle &nh, const ros::NodeHandle &pnh
 	short_right_line_(false)
 {
 	lanes_pub_ =  nh_.advertise<selfie_msgs::RoadMarkings>("road_markings", 100);
+	intersection_pub_ =  nh_.advertise<std_msgs::Float32>("intersection", 100);
+	starting_line_pub_ =  nh_.advertise<std_msgs::Float32>("starting_line", 100);
 }
 
 LaneDetector::~LaneDetector()
@@ -70,7 +72,7 @@ bool LaneDetector::init()
 	pnh_.getParam("debug_mode", debug_mode_);
 	pnh_.getParam("max_mid_line_gap", max_mid_line_gap_);
 
-	image_sub_ = it_.subscribe("/image_rect", 1, &LaneDetector::imageCallback, this);
+	image_sub_ = it_.subscribe("/camera/image_rect", 1, &LaneDetector::imageCallback, this);
 	if(debug_mode_)
 	{
 		points_cloud_pub_ = nh_.advertise<sensor_msgs::PointCloud>("new_coordinates", 10);
@@ -102,7 +104,6 @@ void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr &msg)
 	//removeCar(homography_frame_);
 	cv::threshold(homography_frame_, binary_frame_, binary_treshold_, 255, cv::THRESH_BINARY);
 	
-
 	if(!init_imageCallback_)
 	{
 		dynamicMask(binary_frame_, masked_frame_);
@@ -112,6 +113,7 @@ void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr &msg)
 		//remove ROI inside left and right lane
 		ROILaneRight(masked_frame_, masked_frame_);
 		ROILaneLeft(masked_frame_, masked_frame_);
+		detectStartAndIntersectionLine();
 	}
 	else
 		masked_frame_ = binary_frame_.clone();
@@ -160,7 +162,6 @@ void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr &msg)
 			calcRoadWidth();
 			addBottomPoint();
 			linesApproximation(lanes_vector_converted_);
-			
 		}
 	}
 
@@ -371,72 +372,114 @@ void LaneDetector::recognizeLines()
 {
 	float min_left = current_frame_.cols;
 	int min_index = -1;
+	std::vector<std::vector<cv::Point2f> > closest_container;
+	std::vector<int> closest_index;
 	for(int i = 0; i < lanes_vector_converted_.size(); i++)
 	{
 		float aprox_y = getAproxY(last_left_coeff_, lanes_vector_converted_[i][0].x);
-		if(std::abs(aprox_y - lanes_vector_converted_[i][0].y) < min_left)
+		if(std::abs(aprox_y - lanes_vector_converted_[i][0].y) < max_delta_y_lane_)
 		{
-			min_left = std::abs(aprox_y - lanes_vector_converted_[i][0].y);
-			min_index = i;
+			closest_container.push_back(lanes_vector_converted_[i]);
+			closest_index.push_back(i);
 		}
 	}
-	if(min_left < max_delta_y_lane_)
-		left_line_index_ = min_index;
-	else
+	if(closest_container.empty())
 		left_line_index_ = -1;
+	else
+	{
+		float aprox_y = getAproxY(last_left_coeff_, closest_container[0][0].x);
+		float min_sum_distance = std::abs(aprox_y - closest_container[0][0].y);
+		aprox_y = getAproxY(last_left_coeff_, closest_container[0][closest_container[0].size() / 2].x);
+		min_sum_distance += std::abs(aprox_y - closest_container[0][closest_container[0].size() / 2].y);
+		left_line_index_ = closest_index[0];
 
-	float min_right = current_frame_.cols;
-	min_index = -1;
+		for(int i = 1; i < closest_container.size(); i++)
+		{
+			aprox_y = getAproxY(last_left_coeff_, closest_container[i][0].x);
+			float sum_distance = std::abs(aprox_y - closest_container[i][0].y);
+			aprox_y = getAproxY(last_left_coeff_, closest_container[i][closest_container[i].size() / 2].x);
+			sum_distance += std::abs(aprox_y - closest_container[i][closest_container[i].size() / 2].y);
+			if(sum_distance < min_sum_distance)
+			{
+				left_line_index_ = closest_index[i];
+				min_sum_distance = sum_distance;
+			}
+		}
+	}
+	closest_container.clear();
+	closest_index.clear();
+
 	for(int i = 0; i < lanes_vector_converted_.size(); i++)
 	{
+		if(i == left_line_index_)
+			continue;
 		float aprox_y = getAproxY(last_right_coeff_, lanes_vector_converted_[i][0].x);
-		if(std::abs(aprox_y - lanes_vector_converted_[i][0].y) < min_right)
+		if(std::abs(aprox_y - lanes_vector_converted_[i][0].y) < max_delta_y_lane_)
 		{
-			min_right = std::abs(aprox_y - lanes_vector_converted_[i][0].y);
-			min_index = i;
+			closest_container.push_back(lanes_vector_converted_[i]);
+			closest_index.push_back(i);
 		}
 	}
-	if(min_right < max_delta_y_lane_)
-		right_line_index_ = min_index;
-	else
+	if(closest_container.empty())
 		right_line_index_ = -1;
+	else
+	{
+		float aprox_y = getAproxY(last_right_coeff_, closest_container[0][0].x);
+		float min_sum_distance = std::abs(aprox_y - closest_container[0][0].y);
+		aprox_y = getAproxY(last_right_coeff_, closest_container[0][closest_container[0].size() / 2].x);
+		min_sum_distance += std::abs(aprox_y - closest_container[0][closest_container[0].size() / 2].y);
+		right_line_index_ = closest_index[0];
 
-	float min_middle = current_frame_.cols;
-	min_index = -1;
+		for(int i = 1; i < closest_container.size(); i++)
+		{
+			aprox_y = getAproxY(last_right_coeff_, closest_container[i][0].x);
+			float sum_distance = std::abs(aprox_y - closest_container[i][0].y);
+			aprox_y = getAproxY(last_right_coeff_, closest_container[i][closest_container[i].size() / 2].x);
+			sum_distance += std::abs(aprox_y - closest_container[i][closest_container[i].size() / 2].y);
+			if(sum_distance < min_sum_distance)
+			{
+				right_line_index_ = closest_index[i];
+				min_sum_distance = sum_distance;
+			}
+		}
+	}
+	closest_container.clear();
+	closest_index.clear();
+
 	for(int i = 0; i < lanes_vector_converted_.size(); i++)
 	{
+		if(i == left_line_index_ || i == right_line_index_)
+			continue;
 		float aprox_y = getAproxY(last_middle_coeff_, lanes_vector_converted_[i][0].x);
-		if(std::abs(aprox_y - lanes_vector_converted_[i][0].y) < min_middle)
+		if(std::abs(aprox_y - lanes_vector_converted_[i][0].y) < max_delta_y_lane_)
 		{
-			min_middle = std::abs(aprox_y - lanes_vector_converted_[i][0].y);
-			min_index = i;
+			closest_container.push_back(lanes_vector_converted_[i]);
+			closest_index.push_back(i);
 		}
 	}
-	if(min_middle < max_delta_y_lane_)
-		if(min_index == right_line_index_)
-			if(min_middle < min_right)
-			{
-				center_line_index_ = min_index;
-				right_line_index_ = -1;
-			}
-			else
-			{
-				center_line_index_ = -1;
-			}
-		else if(min_index == left_line_index_)
-			if(min_middle < min_left)
-			{
-				center_line_index_ = min_index;
-				left_line_index_ = -1;
-			}
-			else
-			{
-				center_line_index_ = -1;
-			}
-		else
-			center_line_index_ = min_index;
-	else
+	if(closest_container.empty())
 		center_line_index_ = -1;
+	else
+	{
+		float aprox_y = getAproxY(last_middle_coeff_, closest_container[0][0].x);
+		float min_sum_distance = std::abs(aprox_y - closest_container[0][0].y);
+		aprox_y = getAproxY(last_middle_coeff_, closest_container[0][closest_container[0].size() / 2].x);
+		min_sum_distance += std::abs(aprox_y - closest_container[0][closest_container[0].size() / 2].y);
+		center_line_index_ = closest_index[0];
+
+		for(int i = 1; i < closest_container.size(); i++)
+		{
+			aprox_y = getAproxY(last_middle_coeff_, closest_container[i][0].x);
+			float sum_distance = std::abs(aprox_y - closest_container[i][0].y);
+			aprox_y = getAproxY(last_middle_coeff_, closest_container[i][closest_container[i].size() / 2].x);
+			sum_distance += std::abs(aprox_y - closest_container[i][closest_container[i].size() / 2].y);
+			if(sum_distance < min_sum_distance)
+			{
+				center_line_index_ = closest_index[i];
+				min_sum_distance = sum_distance;
+			}
+		}
+	}
 }
 
 void LaneDetector::publishMarkings()
@@ -656,6 +699,19 @@ void LaneDetector::convertApproxToFrameCoordinate()
 
 void LaneDetector::initRecognizeLines()
 {
+	//check lines growth
+	for(int i = 0; i < lanes_vector_converted_.size(); i++)
+	{
+		for(int j = 1; j < lanes_vector_converted_[i].size(); j ++)
+		{
+			if(lanes_vector_converted_[i][j - 1].x - lanes_vector_converted_[i][j].x > 0)
+			{
+				lanes_vector_converted_[i].erase(lanes_vector_converted_[i].begin() + j, lanes_vector_converted_[i].end());
+				break;
+			}
+		}
+	}
+
 	float min = homography_frame_.cols;
 	int min_index = -1;
 	for(int i = 0; i < lanes_vector_converted_.size(); i++)
@@ -673,12 +729,22 @@ void LaneDetector::initRecognizeLines()
 	for(int i = 0; i < lanes_vector_converted_.size(); i++)
 	{
 		if(lanes_vector_converted_[i][0].y < lanes_vector_converted_[center_line_index_][0].y && lanes_vector_converted_[i][0].x < 1 && cv::arcLength(lanes_vector_converted_[i], false) > 0.2)
-			if(std::abs(lanes_vector_converted_[i][0].y - lanes_vector_converted_[center_line_index_][0].y) < min 
-				&& std::abs(lanes_vector_converted_[i][0].y - lanes_vector_converted_[center_line_index_][0].y) > 0.2)
+		{
+			float distance_last = getDistance(lanes_vector_converted_[center_line_index_][0], lanes_vector_converted_[i][0]);
+			float distance;
+			for(int j = 1; j < lanes_vector_converted_[i].size(); j++)
 			{
-				min = std::abs(lanes_vector_converted_[i][0].y - lanes_vector_converted_[center_line_index_][0].y);
+				distance = getDistance(lanes_vector_converted_[center_line_index_][0], lanes_vector_converted_[i][j]);
+				if(distance_last - distance < 0)
+					break;
+				distance_last = distance;
+			}
+			if(distance_last < min && distance_last > 0.2 && distance_last < 0.5)
+			{
+				min = distance_last;
 				min_index = i;
 			}
+		}
 	}
 	right_line_index_ = min_index;
 
@@ -687,12 +753,22 @@ void LaneDetector::initRecognizeLines()
 	for(int i = 0; i < lanes_vector_converted_.size(); i++)
 	{
 		if(lanes_vector_converted_[i][0].y > lanes_vector_converted_[center_line_index_][0].y && lanes_vector_converted_[i][0].x < 1 && cv::arcLength(lanes_vector_converted_[i], false) > 0.2)
-			if(std::abs(lanes_vector_converted_[i][0].y - lanes_vector_converted_[center_line_index_][0].y) < min
-				&& std::abs(lanes_vector_converted_[i][0].y - lanes_vector_converted_[center_line_index_][0].y) > 0.2)
+		{
+			float distance_last = getDistance(lanes_vector_converted_[center_line_index_][0], lanes_vector_converted_[i][0]);
+			float distance;
+			for(int j = 1; j < lanes_vector_converted_[i].size(); j++)
 			{
-				min = std::abs(lanes_vector_converted_[i][0].y - lanes_vector_converted_[center_line_index_][0].y);
+				distance = getDistance(lanes_vector_converted_[center_line_index_][0], lanes_vector_converted_[i][j]);
+				if(distance_last - distance < 0)
+					break;
+				distance_last = distance;
+			}
+			if(distance_last < min && distance_last > 0.2 && distance_last < 0.5)
+			{
+				min = distance_last;
 				min_index = i;
 			}
+		}
 	}
 	left_line_index_ = min_index;
 }
@@ -1477,4 +1553,131 @@ std::vector<cv::Point2f> LaneDetector::createOffsetLine(std::vector<float> coeff
 		new_line.push_back(p);
 	}
 	return new_line;
+}
+
+void LaneDetector::detectStartAndIntersectionLine()
+{
+	float detect_slope = 2.2;
+	float detect_lenght = 0.2;
+	// morphology variables
+	int morph_size = 7;
+	int morph_elem = 0;
+
+	// vectors
+	std::vector<std::vector<cv::Point> > left_lines;
+	std::vector<std::vector<cv::Point> > right_lines;
+	std::vector<std::vector<cv::Point2f> > left_lines_converted;
+	std::vector<std::vector<cv::Point2f> > right_lines_converted;
+
+	float right_distance = -1000;
+	float left_distance = -1000;
+
+	int operation = 3;
+	cv::Mat element = getStructuringElement( morph_elem, cv::Size( 2*morph_size + 1, 2*morph_size+1 ), cv::Point( morph_size, morph_size ) );
+	cv::morphologyEx(left_lane_frame_, left_lane_frame_, operation, element );
+	cv::morphologyEx(right_lane_frame_, right_lane_frame_, operation, element );
+	cv::medianBlur(left_lane_frame_, left_lane_frame_, 5);
+	cv::medianBlur(right_lane_frame_, right_lane_frame_, 5);
+
+	detectLines(left_lane_frame_, left_lines);
+	detectLines(right_lane_frame_, right_lines);
+
+	//check right lane
+	for (int i = 0; i < right_lines.size(); i++)
+	{
+		cv::RotatedRect rect = cv::minAreaRect(right_lines[i]);
+
+		cv::Point2f vertices2f[4];
+		rect.points(vertices2f);
+
+		std::vector<cv::Point2f> rect_vector;
+		rect_vector.push_back(vertices2f[0]);
+		rect_vector.push_back(vertices2f[1]);
+		rect_vector.push_back(vertices2f[2]);
+		rect_vector.push_back(vertices2f[3]);
+		cv::transform(rect_vector, rect_vector, topview2world_.rowRange(0, 2));
+
+		float d1, d2;
+		d1 = getDistance(rect_vector[0], rect_vector[1]);
+		d2 = getDistance(rect_vector[1], rect_vector[2]);
+		if (d1 < detect_lenght && d2 < detect_lenght)
+			continue;
+		float a = 0;
+		if (d1 > d2)
+		{
+			if (rect_vector[0].x - rect_vector[1].x != 0)
+				a = (rect_vector[0].y - rect_vector[1].y) / (rect_vector[0].x - rect_vector[1].x);
+			else
+				a = 100;
+		}
+		else
+		{
+			if (rect_vector[1].x - rect_vector[2].x != 0)
+				a = (rect_vector[1].y - rect_vector[2].y) / (rect_vector[1].x - rect_vector[2].x);
+			else
+				a = 100;
+		}
+
+		if (std::abs(a) > detect_slope)
+		{
+			right_distance = (rect_vector[0].x + rect_vector[1].x + rect_vector[2].x + rect_vector[3].x) / 4;
+			break;
+		}
+	}
+
+	//check left lane
+	for (int i = 0; i < left_lines.size(); i++)
+	{
+		cv::RotatedRect rect = cv::minAreaRect(left_lines[i]);
+
+		cv::Point2f vertices2f[4];
+		rect.points(vertices2f);
+
+		std::vector<cv::Point2f> rect_vector;
+		rect_vector.push_back(vertices2f[0]);
+		rect_vector.push_back(vertices2f[1]);
+		rect_vector.push_back(vertices2f[2]);
+		rect_vector.push_back(vertices2f[3]);
+		cv::transform(rect_vector, rect_vector, topview2world_.rowRange(0, 2));
+
+		float d1, d2;
+		d1 = getDistance(rect_vector[0], rect_vector[1]);
+		d2 = getDistance(rect_vector[1], rect_vector[2]);
+		if (d1 < detect_lenght && d2 < detect_lenght)
+			continue;
+		float a = 0;
+		if (d1 > d2)
+		{
+			if (rect_vector[0].x - rect_vector[1].x != 0)
+				a = (rect_vector[0].y - rect_vector[1].y) / (rect_vector[0].x - rect_vector[1].x);
+			else
+				a = 100;
+		}
+		else
+		{
+			if (rect_vector[1].x - rect_vector[2].x != 0)
+				a = (rect_vector[1].y - rect_vector[2].y) / (rect_vector[1].x - rect_vector[2].x);
+			else
+				a = 100;
+		}
+
+		if (std::abs(a) > detect_slope)
+		{
+			left_distance = (rect_vector[0].x + rect_vector[1].x + rect_vector[2].x + rect_vector[3].x) / 4;
+			break;
+		}
+	}
+
+	if(std::abs(right_distance - left_distance) < 0.09 && left_distance > 0)
+	{
+		std_msgs::Float32 msg;
+		msg.data = right_distance;
+		starting_line_pub_.publish(msg);
+	}
+	else if(right_distance > 0)
+	{
+		std_msgs::Float32 msg;
+		msg.data = right_distance;
+		intersection_pub_.publish(msg);
+	}
 }

@@ -20,6 +20,7 @@
 #include <std_srvs/Empty.h>
 
 #include <visualization_msgs/Marker.h>
+#include <std_msgs/Float32.h>
 
 class LaneDetector
 {
@@ -35,6 +36,8 @@ class LaneDetector
 	image_transport::ImageTransport it_;
 	image_transport::Subscriber image_sub_;
 	ros::Publisher lanes_pub_;
+	ros::Publisher intersection_pub_;
+	ros::Publisher starting_line_pub_;
 
 	cv::Size topview_size_;
 	cv::Mat world2cam_;
@@ -113,6 +116,7 @@ class LaneDetector
 	void generatePoints();
 	void removeHorizontalLines();
 	std::vector<cv::Point2f> createOffsetLine(std::vector<float> coeff, float offset);
+	void detectStartAndIntersectionLine();
 
 	float min_length_search_line_;
 	float min_length_lane_;
