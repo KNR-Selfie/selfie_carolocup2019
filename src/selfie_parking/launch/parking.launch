@@ -1,0 +1,43 @@
+<launch>
+<!--
+  <node pkg="selfie_parking" type="parking_drive.py" name="parking_drive"/>
+   --> 
+
+<!--
+  <node pkg="urg_node" type="urg_node" name="urg_NODE"/>
+-->
+  <node pkg="sick_tim" type="sick_tim551_2050001" name="sick_node">
+    <param name="min_ang" value="-1.57"/>
+    <param name="max_ang" value="1.57"/>
+  </node>
+
+  <node pkg="selfie_stm32_bridge" type="selfie_stm32_bridge" name="stm_bridge"/>
+
+
+  <node pkg="selfie_odometry" type="selfie_odometry" name="odometry"/>
+<!--
+  <node pkg="selfie_parking" type="parking_node" name="search_node"/>
+
+  <node pkg="selfie_park" type="park_server" name="parking_action">
+    <param name="odom_topic" value="/odom"/>
+    <param name="ackermann_topic" value="/drive"/>
+  </node>
+-->
+  <node pkg="selfie_perception" type="detect_obstacles" name="selfie_obstacle_detector">
+    <param name="upside_down" value="true"/>
+    <param name="visualize" value="true" />
+    <param name="max_range" value="2.0"/>
+    <param name="min_range" value="0.1"/>
+    <param name="line_search_max_range_difference_" value="0.04"/>
+    <param name="line_search_max_slope_difference_" value="2.0"/>
+    <param name="line_search_min_slope_difference_" value="0.05"/>
+    <param name="line_search_slope_difference_ratio_" value="0.10"/>
+    <param name="line_search_min_length_" value="0.05"/>
+    <param name="line_min_length_" value="0.05"/>
+    <param name="obstacle_nominal_length_" value="0.4"/>   
+  </node>
+
+<!--
+  <node pkg="selfie_parking" type="parking_node" name="selfie_parking_finder"/>
+-->
+</launch>

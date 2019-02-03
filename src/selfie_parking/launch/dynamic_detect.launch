@@ -1,0 +1,17 @@
+<launch>
+  <node pkg="selfie_perception" type="detect_obstacles" name="selfie_obstacle_detector">
+    <param name="visualize" value="true" />
+    <param name="max_range" value="4.0"/>
+    <param name="min_range" value="0.03"/>
+    <param name="line_search_max_range_difference_" value="0.04"/>
+    <param name="line_search_max_slope_difference_" value="2.0"/>
+    <param name="line_search_min_slope_difference_" value="0.05"/>
+    <param name="line_search_slope_difference_ratio_" value="0.10"/>
+    <param name="line_search_min_length_" value="0.05"/>
+    <param name="line_min_length_" value="0.05"/>
+    <param name="obstacle_nominal_length_" value="0.4"/>
+    <param name="upside_down" value="false"/>
+  </node>
+
+  <node pkg="tf" type="static_transform_publisher" name="tf_base2laser" args="0 0 0 0 0 0 base_link /vision/road_markings 10"/>  
+</launch>

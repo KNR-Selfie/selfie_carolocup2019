@@ -1,16 +1,31 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(selfie_msgs)
+project(selfie_parking)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-# add_compile_options(-std=c++11)
+add_compile_options(-std=c++11)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
-  message_generation
+  roscpp
+  rospy
+  selfie_msgs
+  selfie_parking
+  std_msgs
+  visualization_msgs
+  ackermann_msgs
+  actionlib 
+  actionlib_msgs
+  laser_geometry
+
+  nav_msgs
+  ackermann_msgs
+  tf
 )
+
+
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -46,13 +61,11 @@ find_package(catkin REQUIRED COMPONENTS
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-add_message_files(
-  DIRECTORY
-  msg
-  FILES
-  PolygonArray.msg
-  RoadMarkings.msg
-)
+# add_message_files(
+#   FILES
+#   Message1.msg
+#   Message2.msg
+# )
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -69,10 +82,10 @@ add_message_files(
 # )
 
 ## Generate added messages and services with any dependencies listed here
-generate_messages(
-  DEPENDENCIES
-  geometry_msgs
-)
+# generate_messages(
+#   DEPENDENCIES
+#   geometry_msgs#   selfie_msgs#   std_msgs#   visualization_msgs
+# )
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -104,7 +117,10 @@ generate_messages(
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-  CATKIN_DEPENDS geometry_msgs message_runtime
+#  INCLUDE_DIRS include
+#  LIBRARIES selfie_parking
+#  CATKIN_DEPENDS geometry_msgs roscpp selfie_msgs std_msgs visualization_msgs
+#  DEPENDS system_lib
 )
 
 ###########
@@ -120,7 +136,7 @@ include_directories(
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/selfie_msgs.cpp
+#   src/${PROJECT_NAME}/selfie_parking.cpp
 # )
 
 ## Add cmake target dependencies of the library
@@ -131,7 +147,7 @@ include_directories(
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-# add_executable(${PROJECT_NAME}_node src/selfie_msgs_node.cpp)
+# add_executable(${PROJECT_NAME}_node src/selfie_parking_node.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -188,10 +204,31 @@ include_directories(
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_selfie_msgs.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_selfie_parking.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()
+
+
+add_executable(parking_node src/parking.cpp src/find_parking_place.cpp)
+target_link_libraries(parking_node ${catkin_LIBRARIES})
+add_dependencies(parking_node ${catkin_EXPORTED_TARGETS})
+
+add_executable(simple_parking src/simple_parking.cpp src/simple_parking.cpp)
+target_link_libraries(simple_parking ${catkin_LIBRARIES})
+add_dependencies(simple_parking ${catkin_EXPORTED_TARGETS})
+
+add_executable(mock_manager src/mock_manager.cpp)
+target_link_libraries(mock_manager ${catkin_LIBRARIES})
+add_dependencies(mock_manager ${catkin_EXPORTED_TARGETS})
+
+#add_executable(crossing_handler src/new_parking_stuff.cpp)
+#target_link_libraries(crossing_handler ${catkin_LIBRARIES})
+#add_dependencies(crossing_handler ${catkin_EXPORTED_TARGETS})
+
+add_executable(detect_on_road src/detect_on_road.cpp)
+target_link_libraries(detect_on_road ${catkin_LIBRARIES})
+add_dependencies(detect_on_road ${catkin_EXPORTED_TARGETS})
 
 ## Add folders to be run by python nosetests
 # catkin_add_nosetests(test)
