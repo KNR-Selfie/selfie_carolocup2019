@@ -2,7 +2,11 @@
   <node name="pylon_camera_node" type="pylon_camera_node" pkg="pylon_camera" output="screen">
       <param name="camera_info_url" value="file://$(find selfie_camera)/config/dist_fisheye_01.yaml" />
       <param name="image_encoding" value="mono8" />
-      <param name="frame_rate" value="125" />
+      <param name="brightness" value="150" />
+      <param name="brightness_continuous" value="true" />
+      <param name="exposure_auto" value="false" />
+      <param name="gain_auto" value="true" />
+      <param name="exposure" value="8000.0" />
   </node>
 
   <node pkg="nodelet" type="nodelet" name="image_proc_crop" args="standalone image_proc/crop_decimate">
