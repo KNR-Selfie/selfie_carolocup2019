@@ -31,6 +31,8 @@ visualize(true)
 	if(visualize) visualization_pub = nh_.advertise<visualization_msgs::MarkerArray>("parking_view", 10);
 	mid_y = 0.0;
 	mid_x = 0.0;
+
+	std::cout<<"start"<<std::endl;
 }
 void ParkService::visualize_parking_spot()
 {
@@ -219,7 +221,10 @@ void ParkService::odom_callback(const nav_msgs::Odometry &msg)
 		if(leave()) parking_state = out;
 		break;
 		case out:
-		drive(0,0);
+		drive(PARKING_SPEED,0);
+		selfie_park::parkResult result;
+		result.done = true;
+		as_.setSucceeded(result);
 		parking_state = not_parking;
 		break;
 	}
