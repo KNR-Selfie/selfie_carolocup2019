@@ -14,13 +14,14 @@
 #include <ackermann_msgs/AckermannDriveStamped.h>
 #include <visualization_msgs/Marker.h>
 #include <visualization_msgs/MarkerArray.h>
+#include <std_msgs/Bool.h>
 
 #define ODOM_TO_FRONT 0.16
-#define ODOM_TO_BACK -0.28
-#define ODOM_TO_LASER 0.15
+#define ODOM_TO_BACK -0.30
+#define ODOM_TO_LASER 0.17
 #define CAR_WIDTH 0.22
-#define PARKING_SPEED 0.2
-#define MAX_TURN 0.7
+#define PARKING_SPEED 0.3
+#define MAX_TURN 0.8
 
 class ParkService
 {
@@ -34,6 +35,8 @@ class ParkService
     ros::Subscriber odom_sub;
     ros::Publisher ackermann_pub;
     ros::Publisher visualization_pub;
+    ros::Publisher right_indicator_pub;
+    ros::Publisher left_indicator_pub;
     void odom_callback(const nav_msgs::Odometry &msg);
     void goalCB();
     void preemptCB();
@@ -65,6 +68,8 @@ class ParkService
     bool leave();
     void init_parking_spot(const geometry_msgs::Polygon &msg);
     void visualize_parking_spot();
+    void blink_left(bool a);
+    void blink_right(bool a);
     geometry_msgs::Point point_parking_to_odom(float x, float y);
 
     enum Parking_State

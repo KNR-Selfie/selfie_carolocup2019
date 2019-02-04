@@ -9,7 +9,7 @@ visualize(true)
 {
   pnh_.param<std::string>("odom_topic", odom_topic,"/vesc/odom");
   pnh_.param<std::string>("ackermann_topic", ackermann_topic,"/sim_drive");
-  pnh_.param<float>("minimal_start_parking_x", minimal_start_parking_x, -0.1);
+  pnh_.param<float>("minimal_start_parking_x", minimal_start_parking_x, -0.13);
   pnh_.param<float>("maximal_start_parking_x", maximal_start_parking_x, 0.0);
   pnh_.param<float>("traffic_lane_marigin",traffic_lane_marigin, 0.05);
   pnh_.param<float>("earlier_turn", earlier_turn, 0.01);
@@ -17,8 +17,8 @@ visualize(true)
   pnh_.param<float>("first_to_second_phase_x_backwards", first_to_second_phase_x_backwards, 0.9/2.0);
   pnh_.param<bool>("state_msgs",state_msgs, true);
   pnh_.param<float>("max_distance_to_wall", max_distance_to_wall, 0.03);
-  pnh_.param<float>("max_rot", max_rot, 0.7);
-  pnh_.param<float>("dist_turn", dist_turn, 0.1);
+  pnh_.param<float>("max_rot", max_rot, 0.8);
+  pnh_.param<float>("dist_turn", dist_turn, 0.11);
   move_state = first_phase;
   parking_state = not_parking;
   as_.registerGoalCallback(boost::bind(&ParkService::goalCB, this));
@@ -26,6 +26,8 @@ visualize(true)
   as_.start();
   odom_sub = nh_.subscribe(odom_topic, 10, &ParkService::odom_callback, this);
   ackermann_pub = nh_.advertise<ackermann_msgs::AckermannDriveStamped>(ackermann_topic, 10);
+  right_indicator_pub = nh_.advertise<std_msgs::Bool>("right_turn_indicator", 20);
+  left_indicator_pub = nh_.advertise<std_msgs::Bool>("left_turn_indicator", 20);
 	if(visualize) visualization_pub = nh_.advertise<visualization_msgs::MarkerArray>("parking_view", 10);
 	mid_y = 0.0;
 	mid_x = 0.0;
@@ -179,6 +181,9 @@ void ParkService::odom_callback(const nav_msgs::Odometry &msg)
 		case go_to_parking_spot:
 		if(to_parking_spot()){parking_state = going_in;}
 		if(state_msgs) ROS_INFO("go_to_parking_spot");
+		blink_right(true);
+		blink_left(false);
+
 		break;
 
 		case going_in:
@@ -189,12 +194,16 @@ void ParkService::odom_callback(const nav_msgs::Odometry &msg)
 		case parked:
 		if(state_msgs) ROS_INFO("PARKED");
 		drive(0,0);
+		blink_left(true);
+		blink_right(true);
 		ros::Duration(2).sleep();
 		parking_state = go_back;
 		break;
 
 		case go_back:
 		ROS_INFO("go_back");
+		blink_left(false);
+		blink_right(false);
 		drive(-PARKING_SPEED,0);
 		if(actual_back_parking_position.x < back_wall +max_distance_to_wall) 
 		{
@@ -309,7 +318,6 @@ bool ParkService::to_parking_spot()
   feedback.distance = actual_parking_position.y - middle_of_parking_spot_y;
   as_.publishFeedback(feedback);
   if(actual_parking_position.x < back_wall + minimal_start_parking_x) drive(PARKING_SPEED, 0.0);
-  else if(actual_parking_position.x > front_wall + maximal_start_parking_x) drive(-PARKING_SPEED, 0.0);
   else return true;
 
   return false;
@@ -325,7 +333,10 @@ bool ParkService::park()
 	{
 		
 		case first_phase:
+		
 		ROS_INFO("1st phase");
+		blink_right(true);
+		blink_left(false);
 		drive(PARKING_SPEED, -MAX_TURN);
 		if(actual_parking_position.rot < -max_rot){move_state = straight;}
 		if(actual_parking_position.y < mid_y) {move_state =second_phase;}
@@ -357,7 +368,10 @@ bool ParkService::leave()
 	{
 		case first_phase:
 		ROS_INFO("1st phase");
+		blink_right(true);
+		blink_left(false);
 		drive(PARKING_SPEED, MAX_TURN);
+		
 		if(actual_parking_position.rot > max_rot){move_state = straight;}
 		if(actual_parking_position.y > mid_y) {move_state =second_phase;}
 		break;
@@ -439,4 +453,20 @@ int main(int argc, char** argv)
   ros::spin();
 
   return 0;
+}
+
+void ParkService::blink_left(bool a)
+{
+	std_msgs::Bool msg;
+	msg.data = a;
+	left_indicator_pub.publish(msg);
+	return;
+}
+
+void ParkService::blink_right(bool a)
+{
+	std_msgs::Bool msg;
+	msg.data = a;
+	right_indicator_pub.publish(msg);
+	return;
 }
