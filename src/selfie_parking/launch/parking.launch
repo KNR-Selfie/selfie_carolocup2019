@@ -3,13 +3,27 @@
   <node pkg="selfie_parking" type="parking_drive.py" name="parking_drive"/>
  --> 
 
+ <!--
+         pnh_.param<std::string>("ackermann_topic", ackermann_topic,"/sim_drive");
+        ackermann_pub = nh_.advertise<ackermann_msgs::AckermannDriveStamped>(ackermann_topic, 10);
+        pnh_.param<float>("min_spot_len", min_spot_len, 0.65);
+        pnh_.param<float>("speed", speed, 0.5);
+  -->
+
   <node pkg="sick_tim" type="sick_tim551_2050001" name="sick_node">
     <param name="min_ang" value="-1.8"/>
     <param name="max_ang" value="1.8"/>
   </node>
 
-  <node pkg="selfie_stm32_bridge" type="selfie_stm32_bridge" name="stm_bridge"/>
+  <node pkg="selfie_parking" type="mock_manager" name="parking_manager">
+    <param name="ackermann_topic" value="/drive"/>
+    <param name="min_spot_len" value="0.65"/>
+    <param name="speed" value="0.6"/>
+  </node>
 
+<!--
+  <node pkg="selfie_stm32_bridge" type="selfie_stm32_bridge" name="stm_bridge"/>
+-->
   <include file="$(find selfie)/launch/transforms.launch" />
 
   <node pkg="selfie_parking" type="parking_node" name="search_server" output="screen">

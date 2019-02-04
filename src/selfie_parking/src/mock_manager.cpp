@@ -1,8 +1,10 @@
 
+#include <string>
 #include <selfie_msgs/searchAction.h>
 #include <selfie_msgs/parkingAction.h>
 
 #include <selfie_msgs/PolygonArray.h>
+#include <ackermann_msgs/AckermannDriveStamped.h>
 
 #include <ros/ros.h>
 #include <std_msgs/Int16.h>
@@ -12,21 +14,39 @@
 #include <selfie_park/parkAction.h>
 #include <geometry_msgs/Polygon.h>
 
-enum parking_state{searching=0,  planning_failed=1, planning=2, parking=3};
-
 class mockManager{
 private:
     ros::NodeHandle nh_;
+    ros::NodeHandle pnh_;
     actionlib::SimpleActionClient<selfie_park::parkAction> park_client_;
     actionlib::SimpleActionClient<selfie_msgs::searchAction> search_client_;
-    ros::Publisher parking_state_pub;
+    
+    ros::Publisher ackermann_pub;
+    std::string ackermann_topic;
 
-    parking_state state;
+    ackermann_msgs::AckermannDriveStamped msg_forward;
+    ackermann_msgs::AckermannDriveStamped msg_stop;
+
+    float min_spot_len;
+    float speed;
+
 
     public:
-    mockManager(const ros::NodeHandle &nh):
-      nh_(nh), search_client_("search", true), park_client_("park", true)
+    mockManager(const ros::NodeHandle &nh, const ros::NodeHandle &pnh):
+      nh_(nh), pnh_(pnh), search_client_("search", true), park_client_("park", true)
     {
+        pnh_.param<std::string>("ackermann_topic", ackermann_topic,"/sim_drive");
+        ackermann_pub = nh_.advertise<ackermann_msgs::AckermannDriveStamped>(ackermann_topic, 10);
+        pnh_.param<float>("min_spot_len", min_spot_len, 0.65);
+        pnh_.param<float>("speed", speed, 0.5);
+
+        msg_forward.drive.speed = speed;
+        msg_forward.drive.steering_angle = 0;
+        msg_forward.drive.acceleration = 10;
+        
+        msg_stop.drive.speed = 0;
+        msg_stop.drive.steering_angle = 0;
+        msg_stop.drive.acceleration = 10;
       //  parking_state_pub = nh_.advertise<std_msgs::Int16>("/parking_state", 10);
     }
 
@@ -34,18 +54,16 @@ private:
     {
         ROS_INFO("waiting for server to start");
         search_client_.waitForServer();
-        ROS_INFO("put min lenght for a parking spot [float]: ");
-        float x;
-        std::cin >> x;
-
-        ros::Duration(1).sleep();
-        send_goal(x);
+    //    ROS_INFO("put min lenght for a parking spot [float]: ");
+        ros::Duration(5).sleep();
+        send_goal(min_spot_len);
         ROS_INFO("goal sent");
-
-        ros::Duration(3).sleep();
+        ackermann_pub.publish(msg_forward);
+     //   ros::Duration(3).sleep();
 
         bool finished = search_client_.waitForResult(ros::Duration(50.0));
 
+        ackermann_pub.publish(msg_stop);
         if(finished)
         {
             auto result = search_client_.getResult();
@@ -95,7 +113,6 @@ private:
 
     }
 
-
 };
 
 
@@ -103,7 +120,8 @@ int main(int argc, char** argv)
 {
     ros::init(argc, argv, "mock_manager");
     ros::NodeHandle nh;
-    mockManager client(nh);
+    ros::NodeHandle pnh("~");
+    mockManager client(nh, pnh);
 
     geometry_msgs::Polygon place_found;
 
