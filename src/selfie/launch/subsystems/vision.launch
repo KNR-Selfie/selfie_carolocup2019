@@ -1,0 +1,12 @@
+<launch>
+  <arg name="homography_file" />
+  <arg name="lookahead" />
+
+  <node name="detect_markings" type="detect_markings" pkg="selfie_perception">
+    <param name="config_file" value="$(arg homography_file)" />
+  </node>
+
+  <node name="extract_road_features" type="extract_road_features" pkg="selfie_perception">
+    <param name="lookahead" value="$(arg lookahead)" />
+  </node>
+</launch>

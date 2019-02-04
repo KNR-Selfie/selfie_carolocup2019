@@ -6,6 +6,7 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
+        - /RoadMarkings1
       Splitter Ratio: 0.5
     Tree Height: 565
   - Class: rviz/Selection
@@ -53,8 +54,8 @@ Visualization Manager:
       Center Line Color: 255; 85; 127
       Class: selfie_rviz/RoadMarkings
       Enabled: true
-      Max X: 3
-      Min X: -3
+      Max X: 1.5
+      Min X: 0
       Name: RoadMarkings
       Rendering Step: 0.100000001
       Topic: /road_markings
@@ -101,9 +102,9 @@ Visualization Manager:
       Name: Current View
       Near Clip Distance: 0.00999999978
       Pitch: 0.785398006
-      Target Frame: <Fixed Frame>
+      Target Frame: base_link
       Value: Orbit (rviz)
-      Yaw: 0.785398006
+      Yaw: 0
     Saved: ~
 Window Geometry:
   Displays:

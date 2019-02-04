@@ -1,7 +1,7 @@
 #include "usb.hpp"
 
 #define USB_SEND_SIZE 18+2
-#define USB_RECEIVE_SIZE 36+2
+#define USB_RECEIVE_SIZE 36+4
 
 int USB_STM::init(int speed)
 {
@@ -59,7 +59,7 @@ int USB_STM::init(int speed)
   return 1;
 }
 
-void USB_STM::usb_read_buffer(int buf_size, uint32_t& timestamp, int32_t& distance, int16_t& velocity, int16_t& quaternion_x, int16_t& quaternion_y, int16_t& quaternion_z, int16_t& quaternion_w, uint16_t yaw, int16_t& ang_vel_x, int16_t& ang_vel_y, int16_t& ang_vel_z, int16_t& lin_acc_x, int16_t& lin_acc_y, int16_t& lin_acc_z, uint8_t& start_button1, uint8_t& start_button2)
+void USB_STM::usb_read_buffer(int buf_size, uint32_t& timestamp, int32_t& distance, int16_t& velocity, int16_t& quaternion_x, int16_t& quaternion_y, int16_t& quaternion_z, int16_t& quaternion_w, uint16_t yaw, int16_t& ang_vel_x, int16_t& ang_vel_y, int16_t& ang_vel_z, int16_t& lin_acc_x, int16_t& lin_acc_y, int16_t& lin_acc_z, uint8_t& start_button1, uint8_t& start_button2, uint8_t& reset_vision, uint8_t& switch_state)
 {
 
   struct UsbFrame_s
@@ -78,6 +78,8 @@ void USB_STM::usb_read_buffer(int buf_size, uint32_t& timestamp, int32_t& distan
     int16_t acc[3];
     uint8_t start_button1;
     uint8_t start_button2;
+    uint8_t reset_vision;
+    uint8_t switch_state;
 
     uint8_t endByte;
   } __attribute__((__packed__));
@@ -119,6 +121,10 @@ void USB_STM::usb_read_buffer(int buf_size, uint32_t& timestamp, int32_t& distan
     //start_button
     start_button1 = Data.frame.start_button1;
     start_button2 = Data.frame.start_button2;
+
+    //stm32 status
+    reset_vision = Data.frame.reset_vision;
+    switch_state = Data.frame.switch_state;
   }
 }
 

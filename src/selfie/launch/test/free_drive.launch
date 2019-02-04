@@ -1,0 +1,24 @@
+<launch>
+  <arg name="homography_file" />
+  <arg name="lookahead" default="0.3" />
+
+  <group ns="camera">
+    <include file="$(find selfie_camera)/launch/basler.launch" />
+  </group>
+
+  <group ns="stm32">
+    <remap from="drive" to="/lane_control/drive" />
+    <node name="stm32_bridge" type="selfie_stm32_bridge" pkg="selfie_stm32_bridge" />
+  </group>
+
+  <group ns="vision">
+    <remap from="/image_rect" to="/camera/image_rect" />
+    <remap from="position_offset" to="/lane_control/position_offset" />
+    <remap from="heading_offset" to="/lane_control/heading_offset" />
+    <include file="$(find selfie)/launch/subsystems/vision.launch" pass_all_args="true" />
+  </group>
+
+  <group ns="lane_control">
+    <include file="$(find selfie)/launch/subsystems/lane_control.launch" />
+  </group>
+</launch>

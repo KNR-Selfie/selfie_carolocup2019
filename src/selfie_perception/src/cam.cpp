@@ -7,6 +7,7 @@ int main(int argc, char **argv)
     ros::NodeHandle pnh("~");
 
     LaneDetector laneDetector(nh, pnh);
+    ros::ServiceServer service = nh.advertiseService("resetVision", &LaneDetector::resetVisionCallback, &laneDetector);
     if (laneDetector.init())
     {
         ROS_INFO("detect_markings initialized");

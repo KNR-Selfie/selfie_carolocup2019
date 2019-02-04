@@ -29,8 +29,6 @@ source ./devel/setup.bash
 
 ## Running
 
-First, make sure you have correct udev rules set for your camera, as described [here](http://wiki.ros.org/libuvc_camera#Permissions). Then execute the command:
-
 ```bash
-roslaunch selfie_launch drive.launch
+roslaunch selfie_launch free_drive.launch homography_file:={path}
 ```

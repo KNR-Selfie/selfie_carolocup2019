@@ -70,6 +70,7 @@ private:
     float obstacle_nominal_length_;
     bool visualize_;
     bool upside_down_;
+    float lidar_offset_;
     std::string visualization_frame_;
     std::string obstacles_frame_;
     

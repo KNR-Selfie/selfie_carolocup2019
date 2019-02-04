@@ -1,9 +1,11 @@
-## Goal definition
+##Goal definition
 
-# true iff left is the target lane
+
+#true iff left is target
 bool left_lane
 
 ---
-## Empty result definition
+##Define result
+bool changed_lane
 ---
-## Empty feedback
+#Define a feedback message

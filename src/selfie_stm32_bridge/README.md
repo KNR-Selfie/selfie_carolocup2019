@@ -28,3 +28,10 @@ Status of the start button1 (0 - no start, 1 - start).
 
 `start_button2` ([std_msgs/Bool](http://docs.ros.org/api/std_msgs/html/msg/Bool.html))
 Status of the start button2 (0 - no start, 1 - start).
+
+`reset_vision` ([std_msgs/Bool](http://docs.ros.org/api/std_msgs/html/msg/Bool.html))
+1 is signal to reset vision
+
+`switch_state` ([std_msgs/UInt8](http://docs.ros.org/api/std_msgs/html/msg/UInt8.html))
+Robot drive mode from STM32
+2 - manual, 1- semi-autonomous 0 - autonomous mode

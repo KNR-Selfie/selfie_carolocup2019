@@ -1,0 +1,3 @@
+<launch>
+  <include file="$(find selfie)/providers/launch/common.launch" />
+</launch>

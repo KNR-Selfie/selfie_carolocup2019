@@ -1,0 +1,16 @@
+<launch>
+  <group ns="stm32">
+    <node name="stm32_bridge" type="selfie_stm32_bridge" pkg="selfie_stm32_bridge" />
+  </group>
+
+  <group ns="initialization">
+    <remap from="start_button1" to="/stm32/start_button1" />
+    <remap from="start_button2" to="/stm32/start_button2" />
+    <remap from="left_turn_indicator" to="/stm32/left_turn_indicator" />
+    <remap from="right_turn_indicator" to="/stm32/right_turn_indicator" />
+
+    <node name="initialization" type="initialization" pkg="selfie" />
+  </group>
+
+  <node name="capability_server" type="capability_server" pkg="capabilities" />
+</launch>
