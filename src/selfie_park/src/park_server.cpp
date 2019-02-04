@@ -201,8 +201,17 @@ void ParkService::odom_callback(const nav_msgs::Odometry &msg)
 		blink_left(true);
 		blink_right(true);
 		ros::Duration(2).sleep();
-		parking_state = go_back;
+		parking_state = get_straight;
 		break;
+
+		case get_straight:
+		if(actual_parking_position.rot < 0.0)
+		{
+			drive(-PARKING_SPEED, -MAX_TURN);
+		}
+		else parking_state = go_back;
+		break;
+
 
 		case go_back:
 		ROS_INFO("go_back");
@@ -356,7 +365,7 @@ bool ParkService::park()
 		case second_phase:
 		ROS_INFO("2nd phase");
 		drive(PARKING_SPEED, MAX_TURN);
-		if(actual_parking_position.rot > 0.0)
+		if(actual_parking_position.rot > 0.0 || actual_front_parking_position.x > front_wall -max_distance_to_wall)
 		{
 			
 			move_state = first_phase;

@@ -16,8 +16,8 @@
 #include <visualization_msgs/MarkerArray.h>
 #include <std_msgs/Bool.h>
 
-#define ODOM_TO_FRONT 0.16
-#define ODOM_TO_BACK -0.34
+#define ODOM_TO_FRONT 0.18
+#define ODOM_TO_BACK -0.33
 #define ODOM_TO_LASER -0.03
 #define CAR_WIDTH 0.22
 #define PARKING_SPEED 0.3
@@ -78,6 +78,7 @@ class ParkService
 		go_to_parking_spot = 1,
 		going_in = 2,
 		parked = 3,
+        get_straight=7,
 		going_out = 4,
         out=5,
         go_back=6
