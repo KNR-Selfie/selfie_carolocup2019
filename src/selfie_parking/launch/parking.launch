@@ -10,7 +10,7 @@
 
   <node pkg="selfie_stm32_bridge" type="selfie_stm32_bridge" name="stm_bridge"/>
 
-  <include file="$(find selfie_launch)/launch/transforms.launch" />
+  <include file="$(find selfie)/launch/transforms.launch" />
 
   <node pkg="selfie_parking" type="parking_node" name="search_server" output="screen">
     <param name="/point_min_x" value="-0.5"/>

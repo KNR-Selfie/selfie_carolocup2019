@@ -98,7 +98,7 @@ void Parking::manager(const selfie_msgs::PolygonArray &msg)
         first_free_place.visualize(point_pub);
         dist = get_dist_from_first_free_place();
         if(debug_mode)
-          ROS_INFO("distance_to_first_place: %f", dist);
+          ROS_INFO_THROTTLE(1, "distance_to_first_place: %f", dist);
       }
       feedback_msg.distance_to_first_place = dist;
       if(place_found && dist <= distance_to_stop)
