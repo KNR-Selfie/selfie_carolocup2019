@@ -53,6 +53,7 @@ private:
   int visualization_type;
   int scans_ignored;
   int scans_taken;
+  bool debug_mode;
 
   bool goal_set;
 

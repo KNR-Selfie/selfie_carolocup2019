@@ -17,6 +17,7 @@ Parking::Parking(const ros::NodeHandle &nh, const ros::NodeHandle &pnh):
   pnh_.param<float>("distance_to_stop", distance_to_stop, 0.2);
   pnh_.param<int>("scans_to_ignore_when_stopped", scans_ignored, 2);
   pnh_.param<int>("scans_taken", scans_taken, 5);
+  pnh_.param<bool>("debug_mode", debug_mode, false);
   // 1->to_rviz  2-> funcion execution time 3->text_only
   pnh_.param<int>("visualization_type", visualization_type, 3);
 }
@@ -42,7 +43,7 @@ bool Parking::init()
   this->point_pub = nh_.advertise<visualization_msgs::Marker>("/box_points", 5);
 //  this->parking_state_pub = nh_.advertise<std_msgs::Int16>("parking_state", 200);
   goal_set = false;
-  min_spot_lenght = 0.6;
+ // min_spot_lenght = 0.6;
 //  ROS_INFO("viz type: %d", visualization_type);
 }
 
@@ -50,7 +51,7 @@ void Parking::manager_init()
 {
   ROS_WARN("goal set!!!");
   min_spot_lenght = (*search_server_.acceptNewGoal()).min_spot_lenght;
-  goal_set = true;
+//  goal_set = true;
 }
 
 void Parking::manager(const selfie_msgs::PolygonArray &msg)
@@ -89,17 +90,22 @@ void Parking::manager(const selfie_msgs::PolygonArray &msg)
       planning_error_counter = 0;
       search(msg);
       bool place_found = find_free_place();
-      if(place_found)
-        ROS_INFO("place found!!");
+      if(place_found && debug_mode)
+        ROS_INFO("place in range of lidar!!");
       float dist = 9999;
       if(place_found)
+      {
+        first_free_place.visualize(point_pub);
         dist = get_dist_from_first_free_place();
-        ROS_INFO("dist: %f", dist);
+        if(debug_mode)
+          ROS_INFO("distance_to_first_place: %f", dist);
+      }
       feedback_msg.distance_to_first_place = dist;
       if(place_found && dist <= distance_to_stop)
       {
         feedback_msg.info = "place found, waiting to get exact measurements";
         state = planning;
+        display_free_place();
         planning_scan_counter = 0;
         ROS_WARN( "state switched to planning");
       }

@@ -78,7 +78,7 @@ private:
         park_client_.sendGoal(msg);
         ROS_INFO("goal sent to park_server");
 
-        bool finished = park_client_.waitForResult(ros::Duration(10.0));
+        bool finished = park_client_.waitForResult(ros::Duration(60.0));
         if(finished)
         {
             auto result = park_client_.getResult();
