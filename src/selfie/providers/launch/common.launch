@@ -21,7 +21,7 @@
     <remap from="distance" to="/stm32/distance" />
     <node name="simple_start" type="simple_start" pkg="selfie_starting_procedure">
       <param name="delay" value="1.5" />
-      <param name="target_dist" value="1.0" />
+      <param name="target_dist" value="0.45" />
       <param name="speed" value="1.0" />
     </node>
   </group>
