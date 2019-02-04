@@ -17,7 +17,7 @@ def button_callback(btn, msg):
     if msg.data == False:
         # Keep flashing turn indicators
         lt_pub.publish(True)
-        lt_pub.publish(True)
+        rt_pub.publish(True)
     else:
         system_initialized = True
 
