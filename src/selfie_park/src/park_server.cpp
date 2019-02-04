@@ -9,7 +9,7 @@ visualize(true)
 {
   pnh_.param<std::string>("odom_topic", odom_topic,"/odom");
   pnh_.param<std::string>("ackermann_topic", ackermann_topic,"/drive");
-  pnh_.param<float>("minimal_start_parking_x", minimal_start_parking_x, -0.13);
+  pnh_.param<float>("minimal_start_parking_x", minimal_start_parking_x, -0.17);
   pnh_.param<float>("maximal_start_parking_x", maximal_start_parking_x, 0.0);
   pnh_.param<float>("traffic_lane_marigin",traffic_lane_marigin, 0.05);
   pnh_.param<float>("earlier_turn", earlier_turn, 0.01);
@@ -17,8 +17,8 @@ visualize(true)
   pnh_.param<float>("first_to_second_phase_x_backwards", first_to_second_phase_x_backwards, 0.9/2.0);
   pnh_.param<bool>("state_msgs",state_msgs, true);
   pnh_.param<float>("max_distance_to_wall", max_distance_to_wall, 0.03);
-  pnh_.param<float>("max_rot", max_rot, 0.8);
-  pnh_.param<float>("dist_turn", dist_turn, 0.11);
+  pnh_.param<float>("max_rot", max_rot, 0.7);
+  pnh_.param<float>("dist_turn", dist_turn, 0.15);
   move_state = first_phase;
   parking_state = not_parking;
   as_.registerGoalCallback(boost::bind(&ParkService::goalCB, this));
@@ -194,7 +194,8 @@ void ParkService::odom_callback(const nav_msgs::Odometry &msg)
 
 		case parked:
 		if(state_msgs) ROS_INFO("PARKED");
-		drive(0,0);
+	
+		drive(0, -MAX_TURN);
 		blink_left(true);
 		blink_right(true);
 		ros::Duration(2).sleep();
@@ -369,8 +370,8 @@ bool ParkService::leave()
 	{
 		case first_phase:
 		ROS_INFO("1st phase");
-		blink_right(true);
-		blink_left(false);
+		blink_right(false);
+		blink_left(true);
 		drive(PARKING_SPEED, MAX_TURN);
 		
 		if(actual_parking_position.rot > max_rot){move_state = straight;}
