@@ -30,7 +30,12 @@
     <remap from="/image_rect" to="/camera/image_rect" />
     <remap from="position_offset" to="/lane_control/position_offset" />
     <remap from="heading_offset" to="/lane_control/heading_offset" />
+    <remap from="reset_vision_request" to="/stm32/reset_vision" />
     <include file="$(find selfie)/launch/subsystems/vision.launch" pass_all_args="true" />
+
+    <node name="reset_vision" type="reset_vision" pkg="selfie">
+      <remap from="reset_vision" to="resetVision" />
+    </node>
   </group>
 
   <group ns="lane_control">
