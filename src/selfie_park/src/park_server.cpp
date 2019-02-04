@@ -7,8 +7,8 @@ pnh_(pnh),
 as_(nh_, "park",  false),
 visualize(true)
 {
-  pnh_.param<std::string>("odom_topic", odom_topic,"/vesc/odom");
-  pnh_.param<std::string>("ackermann_topic", ackermann_topic,"/sim_drive");
+  pnh_.param<std::string>("odom_topic", odom_topic,"odom");
+  pnh_.param<std::string>("ackermann_topic", ackermann_topic,"/drive");
   pnh_.param<float>("minimal_start_parking_x", minimal_start_parking_x, -0.13);
   pnh_.param<float>("maximal_start_parking_x", maximal_start_parking_x, 0.0);
   pnh_.param<float>("traffic_lane_marigin",traffic_lane_marigin, 0.05);
@@ -31,6 +31,8 @@ visualize(true)
 	if(visualize) visualization_pub = nh_.advertise<visualization_msgs::MarkerArray>("parking_view", 10);
 	mid_y = 0.0;
 	mid_x = 0.0;
+
+	std::cout<<"start"<<std::endl;
 }
 void ParkService::visualize_parking_spot()
 {
@@ -218,7 +220,10 @@ void ParkService::odom_callback(const nav_msgs::Odometry &msg)
 		if(leave()) parking_state = out;
 		break;
 		case out:
-		drive(0,0);
+		drive(PARKING_SPEED,0);
+		selfie_park::parkResult result;
+		result.done = true;
+		as_.setSucceeded(result);
 		parking_state = not_parking;
 		break;
 	}
