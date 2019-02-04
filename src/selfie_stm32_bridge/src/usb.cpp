@@ -126,6 +126,9 @@ void USB_STM::usb_read_buffer(int buf_size, uint32_t& timestamp, int32_t& distan
     reset_vision = Data.frame.reset_vision;
     switch_state = Data.frame.switch_state;
   }
+  else{
+    ROS_ERROR("Error while reading new frame! Check protocole from STM");
+  }
 }
 
 void USB_STM::usb_send_buffer(uint32_t timestamp_ms, float steering_angle, float steering_angle_velocity, float speed, float acceleration, float jerk, uint8_t left_indicator, uint8_t right_indicator)
