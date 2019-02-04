@@ -16,7 +16,7 @@ ObstaclesGenerator::ObstaclesGenerator(const ros::NodeHandle& nh, const ros::Nod
     obstacles_frame_("laser"),
     visualization_frame_("laser"),
     visualize_(true),
-    upside_down_(true)
+    upside_down_(true),
     lidar_offset_(0.2)
 {
     obstacles_pub_ = nh_.advertise<selfie_msgs::PolygonArray>("obstacles", 10);
