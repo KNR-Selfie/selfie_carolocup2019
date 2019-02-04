@@ -746,6 +746,13 @@ void LaneDetector::initRecognizeLines()
 	}
 	center_line_index_ = min_index;
 
+	if(center_line_index_ == -1)
+	{
+		right_line_index_ = -1;
+		left_line_index_ = -1;
+		return;
+	}
+
 	min = homography_frame_.cols;
 	min_index = -1;
 	for(int i = 0; i < lanes_vector_converted_.size(); i++)
