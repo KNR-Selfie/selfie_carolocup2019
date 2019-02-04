@@ -34,6 +34,7 @@ visualize(true)
 }
 void ParkService::visualize_parking_spot()
 {
+	/*
 	tf::Vector3 tf_point;
 	geometry_msgs::Point marker_point;
 	marker_point.z = 0;
@@ -135,7 +136,7 @@ void ParkService::visualize_parking_spot()
 	
 	markers.markers.push_back(marker4);
 
-	visualization_pub.publish(markers);
+	visualization_pub.publish(markers);*/
 }
 
 geometry_msgs::Point ParkService::point_parking_to_odom(float x, float y)
