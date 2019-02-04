@@ -16,7 +16,7 @@ visualize(true)
   pnh_.param<float>("first_to_second_phase_x_frontwards",first_to_second_phase_x_frontwards, 0.9/2.0);
   pnh_.param<float>("first_to_second_phase_x_backwards", first_to_second_phase_x_backwards, 0.9/2.0);
   pnh_.param<bool>("state_msgs",state_msgs, true);
-  pnh_.param<float>("max_distance_to_wall", max_distance_to_wall, 0.03);
+  pnh_.param<float>("max_distance_to_wall", max_distance_to_wall, 0.04);
   pnh_.param<float>("max_rot", max_rot, 0.7);
   pnh_.param<float>("dist_turn", dist_turn, 0.15);
   move_state = first_phase;
@@ -199,8 +199,17 @@ void ParkService::odom_callback(const nav_msgs::Odometry &msg)
 		blink_left(true);
 		blink_right(true);
 		ros::Duration(2).sleep();
-		parking_state = go_back;
+		parking_state = get_straight;
 		break;
+
+		case get_straight:
+		if(actual_parking_position.rot < 0.0)
+		{
+			drive(-PARKING_SPEED, -MAX_TURN);
+		}
+		else parking_state = go_back;
+		break;
+
 
 		case go_back:
 		ROS_INFO("go_back");
@@ -351,7 +360,7 @@ bool ParkService::park()
 		case second_phase:
 		ROS_INFO("2nd phase");
 		drive(PARKING_SPEED, MAX_TURN);
-		if(actual_parking_position.rot > 0.0)
+		if(actual_parking_position.rot > 0.0 || actual_front_parking_position.x > front_wall -max_distance_to_wall)
 		{
 			
 			move_state = first_phase;
