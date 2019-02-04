@@ -17,7 +17,7 @@
 #include <std_msgs/Bool.h>
 
 #define ODOM_TO_FRONT 0.16
-#define ODOM_TO_BACK -0.30
+#define ODOM_TO_BACK -0.34
 #define ODOM_TO_LASER -0.03
 #define CAR_WIDTH 0.22
 #define PARKING_SPEED 0.3

@@ -17,8 +17,8 @@ visualize(true)
   pnh_.param<float>("first_to_second_phase_x_backwards", first_to_second_phase_x_backwards, 0.9/2.0);
   pnh_.param<bool>("state_msgs",state_msgs, true);
   pnh_.param<float>("max_distance_to_wall", max_distance_to_wall, 0.03);
-  pnh_.param<float>("max_rot", max_rot, 0.7);
-  pnh_.param<float>("dist_turn", dist_turn, 0.15);
+  pnh_.param<float>("max_rot", max_rot, 0.8);
+  pnh_.param<float>("dist_turn", dist_turn, 0.17);
   move_state = first_phase;
   parking_state = not_parking;
   as_.registerGoalCallback(boost::bind(&ParkService::goalCB, this));
