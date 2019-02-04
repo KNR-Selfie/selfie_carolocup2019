@@ -9,16 +9,22 @@ visualize(true)
 {
   pnh_.param<std::string>("odom_topic", odom_topic,"/odom");
   pnh_.param<std::string>("ackermann_topic", ackermann_topic,"/drive");
-  pnh_.param<float>("minimal_start_parking_x", minimal_start_parking_x, -0.17);
+  pnh_.param<float>("minimal_start_parking_x", minimal_start_parking_x, -0.16);
   pnh_.param<float>("maximal_start_parking_x", maximal_start_parking_x, 0.0);
   pnh_.param<float>("traffic_lane_marigin",traffic_lane_marigin, 0.05);
   pnh_.param<float>("earlier_turn", earlier_turn, 0.01);
   pnh_.param<float>("first_to_second_phase_x_frontwards",first_to_second_phase_x_frontwards, 0.9/2.0);
   pnh_.param<float>("first_to_second_phase_x_backwards", first_to_second_phase_x_backwards, 0.9/2.0);
   pnh_.param<bool>("state_msgs",state_msgs, true);
+<<<<<<< HEAD
   pnh_.param<float>("max_distance_to_wall", max_distance_to_wall, 0.04);
   pnh_.param<float>("max_rot", max_rot, 0.7);
   pnh_.param<float>("dist_turn", dist_turn, 0.15);
+=======
+  pnh_.param<float>("max_distance_to_wall", max_distance_to_wall, 0.03);
+  pnh_.param<float>("max_rot", max_rot, 0.8);
+  pnh_.param<float>("dist_turn", dist_turn, 0.17);
+>>>>>>> a78fefbca5156ae20a5758ac0ae476194147fe26
   move_state = first_phase;
   parking_state = not_parking;
   as_.registerGoalCallback(boost::bind(&ParkService::goalCB, this));
@@ -31,6 +37,8 @@ visualize(true)
 	if(visualize) visualization_pub = nh_.advertise<visualization_msgs::MarkerArray>("parking_view", 10);
 	mid_y = 0.0;
 	mid_x = 0.0;
+
+	std::cout<<"start"<<std::endl;
 }
 void ParkService::visualize_parking_spot()
 {
@@ -228,7 +236,10 @@ void ParkService::odom_callback(const nav_msgs::Odometry &msg)
 		if(leave()) parking_state = out;
 		break;
 		case out:
-		drive(0,0);
+		drive(PARKING_SPEED,0);
+		selfie_park::parkResult result;
+		result.done = true;
+		as_.setSucceeded(result);
 		parking_state = not_parking;
 		break;
 	}

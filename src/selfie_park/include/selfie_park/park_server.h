@@ -16,8 +16,13 @@
 #include <visualization_msgs/MarkerArray.h>
 #include <std_msgs/Bool.h>
 
+<<<<<<< HEAD
 #define ODOM_TO_FRONT 0.18
 #define ODOM_TO_BACK -0.31
+=======
+#define ODOM_TO_FRONT 0.16
+#define ODOM_TO_BACK -0.34
+>>>>>>> a78fefbca5156ae20a5758ac0ae476194147fe26
 #define ODOM_TO_LASER -0.03
 #define CAR_WIDTH 0.22
 #define PARKING_SPEED 0.3
