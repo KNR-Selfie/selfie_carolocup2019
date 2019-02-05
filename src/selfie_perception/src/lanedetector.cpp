@@ -42,7 +42,15 @@ LaneDetector::LaneDetector(const ros::NodeHandle &nh, const ros::NodeHandle &pnh
 	short_right_line_(false),
 
 	real_window_size_(0.1),
-	threshold_c_(-40)
+	threshold_c_(-40),
+
+	intersection_distance_(-1),
+	dist_to_intersection_handle_(0.85),
+	intersection_handler_activated_(false),
+	encoder_probe_(0),
+	actual_encoder_distance_(0),
+	distance_on_intersection_(1.45),
+	intersection_detection_count_(0)
 {
 	lanes_pub_ =  nh_.advertise<selfie_msgs::RoadMarkings>("road_markings", 100);
 	intersection_pub_ =  nh_.advertise<std_msgs::Float32>("intersection", 100);
@@ -80,6 +88,7 @@ bool LaneDetector::init()
 		treshold_block_size_++;
 
 	image_sub_ = it_.subscribe("/image_rect", 1, &LaneDetector::imageCallback, this);
+	distance_sub = nh_.subscribe("/distance", 10, &LaneDetector::distanceCallback, this);
 	if(debug_mode_)
 	{
 		points_cloud_pub_ = nh_.advertise<sensor_msgs::PointCloud>("new_coordinates", 10);
@@ -94,6 +103,11 @@ bool LaneDetector::init()
 
 	printInfoParams();
 	return true;
+}
+
+void LaneDetector::distanceCallback(const std_msgs::Float32 &msg)
+{
+	actual_encoder_distance_ = msg.data;
 }
 
 void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr &msg)
@@ -189,6 +203,7 @@ void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr &msg)
 		calcRoadWidth();
 		addBottomPoint();
 		linesApproximation(lanes_vector_converted_);
+		intersectionHandler();
 		publishMarkings();
 	}
 
@@ -1709,12 +1724,75 @@ void LaneDetector::detectStartAndIntersectionLine()
 	{
 		std_msgs::Float32 msg;
 		msg.data = right_distance;
-		starting_line_pub_.publish(msg);
+		intersection_distance_ = -1;
+		if(!intersection_handler_activated_)
+			starting_line_pub_.publish(msg);
 	}
 	else if(right_distance > 0)
 	{
 		std_msgs::Float32 msg;
 		msg.data = right_distance;
+		intersection_distance_ = right_distance;
 		intersection_pub_.publish(msg);
 	}
+	else
+	{
+		intersection_distance_ = -1;
+	}
+}
+
+void LaneDetector::intersectionHandler()
+{
+	if(intersection_distance_ > 0 && intersection_distance_ < dist_to_intersection_handle_)
+	{
+		intersection_detection_count_ ++;
+		if(!intersection_handler_activated_ && intersection_detection_count_ > 2)
+		{
+			intersection_left_coeff_.clear();
+			intersection_middle_coeff_.clear();
+			intersection_right_coeff_.clear();
+
+			intersection_left_coeff_ = left_coeff_;
+			intersection_middle_coeff_ = middle_coeff_;
+			intersection_right_coeff_ = right_coeff_;
+
+			intersection_handler_activated_ = true;
+			encoder_probe_ = actual_encoder_distance_;
+		}
+		else if(intersection_handler_activated_)
+		{
+			distance_covered_ = actual_encoder_distance_ - encoder_probe_;
+
+			last_left_coeff_ = intersection_left_coeff_;
+			last_middle_coeff_ = intersection_middle_coeff_;
+			last_right_coeff_ = intersection_right_coeff_;
+			left_coeff_ = intersection_left_coeff_;
+			middle_coeff_ = intersection_middle_coeff_;
+			right_coeff_ = intersection_right_coeff_;
+			if(distance_covered_ > distance_on_intersection_)
+			{
+				intersection_handler_activated_ = false;
+				intersection_detection_count_ = 0;
+			}
+		}
+		
+	}
+	else if(intersection_handler_activated_)
+	{
+		distance_covered_ = actual_encoder_distance_ - encoder_probe_;
+
+		last_left_coeff_ = intersection_left_coeff_;
+		last_middle_coeff_ = intersection_middle_coeff_;
+		last_right_coeff_ = intersection_right_coeff_;
+		left_coeff_ = intersection_left_coeff_;
+		middle_coeff_ = intersection_middle_coeff_;
+		right_coeff_ = intersection_right_coeff_;
+		if(distance_covered_ > distance_on_intersection_)
+		{
+			intersection_handler_activated_ = false;
+			intersection_detection_count_ = 0;
+		}
+	}
+	else
+		intersection_detection_count_ = 0;
 }
