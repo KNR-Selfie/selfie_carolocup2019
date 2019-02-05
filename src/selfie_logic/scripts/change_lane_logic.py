@@ -26,12 +26,12 @@ def distance_callback(msg):
   CLC.distance = msg.data
   #showing variables on screen
   #rospy.loginfo("Points: %d \t Lane: %d", CLC.points_on_lane, CLC.right_lane)
-  
+
 def obstacles_callback(msg):
   if (CLC.get_call ==0):
     CLC.polygons[:] = []
     CLC.get_call = 1
-    for box_nr in range (len(msg.polygons)-1, 0, -1):    
+    for box_nr in range (len(msg.polygons)-1, 0, -1):
         CLC.polygons.append(msg.polygons[box_nr])
 
 def stop_callback(msg):
@@ -39,7 +39,7 @@ def stop_callback(msg):
 
 
 
-    
+
 if __name__ == '__main__':
     rospy.init_node('change_lane_logic')
 
@@ -47,17 +47,17 @@ if __name__ == '__main__':
     obstacles_sub = rospy.Subscriber('obstacles', PolygonArray, obstacles_callback, queue_size=1)
     distance_sub = rospy.Subscriber('distance', Float32, distance_callback, queue_size=1)
     stop_sub = rospy.Subscriber('stop', Bool, stop_callback, queue_size=1)
-    
-  
+
+
 
     change_lane_pub = rospy.Publisher('box_right', UInt16, queue_size=1)
-   
+
     CLC.border_distance_x = rospy.get_param('~border_x', 0.8)
     CLC.border_distance_y = rospy.get_param('~border_y', 0.5)
     CLC.fraction = rospy.get_param('~fraction', 0.3)
     CLC.threshold_normal = rospy.get_param('~thresh_normal', 2)
     CLC.threshold_anormal = rospy.get_param('~thresh_anormal', 2)
-    CLC.tests = rospy.get_param('~tests', True)
+    CLC.tests = rospy.get_param('~tests', False)
 
     rospy.loginfo("Parameters:")
     rospy.loginfo("border_x = %f, border_y = %f",CLC.border_distance_x, CLC.border_distance_y)
@@ -66,12 +66,12 @@ if __name__ == '__main__':
 
     if CLC.tests == False:
       CLC.create_client()
-    
+
     while not rospy.is_shutdown():
       if CLC.get_call == 0:
         CLC.polygons[:] = []
 
-            
+
       #rospy.loginfo("Lane: %d F: %d R: %d",CLC.right_lane, CLC.points_front, CLC.points_right)
 
       CLC.change_lane_procedure()
