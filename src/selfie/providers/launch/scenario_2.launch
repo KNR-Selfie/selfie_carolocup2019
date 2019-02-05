@@ -6,6 +6,6 @@
     <remap from="obstacles" to="/obstacle_detection/obstacles" />
     <remap from="distance" to="/stm32/distance" />
     <remap from="change_lane" to="/lane_control/change_lane" />
-    <node name="obstacle_evastion" type="change_lane_logic.py" pkg="selfie_logic" />
+    <node name="obstacle_evasion" type="change_lane_logic.py" pkg="selfie_logic" />
   </group>
 </launch>
