@@ -111,8 +111,8 @@ void Parking::manager(const selfie_msgs::PolygonArray &msg)
         for_planning.push_back(first_free_place);
         state = parking;
 
-        first_free_place.bottom_right = first_free_place.bottom_left + 30;
-        first_free_place.top_right = first_free_place.top_left + 30;
+        first_free_place.bottom_right.y = first_free_place.bottom_left.y + 30;
+        first_free_place.top_right.y = first_free_place.top_left.y + 30;
         first_free_place.print_box_dimensions();
         send_goal();
         ROS_DEBUG( "state switched to planning");
