@@ -1,0 +1,32 @@
+<launch>
+
+
+
+ <!-- <node pkg="selfie_parking" type="parking_drive.py" name="parking_drive" output="screen"/> 
+ -->
+  <node pkg="selfie_parking" type="mock_manager" name="parking_manager">
+    <param name="ackermann_topic" value="/drive"/>
+    <param name="min_spot_len" value="0.65"/>
+    <param name="speed" value="0.6"/>
+  </node>
+
+ <include file="$(find selfie)/launch/transforms.launch" />
+
+  <node pkg="selfie_park" type="park_server" name="park_server" output="screen">
+    <param name="ackermann_topic" value="/drive"/>
+    <param name="odom_topic" value="/odom"/>
+  </node>
+
+
+  <node pkg="selfie_parking" type="parking_node" name="search_server" output="screen">
+    <param name="/point_min_x" value="-0.5"/>
+    <param name="/point_max_x" value="2"/>
+    <param name="/point_min_y" value="-0.7"/>
+    <param name="/point_max_y" value="0.1"/>
+    <param name="/debug_mode" value="true"/>
+    <param name="/distance_to_stop" value="0.2"/>
+    <param name="/visualization_type" value="13"/>
+    <param name="/scans_to_ignore_when_stopped" value="3"/>
+    <param name="/scans_taken" value="2"/>
+  </node>
+</launch>

@@ -4,8 +4,7 @@
     <param name="lower_limit" value="-0.785" />
     <param name="windup_limit" value="10" />
 
-    <param name="Kp" value="0.2" />
-    <param name="Kp_scale" value="10.0" />
+    <param name="Kp" value="2.0" />
 
     <remap from="state" to="combined_offset" />
     <remap from="control_effort" to="steering_angle" />
@@ -20,5 +19,10 @@
 
   <node name="offset_combiner" pkg="selfie_control" type="offset_combiner.py" />
 
-  <node pkg="selfie_control" type="angle_to_ackermann.py" name="cmd_converter" />
+  <node name="cmd_converter" type="cmd_converter.py" pkg="selfie_control" />
+
+  <node name="const_speed" type="const_float64.py" pkg="selfie_control">
+    <param name="topic" value="target_speed" />
+    <param name="value" value="3.0" />
+  </node>
 </launch>

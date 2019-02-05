@@ -1,0 +1,26 @@
+<launch>
+  <node pkg="selfie_control" type="offset_combiner.py" name="selfie_offset_combiner">
+  </node>
+
+  <node pkg="selfie_control" type="change_lane" name="change_lane">
+    <param name="lane_width" value="0.4"/>
+    <param name="error_margin" value="0.2" />
+  </node>
+
+  <node pkg="selfie_perception" type="detect_obstacles" name="selfie_obstacle_detector">
+    <param name="upside_down" value="false"/>
+    <param name="visualize" value="true" />
+    <param name="max_range" value="2.0"/>
+    <param name="min_range" value="0.1"/>
+    <param name="line_search_max_range_difference_" value="0.04"/>
+    <param name="line_search_max_slope_difference_" value="2.0"/>
+    <param name="line_search_min_slope_difference_" value="0.05"/>
+    <param name="line_search_slope_difference_ratio_" value="0.10"/>
+    <param name="line_search_min_length_" value="0.05"/>
+    <param name="line_min_length_" value="0.05"/>
+    <param name="obstacle_nominal_length_" value="0.4"/>   
+  </node>
+
+
+
+</launch>

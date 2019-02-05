@@ -1,13 +1,38 @@
 <launch>
   <arg name="homography_file" default="/home/$(env USER)/.ros/homography_export.yaml" />
   <arg name="lookahead" default="0.3" />
+  <arg name="num_parking_maneuvers" default="0" />
 
   <group ns="camera">
     <include file="$(find selfie_camera)/launch/basler.launch" />
   </group>
 
+  <group ns="lidar">
+    <node name="sick_node" type="sick_tim551_2050001" pkg="sick_tim">
+      <param name="min_arg" value="-1.8" />
+      <param name="max_arg" value="1.8" />
+    </node>
+  </group>
+
   <group ns="tf">
     <include file="$(find selfie)/launch/transforms.launch" />
+  </group>
+
+  <group ns="obstacle_detection">
+    <remap from="/scan" to="/lidar/scan" />
+    <node pkg="selfie_perception" type="detect_obstacles" name="selfie_obstacle_detector">
+      <param name="upside_down" value="false"/>
+      <param name="visualize" value="true" />
+      <param name="max_range" value="2.0"/>
+      <param name="min_range" value="0.05"/>
+      <param name="line_search_max_range_difference_" value="0.04"/>
+      <param name="line_search_max_slope_difference_" value="2.0"/>
+      <param name="line_search_min_slope_difference_" value="0.05"/>
+      <param name="line_search_slope_difference_ratio_" value="0.10"/>
+      <param name="line_search_min_length_" value="0.05"/>
+      <param name="line_min_length_" value="0.05"/>
+      <param name="obstacle_nominal_length_" value="0.4"/>
+    </node>
   </group>
 
   <group ns="odometry">
@@ -18,10 +43,11 @@
   </group>
 
   <group ns="starting_procedure">
-    <remap from="image_raw" to="/camera/image_rect" />
     <remap from="distance" to="/stm32/distance" />
-    <node name="starting_procedure" type="starting_procedure" pkg="selfie_starting_procedure">
-      <param name="dist" value="1.0" />
+    <node name="simple_start" type="simple_start" pkg="selfie_starting_procedure">
+      <param name="delay" value="1.5" />
+      <param name="target_dist" value="0.45" />
+      <param name="speed" value="1.0" />
     </node>
   </group>
 
@@ -29,7 +55,16 @@
     <remap from="/image_rect" to="/camera/image_rect" />
     <remap from="position_offset" to="/lane_control/position_offset" />
     <remap from="heading_offset" to="/lane_control/heading_offset" />
-    <include file="$(find selfie)/launch/subsystems/vision.launch" pass_all_args="true" />
+    <remap from="reset_vision_request" to="/stm32/reset_vision" />
+
+    <include file="$(find selfie)/launch/subsystems/vision.launch">
+      <arg name="homography_file" value="$(arg homography_file)" />
+      <arg name="lookahead" value="$(arg lookahead)" />
+    </include>
+
+    <node name="reset_vision" type="reset_vision" pkg="selfie">
+      <remap from="reset_vision" to="resetVision" />
+    </node>
   </group>
 
   <group ns="lane_control">
@@ -40,22 +75,31 @@
     <remap from="mux" to="~" />
     <remap from="attempt_started" to="/starting_procedure/start" />
     <remap from="reset_vision" to="/vision/resetVision" />
+    <remap from="starting_line" to="/vision/starting_line" />
+    <remap from="search" to="/parking/search" />
+    <remap from="park" to="/parking/park" />
 
     <node name="drive_mux" type="mux" pkg="topic_tools"
           args="/stm32/drive
                 /starting_procedure/drive
-                /lane_control/drive" />
+                /lane_control/drive
+                /parking/drive" />
 
     <node name="left_turn_indicator_mux" type="mux" pkg="topic_tools"
           args="/stm32/left_turn_indicator
                 /starting_procedure/left_turn_indicator
-                /lane_control/left_turn_indicator" />
+                /lane_control/left_turn_indicator
+                /parking/left_turn_indicator" />
 
     <node name="right_turn_indicator_mux" type="mux" pkg="topic_tools"
           args="/stm32/right_turn_indicator
                 /starting_procedure/right_turn_indicator
-                /lane_control/right_turn_indicator" />
+                /lane_control/right_turn_indicator
+                /parking/right_turn_indicator" />
 
-    <node name="pass_control" type="pass_control" pkg="selfie" />
+
+    <node name="pass_control" type="pass_control" pkg="selfie">
+      <param name="num_parking_maneuvers" value="$(arg num_parking_maneuvers)" />
+    </node>
   </group>
 </launch>

@@ -1,20 +1,22 @@
+#include<chrono>
 #include <selfie_perception/obstacles_generator.h>
 
 ObstaclesGenerator::ObstaclesGenerator(const ros::NodeHandle& nh, const ros::NodeHandle& pnh):
     nh_(nh),
     pnh_(pnh),
-    max_range_(1.5),
+    max_range_(4.0),
     min_range_(0.03),
     line_search_max_range_difference_(0.04),
     line_search_max_slope_difference_(2.0),
     line_search_min_slope_difference_(0.05),
-    line_search_slope_difference_ratio_(0.06),
-    line_search_min_length_(0.015),
+    line_search_slope_difference_ratio_(0.1),
+    line_search_min_length_(0.014), //0.015
     line_min_length_(0.05),
-    obstacle_nominal_length_(0.11),
+    obstacle_nominal_length_(0.2),
     obstacles_frame_("laser"),
     visualization_frame_("laser"),
     visualize_(true),
+    upside_down_(true),
     lidar_offset_(0.2)
 {
     obstacles_pub_ = nh_.advertise<selfie_msgs::PolygonArray>("obstacles", 10);
@@ -41,6 +43,7 @@ bool ObstaclesGenerator::init()
     pnh_.getParam("visualize",visualize_);
     pnh_.getParam("obstacles_frame",obstacles_frame_);
     pnh_.getParam("visualization_frame",visualization_frame_);
+    pnh_.getParam("upside_down",upside_down_);
 
     pnh_.getParam("lidar_offset", lidar_offset_);
 
@@ -56,6 +59,8 @@ bool ObstaclesGenerator::init()
 
 void ObstaclesGenerator::laserScanCallback(const sensor_msgs::LaserScan& msg)
 {
+    auto begin = std::chrono::high_resolution_clock::now();
+    auto without_vis = std::chrono::high_resolution_clock::now();
     scan_ = msg;
     generateLines();
     if(!line_array_.empty())
@@ -64,11 +69,17 @@ void ObstaclesGenerator::laserScanCallback(const sensor_msgs::LaserScan& msg)
         deleteSmallLines();
     }
     generateObstacles();
+    without_vis = std::chrono::high_resolution_clock::now();
     if (visualize_)
         {
             visualizeLines();
             visualizeObstacles();
         }
+    auto end_of_callback = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> diff = without_vis - begin;
+ //   std::cout << "pure callback: " << diff.count() * 1000000<< " [microseconds]" << std::endl;
+    diff = end_of_callback - begin;
+ //   std::cout << "with visualization : " << diff.count() * 1000000 << " [microseconds]" << std::endl;
 }
 
 void ObstaclesGenerator::generateLines()
@@ -99,12 +110,12 @@ void ObstaclesGenerator::generateLines()
                     avg_act_line_slope = act_line_slope_sum;
                     last_fitted_point = act_point;
                 }
-                else 
+                else
                 {
                     act_line_length = getDistance(start_point, act_point);
                     if(line_slope_difference > line_search_min_slope_difference_)
                     {
-                        line_slope_difference = (line_search_min_slope_difference_ - line_search_max_slope_difference_) / line_search_slope_difference_ratio_ 
+                        line_slope_difference = (line_search_min_slope_difference_ - line_search_max_slope_difference_) / line_search_slope_difference_ratio_
                         * act_line_length + line_search_max_slope_difference_;
                         if(line_slope_difference < line_search_min_slope_difference_)
                             line_slope_difference = line_search_min_slope_difference_;
@@ -214,7 +225,7 @@ void ObstaclesGenerator::visualizeLines()
         marker_point.y = line_array_[i].end_point.y  * -1;
         marker.points.push_back(marker_point);
     }
-    visualization_lines_pub_.publish(marker);
+//    visualization_lines_pub_.publish(marker);
 }
 
 void ObstaclesGenerator::printInfoParams()
@@ -233,6 +244,8 @@ void ObstaclesGenerator::printInfoParams()
     ROS_INFO("visualize: %d",visualize_);
     ROS_INFO("obstacles_frame: %s",obstacles_frame_.c_str());
     ROS_INFO("visualization_frame: %s\n",visualization_frame_.c_str());
+
+    ROS_INFO("upside_down: %d", upside_down_);
 
     ROS_INFO("lidar_offset: %.3f",lidar_offset_);
 }
@@ -343,6 +356,18 @@ void ObstaclesGenerator::generateObstacles()
             obstacle.points.clear();
         }
     }
+    //convert from upside down to laser coords
+    if(upside_down_)
+    {
+        for(std::vector<geometry_msgs::Polygon>::iterator it = obstacle_array_.polygons.begin();it<obstacle_array_.polygons.end();it++)
+        {
+            for(std::vector<geometry_msgs::Point32>::iterator itp = (*it).points.begin();itp<(*it).points.end();itp++)
+            {
+                (*itp).y = -(*itp).y;
+            }
+        }
+    }
+    
     obstacles_pub_.publish(obstacle_array_);
 }
 
@@ -375,35 +400,44 @@ void ObstaclesGenerator::visualizeObstacles()
 
         marker_point.x = obstacle_array_.polygons[i].points[0].x;
         marker_point.y = obstacle_array_.polygons[i].points[0].y;
+        
         marker.points.push_back(marker_point);
 
         marker_point.x = obstacle_array_.polygons[i].points[1].x;
         marker_point.y = obstacle_array_.polygons[i].points[1].y;
+    
         marker.points.push_back(marker_point);
 
         marker_point.x = obstacle_array_.polygons[i].points[1].x;
         marker_point.y = obstacle_array_.polygons[i].points[1].y;
+        
         marker.points.push_back(marker_point);
 
         marker_point.x = obstacle_array_.polygons[i].points[2].x;
         marker_point.y = obstacle_array_.polygons[i].points[2].y;
+        
         marker.points.push_back(marker_point);
 
         marker_point.x = obstacle_array_.polygons[i].points[2].x;
         marker_point.y = obstacle_array_.polygons[i].points[2].y;
+        
         marker.points.push_back(marker_point);
 
         marker_point.x = obstacle_array_.polygons[i].points[3].x;
         marker_point.y = obstacle_array_.polygons[i].points[3].y;
+        
         marker.points.push_back(marker_point);
 
         marker_point.x = obstacle_array_.polygons[i].points[3].x;
         marker_point.y = obstacle_array_.polygons[i].points[3].y;
+        
         marker.points.push_back(marker_point);
 
         marker_point.x = obstacle_array_.polygons[i].points[0].x;
         marker_point.y = obstacle_array_.polygons[i].points[0].y;
+        
         marker.points.push_back(marker_point);
+
     }
     visualization_obstacles_pub_.publish(marker);
 }

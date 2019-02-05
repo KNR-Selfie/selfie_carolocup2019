@@ -1,0 +1,60 @@
+<launch>
+<!--
+  <node pkg="selfie_parking" type="parking_drive.py" name="parking_drive"/>
+ -->
+
+ <!--
+         pnh_.param<std::string>("ackermann_topic", ackermann_topic,"/sim_drive");
+        ackermann_pub = nh_.advertise<ackermann_msgs::AckermannDriveStamped>(ackermann_topic, 10);
+        pnh_.param<float>("min_spot_len", min_spot_len, 0.65);
+        pnh_.param<float>("speed", speed, 0.5);
+  -->
+
+  <node pkg="sick_tim" type="sick_tim551_2050001" name="sick_node">
+    <param name="min_ang" value="-1.8"/>
+    <param name="max_ang" value="1.8"/>
+  </node>
+
+  <node pkg="selfie_parking" type="mock_manager" name="parking_manager">
+    <param name="ackermann_topic" value="/drive"/>
+    <param name="min_spot_len" value="0.65"/>
+    <param name="speed" value="0.6"/>
+  </node>
+
+<!--
+  <node pkg="selfie_stm32_bridge" type="selfie_stm32_bridge" name="stm_bridge"/>
+-->
+  <include file="$(find selfie)/launch/transforms.launch" />
+
+  <node name="park_server" type="park_server" pkg="selfie_park" />
+
+  <node pkg="selfie_parking" type="parking_node" name="search_server" output="screen">
+    <param name="/point_min_x" value="-0.5"/>
+    <param name="/point_max_x" value="2"/>
+    <param name="/point_min_y" value="-0.7"/>
+    <param name="/point_max_y" value="0.1"/>
+    <param name="/debug_mode" value="true"/>
+    <param name="/distance_to_stop" value="0.2"/>
+    <param name="/visualization_type" value="13"/>
+    <param name="/scans_to_ignore_when_stopped" value="3"/>
+    <param name="/scans_taken" value="2"/>
+  </node>
+
+
+  <node pkg="selfie_odometry" type="selfie_odometry" name="odometry"/>
+
+  <node pkg="selfie_perception" type="detect_obstacles" name="selfie_obstacle_detector">
+    <param name="upside_down" value="false"/>
+    <param name="visualize" value="true" />
+    <param name="max_range" value="2.0"/>
+    <param name="min_range" value="0.05"/>
+    <param name="line_search_max_range_difference_" value="0.04"/>
+    <param name="line_search_max_slope_difference_" value="2.0"/>
+    <param name="line_search_min_slope_difference_" value="0.05"/>
+    <param name="line_search_slope_difference_ratio_" value="0.10"/>
+    <param name="line_search_min_length_" value="0.05"/>
+    <param name="line_min_length_" value="0.05"/>
+    <param name="obstacle_nominal_length_" value="0.4"/>
+  </node>
+
+</launch>

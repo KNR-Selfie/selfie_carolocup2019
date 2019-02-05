@@ -23,7 +23,6 @@ add_action_files(
  )
 
 generate_dynamic_reconfigure_options(
-  cfg/Speed.cfg
   cfg/HeadingCoeff.cfg
 )
 
