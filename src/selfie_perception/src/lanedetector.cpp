@@ -217,7 +217,7 @@ void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr &msg)
 			ROS_INFO("addBottomPoint ok");
 			linesApproximation(lanes_vector_converted_);
 			ROS_INFO("linesApproximation ok");
-			intersectionHandler();
+			//intersectionHandler();
 			ROS_INFO("intersectionHandler ok");
 			publishMarkings();
 			ROS_INFO("publishMarkings ok");
@@ -574,8 +574,8 @@ void LaneDetector::dynamicMask(cv::Mat &input_frame, cv::Mat &output_frame)
 {
 	dynamic_mask_ = cv::Mat::zeros(cv::Size(input_frame.cols, input_frame.rows), CV_8UC1);
 	int length;
-	float offset_right = -0.07;
-	float offset_left = 0.05;
+	float offset_right = -0.05;
+	float offset_left = 0.03;
 	output_frame = input_frame.clone();
 	if(right_line_index_ == -1)
 		offset_right = -0.14;
@@ -1408,10 +1408,10 @@ std::vector<float> LaneDetector::adjust(std::vector<float> good_poly_coeff, std:
 {
     std::vector<float> coeff;
 	float a,b, width;
-	if(line[1].y - line[line.size() - 1].y != 0)
+	if(line[1].y - line[line.size() / 3].y != 0)
 	{
-		a = -1 * (line[1].x - line[line.size() - 1].x) / (line[1].y - line[line.size() - 1].y);
-		b = line[line.size() / 2].y - a * line[line.size() / 2].x;
+		a = -1 * (line[1].x - line[line.size() / 3].x) / (line[1].y - line[line.size() / 3].y);
+		b = line[line.size() / 3].y - a * line[line.size() / 3].x;
 		
 		float delta = ((good_poly_coeff[1] - a) * (good_poly_coeff[1] - a)) - 4 * (good_poly_coeff[2] * (good_poly_coeff[0] - b));
 		float x1 = (-1 * (good_poly_coeff[1] - a) - sqrtf(delta)) / (2 * good_poly_coeff[2]);
@@ -1420,6 +1420,16 @@ std::vector<float> LaneDetector::adjust(std::vector<float> good_poly_coeff, std:
 		float y2 = a * x2 + b;
 		float dst1 = getDistance(cv::Point2f(x1,y1), line[line.size() / 2]);
 		float dst2 = getDistance(cv::Point2f(x2,y2), line[line.size() / 2]);
+
+		debug_containter_.clear();
+		cv::Point2f p;
+		p = line[1];
+		debug_containter_.push_back(p);
+			p.x = lanes_vector_converted_[i][0].x + 0.2;
+			p.y = a * p.x + b;
+			debug_containter_.push_back(p);
+			p = lanes_vector_converted_[j][0];
+			debug_containter_.push_back(p);
 
 		//check if nan
 		if(dst1 != dst1)
