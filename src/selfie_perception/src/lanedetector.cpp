@@ -45,7 +45,7 @@ LaneDetector::LaneDetector(const ros::NodeHandle &nh, const ros::NodeHandle &pnh
 	threshold_c_(-40),
 
 	intersection_distance_(-1),
-	dist_to_intersection_handle_(0.85),
+	dist_to_intersection_handle_(1),
 	intersection_handler_activated_(false),
 	encoder_probe_(0),
 	actual_encoder_distance_(0),
