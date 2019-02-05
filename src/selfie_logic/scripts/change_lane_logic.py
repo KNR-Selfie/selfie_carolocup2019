@@ -43,10 +43,10 @@ def stop_callback(msg):
 if __name__ == '__main__':
     rospy.init_node('change_lane_logic')
 
-    road_markings_sub = rospy.Subscriber('/vision/road_markings', RoadMarkings, road_markings_callback, queue_size=1)
-    obstacles_sub = rospy.Subscriber('/obstacles', PolygonArray, obstacles_callback, queue_size=1)
-    distance_sub = rospy.Subscriber('/distance', Float32, distance_callback, queue_size=1)
-    stop_sub = rospy.Subscriber('/stop', Bool, stop_callback, queue_size=1)
+    road_markings_sub = rospy.Subscriber('road_markings', RoadMarkings, road_markings_callback, queue_size=1)
+    obstacles_sub = rospy.Subscriber('obstacles', PolygonArray, obstacles_callback, queue_size=1)
+    distance_sub = rospy.Subscriber('distance', Float32, distance_callback, queue_size=1)
+    stop_sub = rospy.Subscriber('stop', Bool, stop_callback, queue_size=1)
 
 
 
