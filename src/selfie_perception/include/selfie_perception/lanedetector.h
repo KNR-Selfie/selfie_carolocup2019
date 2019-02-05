@@ -38,6 +38,7 @@ class LaneDetector
 	ros::Publisher lanes_pub_;
 	ros::Publisher intersection_pub_;
 	ros::Publisher starting_line_pub_;
+	ros::Subscriber distance_sub;
 
 	cv::Size topview_size_;
 	cv::Mat world2cam_;
@@ -71,6 +72,10 @@ class LaneDetector
 	std::vector<float> middle_coeff_;
 	std::vector<float> right_coeff_;
 
+	std::vector<float> intersection_left_coeff_;
+	std::vector<float> intersection_middle_coeff_;
+	std::vector<float> intersection_right_coeff_;
+
 	int left_line_index_;
 	int center_line_index_;
 	int right_line_index_;
@@ -79,6 +84,7 @@ class LaneDetector
 	bool short_right_line_;
 
 	void imageCallback(const sensor_msgs::ImageConstPtr &msg);
+	void distanceCallback(const std_msgs::Float32 &msg);
 	void computeTopView();
 	void openCVVisualization();
 	void mergeMiddleLane();
@@ -117,6 +123,7 @@ class LaneDetector
 	void removeHorizontalLines();
 	std::vector<cv::Point2f> createOffsetLine(std::vector<float> coeff, float offset);
 	void detectStartAndIntersectionLine();
+	void intersectionHandler();
 
 	float min_length_search_line_;
 	float min_length_lane_;
@@ -124,6 +131,12 @@ class LaneDetector
 	float min_length_to_aprox_;
 	float left_lane_width_;
 	float right_lane_width_;
+	float intersection_distance_;
+	bool intersection_handler_activated_;
+	float distance_covered_;
+	float encoder_probe_;
+	float actual_encoder_distance_;
+	int intersection_detection_count_;
 
 	std::string config_file_;
 	bool debug_mode_;
@@ -136,4 +149,6 @@ class LaneDetector
 	int treshold_block_size_;
 	float real_window_size_;
 	int threshold_c_;
+	float dist_to_intersection_handle_;
+	float distance_on_intersection_;
 };
