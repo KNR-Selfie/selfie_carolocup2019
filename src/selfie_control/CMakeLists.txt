@@ -45,3 +45,7 @@ add_dependencies(demo_position ${selfie_control_EXPORTED_TARGETS})
 add_executable(intersections src/intersections.cpp)
 target_link_libraries(intersections ${catkin_LIBRARIES})
 add_dependencies(intersections ${selfie_control_EXPORTED_TARGETS})
+
+add_executable(speed_control src/speed_control.cpp)
+target_link_libraries(speed_control ${catkin_LIBRARIES})
+add_dependencies(speed_control ${selfie_control_EXPORTED_TARGETS})

@@ -24,13 +24,15 @@ def road_markings_callback(msg):
 
     slope = c_poly.deriv()(c_x)
     theta = atan(slope)
+    curvature = abs(c_poly.deriv().deriv()(c_x)) / (1+c_poly.deriv()(c_x)**2)**1.5
 
     if atan2(c_y, x_shifted(c_x)) - theta > 0:
         c_dist = -c_dist
 
+
     heading_offset_pub.publish(-theta)
     position_offset_pub.publish(c_dist)
-
+    curvature_pub.publish(curvature)
 if __name__ == '__main__':
     rospy.init_node('extract_road_features')
 
@@ -42,8 +44,10 @@ if __name__ == '__main__':
     global lookahead
     lookahead = rospy.get_param('~lookahead', 0.0)
 
-    global heading_offset_pub, position_offset_pub
+    global heading_offset_pub, position_offset_pub, curvature_pub
     heading_offset_pub = rospy.Publisher('heading_offset', Float64, queue_size=1)
     position_offset_pub = rospy.Publisher('position_offset', Float64, queue_size=1)
+    curvature_pub = rospy.Publisher('curvature', Float64, queue_size=1)
+
 
     rospy.spin()
