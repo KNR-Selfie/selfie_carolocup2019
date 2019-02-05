@@ -2,7 +2,7 @@
   <arg name="homography_file" />
   <arg name="lookahead" />
 
-  <node name="detect_markings" type="detect_markings" pkg="selfie_perception">
+  <node name="detect_markings" type="detect_markings" pkg="selfie_perception" respawn="true">
     <param name="config_file" value="$(arg homography_file)" />
   </node>
 
