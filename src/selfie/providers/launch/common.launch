@@ -78,6 +78,7 @@
     <remap from="starting_line" to="/vision/starting_line" />
     <remap from="search" to="/parking/search" />
     <remap from="park" to="/parking/park" />
+    <remap from="parking_speed_limit" to="/lane_control/speed_limit" />
 
     <node name="drive_mux" type="mux" pkg="topic_tools"
           args="/stm32/drive
@@ -96,7 +97,6 @@
                 /starting_procedure/right_turn_indicator
                 /lane_control/right_turn_indicator
                 /parking/right_turn_indicator" />
-
 
     <node name="pass_control" type="pass_control" pkg="selfie">
       <param name="num_parking_maneuvers" value="$(arg num_parking_maneuvers)" />

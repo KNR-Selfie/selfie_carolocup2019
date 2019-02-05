@@ -3,7 +3,7 @@
 import rospy
 import actionlib
 
-from std_msgs.msg import Bool, Float32
+from std_msgs.msg import Bool, Float32, Float64
 from topic_tools.srv import MuxSelect
 from std_srvs.srv import Empty
 
@@ -38,6 +38,9 @@ def starting_line_callback(msg):
     if msg.data > starting_line_dist_threshold: return
 
     rospy.loginfo('Searching for a parking spot')
+
+    speed_limit_pub.publish(parking_speed_limit)
+
     search_goal = SearchGoal()
     search_goal.min_spot_lenght = min_spot_len
 
@@ -64,6 +67,8 @@ def starting_line_callback(msg):
     else:
         rospy.loginfo('Parking spot not found, aborting')
 
+    speed_limit_pub.publish(float('inf'))
+
 if __name__ == '__main__':
     rospy.init_node('pass_control')
 
@@ -71,6 +76,7 @@ if __name__ == '__main__':
     global remaining_parking_maneuvers, starting_line_dist_threshold, search_timeout, park_timeout, min_spot_len
     remaining_parking_maneuvers  = rospy.get_param('~num_parking_maneuvers',        0)
     starting_line_dist_threshold = rospy.get_param('~starting_line_dist_threshold', 0.5)
+    parking_speed_limit          = rospy.get_param('~parking_speed_limit',          1.5)
     search_timeout               = rospy.get_param('~search_timeout',               50)
     park_timeout                 = rospy.get_param('~park_timeout',                 30)
     min_spot_len                 = rospy.get_param('~min_spot_len',                 0.65)
@@ -93,7 +99,7 @@ if __name__ == '__main__':
     rospy.Subscriber('attempt_started', Bool, attempt_started_callback)
 
     # Initialize parking
-    global search_for_spot_client, park_client
+    global search_for_spot_client, park_client, speed_limit_pub
     if remaining_parking_maneuvers > 0:
         rospy.loginfo('Waiting for action servers')
         search_client = actionlib.SimpleActionClient('search', SearchAction)
@@ -102,6 +108,7 @@ if __name__ == '__main__':
         park_client = actionlib.SimpleActionClient('park', ParkAction)
         park_client.wait_for_server()
 
+        speed_limit_pub = rospy.Publisher('parking_speed_limit', Float64, queue_size=1)
         rospy.Subscriber('starting_line', Float32, starting_line_callback)
 
     rospy.loginfo('System initialized, passing control to /starting_procedure')

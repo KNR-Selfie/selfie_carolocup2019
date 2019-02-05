@@ -23,7 +23,14 @@
   <node name="cmd_converter" type="cmd_converter.py" pkg="selfie_control" />
 
   <node name="const_speed" type="const_float64.py" pkg="selfie_control">
-    <param name="topic" value="target_speed" />
+    <param name="topic" value="max_speed" />
     <param name="value" value="3.0" />
+  </node>
+
+  <node name="speed_limit" type="min_float64.py" pkg="selfie_control">
+    <param name="in_topic1" value="max_speed" />
+    <param name="in_topic2" value="speed_limit" />
+    <param name="out_topic" value="target_speed" />
+    <param name="default_value" value="100" />
   </node>
 </launch>
