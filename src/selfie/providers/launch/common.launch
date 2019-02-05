@@ -56,6 +56,7 @@
     <remap from="position_offset" to="/lane_control/position_offset" />
     <remap from="heading_offset" to="/lane_control/heading_offset" />
     <remap from="reset_vision_request" to="/stm32/reset_vision" />
+    <remap from="/distance" to="/stm32/distance" />
 
     <include file="$(find selfie)/launch/subsystems/vision.launch">
       <arg name="homography_file" value="$(arg homography_file)" />

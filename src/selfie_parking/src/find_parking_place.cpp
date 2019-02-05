@@ -105,9 +105,16 @@ void Parking::manager(const selfie_msgs::PolygonArray &msg)
       if(place_found && dist <= distance_to_stop)
       {
         feedback_msg.info = "place found, waiting to get exact measurements";
-        state = planning;
+        state = parking;
         display_free_place();
         planning_scan_counter = 0;
+        for_planning.push_back(first_free_place);
+        state = parking;
+
+        first_free_place.bottom_right.y = first_free_place.bottom_left.y + 30;
+        first_free_place.top_right.y = first_free_place.top_left.y + 30;
+        first_free_place.print_box_dimensions();
+        send_goal();
         ROS_DEBUG( "state switched to planning");
       }
       else
