@@ -134,7 +134,6 @@ class ChangeLaneClass:
         #main methode to change lane
 
         self.check_polygons()
-        rospy.loginfo("Pts: %d", self.normal_drive)
 
         if self.stop_call ==False:
             #right lane and points in front - start changing
@@ -153,13 +152,13 @@ class ChangeLaneClass:
             #right lane and no points in front 
             elif self.normal_drive ==0 and self.box_right==0:
                 self.once_detected -=1
-                if (self.once_detected < 0):
+                if self.once_detected < 0:
                     self.once_detected  = 0
             #left lane and some points on right
             elif self.normal_drive ==1 and self.box_right>0:
-                if (self.once_detected < 0):
-                    self.once_detected  = 0
                 self.once_detected -=1
+                if self.once_detected < 0)
+                    self.once_detected  = 0
                 self.get_change_distance = 0
             #left lane and no points on right - start changing back
             elif self.normal_drive ==1 and self.box_right ==0:

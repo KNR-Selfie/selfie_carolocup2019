@@ -57,7 +57,7 @@ if __name__ == '__main__':
     CLC.fraction = rospy.get_param('~fraction', 0.3)
     CLC.threshold_normal = rospy.get_param('~thresh_normal', 2)
     CLC.threshold_anormal = rospy.get_param('~thresh_anormal', 2)
-    CLC.tests = rospy.get_param('~tests', True)
+    CLC.tests = rospy.get_param('~tests', False)
 
     rospy.loginfo("Parameters:")
     rospy.loginfo("border_x = %f, border_y = %f",CLC.border_distance_x, CLC.border_distance_y)
