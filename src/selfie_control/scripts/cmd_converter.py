@@ -4,7 +4,6 @@ import rospy
 
 from std_msgs.msg import Float64
 from ackermann_msgs.msg import AckermannDriveStamped
-from selfie_control.cfg import SpeedConfig
 
 UPDATE_RATE = 50
 
