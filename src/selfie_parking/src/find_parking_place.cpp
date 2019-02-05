@@ -56,14 +56,14 @@ void Parking::manager_init()
 }
 
 void Parking::manager(const selfie_msgs::PolygonArray &msg)
-{ 
+{
   // to save cpu time just do nothing when new scan comes
  if(!search_server_.isActive())
   {
     ROS_INFO_THROTTLE(1,"server is not active!");
     return;
   }
-  
+
   ROS_INFO("ok");
   if(state == planning_failed)
   {
@@ -109,6 +109,19 @@ void Parking::manager(const selfie_msgs::PolygonArray &msg)
         display_free_place();
         planning_scan_counter = 0;
         ROS_WARN( "state switched to planning");
+  //      for_planning.push_back(first_free_place);
+
+
+  //      get_exact_measurements();
+
+        first_free_place.bottom_right.y = first_free_place.bottom_left.y+30;
+        first_free_place.top_right.y = first_free_place.top_left.y+30;
+        planning_scan_counter = 0;
+
+        state = parking;
+        first_free_place.print_box_dimensions();
+        send_goal();
+        ROS_WARN("state swiched to parking");
       }
       else
         feedback_msg.info = "place too far";
@@ -141,13 +154,13 @@ void Parking::manager(const selfie_msgs::PolygonArray &msg)
         // ros::Duration(0.5).sleep();
         // takes the vector of laser scans and aproximates real parking place dimensions
         get_exact_measurements();
-        planning_scan_counter = 0; 
+        planning_scan_counter = 0;
 
         for_planning.clear();
         state = parking;
         first_free_place.print_box_dimensions();
         send_goal();
-        ROS_WARN("state swiched to parking");  
+        ROS_WARN("state swiched to parking");
       }//end place was ok, send result
 
       if(planning_error_counter >= scans_taken)
@@ -373,7 +386,7 @@ void Parking::search(const selfie_msgs::PolygonArray &msg)
 }//obstacle_callback
 
 double inline Parking::get_dist_from_first_free_place()
-{ 
+{
   return first_free_place.bottom_left.x;
 }
 
