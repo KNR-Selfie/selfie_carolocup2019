@@ -7,7 +7,7 @@ from scipy.optimize import minimize
 from numpy.polynomial.polynomial import Polynomial
 
 from selfie_msgs.msg import RoadMarkings
-from std_msgs.msg import Float64, Float32, UInt16
+from std_msgs.msg import Float64, Float32, UInt16, Bool
 from selfie_msgs.msg import PolygonArray
 from ChangeLaneClass import ChangeLaneClass
 from geometry_msgs.msg import Polygon, PolygonStamped
@@ -34,6 +34,9 @@ def obstacles_callback(msg):
     for box_nr in range (len(msg.polygons)-1, 0, -1):    
         CLC.polygons.append(msg.polygons[box_nr])
 
+def stop_callback(msg):
+  CLC.stop_call = msg.data
+
 
 
     
@@ -43,15 +46,18 @@ if __name__ == '__main__':
     road_markings_sub = rospy.Subscriber('road_markings', RoadMarkings, road_markings_callback, queue_size=1)
     obstacles_sub = rospy.Subscriber('obstacles', PolygonArray, obstacles_callback, queue_size=1)
     distance_sub = rospy.Subscriber('distance', Float32, distance_callback, queue_size=1)
+    stop_sub = rospy.Subscriber('stop', Bool, stop_callback, queue_size=1)
     
+  
+
     change_lane_pub = rospy.Publisher('box_right', UInt16, queue_size=1)
    
-    CLC.border_distance_x = rospy.get_param('~border_x', 1.1)
-    CLC.border_distance_y = rospy.get_param('~border_y', 0.7)
+    CLC.border_distance_x = rospy.get_param('~border_x', 0.8)
+    CLC.border_distance_y = rospy.get_param('~border_y', 0.5)
     CLC.fraction = rospy.get_param('~fraction', 0.3)
-    CLC.threshold_normal = rospy.get_param('~thresh_normal', 3)
-    CLC.threshold_anormal = rospy.get_param('~thresh_anormal', 3)
-    CLC.tests = rospy.get_param('~tests', False)
+    CLC.threshold_normal = rospy.get_param('~thresh_normal', 2)
+    CLC.threshold_anormal = rospy.get_param('~thresh_anormal', 2)
+    CLC.tests = rospy.get_param('~tests', True)
 
     rospy.loginfo("Parameters:")
     rospy.loginfo("border_x = %f, border_y = %f",CLC.border_distance_x, CLC.border_distance_y)
