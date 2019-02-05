@@ -1,0 +1,15 @@
+<launch>
+  <node name="park_server" type="park_server" pkg="selfie_park" />
+
+  <node name="search_server" type="parking_node" pkg="selfie_parking">
+    <param name="/point_min_x" value="-0.5"/>
+    <param name="/point_max_x" value="2"/>
+    <param name="/point_min_y" value="-0.5"/>
+    <param name="/point_max_y" value="0.1"/>
+    <param name="/debug_mode" value="true"/>
+    <param name="/distance_to_stop" value="0.2"/>
+    <param name="/visualization_type" value="13"/>
+    <param name="/scans_to_ignore_when_stopped" value="3"/>
+    <param name="/scans_taken" value="2"/>
+  </node>
+</launch>

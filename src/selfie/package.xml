@@ -64,6 +64,7 @@
   <exec_depend>selfie_perception</exec_depend>
   <exec_depend>selfie_stm32_bridge</exec_depend>
   <exec_depend>libuvc_camera</exec_depend>
+  <exec_depend>sick_tim</exec_depend>
 
   <exec_depend>rospy</exec_depend>
   <exec_depend>capabilities</exec_depend>

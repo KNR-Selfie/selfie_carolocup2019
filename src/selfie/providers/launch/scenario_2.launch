@@ -1,3 +1,9 @@
 <launch>
-  <include file="$(find selfie)/providers/launch/common.launch" />
+  <remap from="/distance" to="/stm32/distance" />
+  <remap from="/imu" to="/stm32/imu" />
+  <remap from="/drive" to="/stm32/drive" />
+  <remap from="/left_turn_indicator" to="/stm32/left_turn_indicator" />
+  <remap from="/right_turn_indicator" to="/stm32/right_turn_indicator" />
+
+  <include file="$(find selfie_parking)/launch/parking.launch" />
 </launch>

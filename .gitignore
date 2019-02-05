@@ -5,6 +5,7 @@ bin/
 lib/
 msg_gen/
 srv_gen/
+src/selfie_carolocup2019_simulator
 msg/*Action.msg
 msg/*ActionFeedback.msg
 msg/*ActionGoal.msg
@@ -17,6 +18,7 @@ build_isolated/
 devel_isolated/
 install/
 rosbag/
+.vscode/
 
 #qt_ros project
 *.workspace

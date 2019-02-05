@@ -1,10 +1,16 @@
 #!/usr/bin/env python
 
 import rospy
+import actionlib
 
-from std_msgs.msg import Bool
+from std_msgs.msg import Bool, Float32
 from topic_tools.srv import MuxSelect
 from std_srvs.srv import Empty
+
+from selfie_msgs.msg import searchAction as SearchAction
+from selfie_msgs.msg import searchGoal as SearchGoal
+from selfie_park.msg import parkAction as ParkAction
+from selfie_park.msg import parkGoal as ParkGoal
 
 attempt_started = False
 
@@ -24,8 +30,53 @@ def attempt_started_callback(msg):
         reset_vision()
         pass_control('/lane_control')
 
+def starting_line_callback(msg):
+    global remaining_parking_maneuvers
+
+    if not attempt_started: return
+    if not remaining_parking_maneuvers > 0: return
+    if msg.data > starting_line_dist_threshold: return
+
+    rospy.loginfo('Searching for a parking spot')
+    search_goal = SearchGoal()
+    search_goal.min_spot_lenght = min_spot_len
+
+    search_client.send_goal(search_goal)
+    if search_client.wait_for_result(search_timeout):
+        rospy.loginfo('Parking spot found, starting maneuver')
+        parking_spot = search_client.get_result().parking_spot
+        remaining_parking_maneuvers -= 1
+
+        park_goal = ParkGoal()
+        park_goal.parking_spot = parking_spot
+
+        pass_control('/parking')
+        park_client.send_goal(park_goal)
+        park_client.wait_for_result(park_timeout)
+
+        if park_client.wait_for_result():
+            rospy.loginfo('Parking maneuver sucessful')
+        else:
+            rospy.loginfo('Parking maneuver failed')
+
+        reset_vision()
+        pass_control('/lane_control')
+    else:
+        rospy.loginfo('Parking spot not found, aborting')
+
 if __name__ == '__main__':
     rospy.init_node('pass_control')
+
+    # Parking-related parameters
+    global remaining_parking_maneuvers, starting_line_dist_threshold, search_timeout, park_timeout, min_spot_len
+    remaining_parking_maneuvers  = rospy.get_param('~num_parking_maneuvers',        0)
+    starting_line_dist_threshold = rospy.get_param('~starting_line_dist_threshold', 0.5)
+    search_timeout               = rospy.get_param('~search_timeout',               50)
+    park_timeout                 = rospy.get_param('~park_timeout',                 30)
+    min_spot_len                 = rospy.get_param('~min_spot_len',                 0.65)
+
+    search_timeout = rospy.rostime.Duration(search_timeout)
+    park_timeout = rospy.rostime.Duration(park_timeout)
 
     rospy.loginfo('Waiting for services')
     rospy.wait_for_service('drive_mux/select')
@@ -39,7 +90,19 @@ if __name__ == '__main__':
     select_right_turn_indicator = rospy.ServiceProxy('right_turn_indicator_mux/select', MuxSelect)
     reset_vision                = rospy.ServiceProxy('reset_vision',                    Empty)
 
-    rospy.Subscriber('attempt_started',       Bool, attempt_started_callback)
+    rospy.Subscriber('attempt_started', Bool, attempt_started_callback)
+
+    # Initialize parking
+    global search_for_spot_client, park_client
+    if remaining_parking_maneuvers > 0:
+        rospy.loginfo('Waiting for action servers')
+        search_client = actionlib.SimpleActionClient('search', SearchAction)
+        search_client.wait_for_server()
+
+        park_client = actionlib.SimpleActionClient('park', ParkAction)
+        park_client.wait_for_server()
+
+        rospy.Subscriber('starting_line', Float32, starting_line_callback)
 
     rospy.loginfo('System initialized, passing control to /starting_procedure')
     pass_control('/starting_procedure')

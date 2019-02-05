@@ -1,0 +1,11 @@
+<library path="lib/libselfie_obstacle_detection">
+
+  <class name="selfie_obstacle_detection/remove_background"
+	 type="selfie_obstacle_detection::RemoveBackgroundNodelet"
+	 base_class_type="nodelet::Nodelet">
+    <description>
+      Nodelet to filter incoming laser scans such that only candidate obstacles are left out.
+    </description>
+  </class>
+
+</library>
