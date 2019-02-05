@@ -30,7 +30,7 @@ ObstaclesGenerator::~ObstaclesGenerator()
 
 bool ObstaclesGenerator::init()
 {
-    scan_sub_ = nh_.subscribe("/lidar/scan", 10, &ObstaclesGenerator::laserScanCallback, this);
+    scan_sub_ = nh_.subscribe("/scan", 10, &ObstaclesGenerator::laserScanCallback, this);
     pnh_.getParam("max_range",max_range_);
     pnh_.getParam("min_range",min_range_);
     pnh_.getParam("line_search_max_range_difference",line_search_max_range_difference_);
@@ -367,7 +367,7 @@ void ObstaclesGenerator::generateObstacles()
             }
         }
     }
-    
+
     obstacles_pub_.publish(obstacle_array_);
 }
 
@@ -400,42 +400,42 @@ void ObstaclesGenerator::visualizeObstacles()
 
         marker_point.x = obstacle_array_.polygons[i].points[0].x;
         marker_point.y = obstacle_array_.polygons[i].points[0].y;
-        
+
         marker.points.push_back(marker_point);
 
         marker_point.x = obstacle_array_.polygons[i].points[1].x;
         marker_point.y = obstacle_array_.polygons[i].points[1].y;
-    
+
         marker.points.push_back(marker_point);
 
         marker_point.x = obstacle_array_.polygons[i].points[1].x;
         marker_point.y = obstacle_array_.polygons[i].points[1].y;
-        
+
         marker.points.push_back(marker_point);
 
         marker_point.x = obstacle_array_.polygons[i].points[2].x;
         marker_point.y = obstacle_array_.polygons[i].points[2].y;
-        
+
         marker.points.push_back(marker_point);
 
         marker_point.x = obstacle_array_.polygons[i].points[2].x;
         marker_point.y = obstacle_array_.polygons[i].points[2].y;
-        
+
         marker.points.push_back(marker_point);
 
         marker_point.x = obstacle_array_.polygons[i].points[3].x;
         marker_point.y = obstacle_array_.polygons[i].points[3].y;
-        
+
         marker.points.push_back(marker_point);
 
         marker_point.x = obstacle_array_.polygons[i].points[3].x;
         marker_point.y = obstacle_array_.polygons[i].points[3].y;
-        
+
         marker.points.push_back(marker_point);
 
         marker_point.x = obstacle_array_.polygons[i].points[0].x;
         marker_point.y = obstacle_array_.polygons[i].points[0].y;
-        
+
         marker.points.push_back(marker_point);
 
     }
