@@ -1,3 +1,11 @@
 <launch>
   <include file="$(find selfie)/providers/launch/common.launch"/>
+
+  <group ns="obstacle_evasion">
+    <remap from="road_markings" to="/vision/road_markings" />
+    <remap from="obstacles" to="/obstacle_detection/obstacles" />
+    <remap from="distance" to="/stm32/distance" />
+    <remap from="change_lane" to="/lane_control/change_lane" />
+    <node name="obstacle_evasion" type="change_lane_logic.py" pkg="selfie_logic" />
+  </group>
 </launch>

@@ -49,6 +49,8 @@ class ChangeLaneClass:
 
         self.tests = False
 
+        self.stop_call = False
+
     def create_client(self):
         self.client = actionlib.SimpleActionClient('change_lane', selfie_control.msg.ChangeLaneAction)
         rospy.loginfo("Wait for connecting to server")
@@ -134,43 +136,44 @@ class ChangeLaneClass:
         self.check_polygons()
         #rospy.loginfo("Pts: %d", self.box_right)
 
-        #right lane and points in front - start changing
-        if self.normal_drive ==0 and self.box_right>0:
-            if self.once_detected < self.threshold_normal:
-                self.once_detected += 1
-            else:
-                self.start_distance = self.distance
-                if self.tests == False:
-                    goal = selfie_control.msg.ChangeLaneGoal(left_lane=True)
-                    self.client.send_goal(goal)
-                    self.client.wait_for_result()
-                self.once_detected = 0
-                self.normal_drive = 1
-        #right lane and no points in front 
-        elif self.normal_drive ==0 and self.box_right==0:
-            self.once_detected =0
-        #left lane and some points on right
-        elif self.normal_drive ==1 and self.box_right>0:
-            self.once_detected = 0
-            self.get_change_distance = 0
-        #left lane and no points on right - start changing back
-        elif self.normal_drive ==1 and self.box_right ==0:
-            if self.once_detected < self.threshold_anormal:
-                self.once_detected += 1
-            elif self.get_change_distance ==0:
-                self.change_distance = self.distance - self.start_distance
-                self.start_back_distance = self.distance
-                self.get_change_distance = 1
-            elif self.get_change_distance ==1:
-                if self.distance-self.start_back_distance>self.change_distance*self.fraction:
+        if self.stop_call ==False:
+            #right lane and points in front - start changing
+            if self.normal_drive ==0 and self.box_right>0:
+                if self.once_detected < self.threshold_normal:
+                    self.once_detected += 1
+                else:
+                    self.start_distance = self.distance
                     if self.tests == False:
-                        goal = selfie_control.msg.ChangeLaneGoal(left_lane=False)
+                        goal = selfie_control.msg.ChangeLaneGoal(left_lane=True)
                         self.client.send_goal(goal)
                         self.client.wait_for_result()
-
-                    self.normal_drive = 0
                     self.once_detected = 0
-                    self.get_change_distance = 0
+                    self.normal_drive = 1
+            #right lane and no points in front 
+            elif self.normal_drive ==0 and self.box_right==0:
+                self.once_detected -=1
+            #left lane and some points on right
+            elif self.normal_drive ==1 and self.box_right>0:
+                self.once_detected -=1
+                self.get_change_distance = 0
+            #left lane and no points on right - start changing back
+            elif self.normal_drive ==1 and self.box_right ==0:
+                if self.once_detected < self.threshold_anormal:
+                    self.once_detected += 1
+                elif self.get_change_distance ==0:
+                    self.change_distance = self.distance - self.start_distance
+                    self.start_back_distance = self.distance
+                    self.get_change_distance = 1
+                elif self.get_change_distance ==1:
+                    if self.distance-self.start_back_distance>self.change_distance*self.fraction:
+                        if self.tests == False:
+                            goal = selfie_control.msg.ChangeLaneGoal(left_lane=False)
+                            self.client.send_goal(goal)
+                            self.client.wait_for_result()
+
+                        self.normal_drive = 0
+                        self.once_detected = 0
+                        self.get_change_distance = 0
                 
 
 

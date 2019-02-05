@@ -41,3 +41,7 @@ add_dependencies(demo_change_lane ${selfie_control_EXPORTED_TARGETS})
 add_executable(demo_position src/demo_position.cpp)
 target_link_libraries(demo_position ${catkin_LIBRARIES})
 add_dependencies(demo_position ${selfie_control_EXPORTED_TARGETS})
+
+add_executable(intersections src/intersections.cpp)
+target_link_libraries(intersections ${catkin_LIBRARIES})
+add_dependencies(intersections ${selfie_control_EXPORTED_TARGETS})
