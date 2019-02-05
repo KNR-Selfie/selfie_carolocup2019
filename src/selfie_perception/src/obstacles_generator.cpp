@@ -30,7 +30,7 @@ ObstaclesGenerator::~ObstaclesGenerator()
 
 bool ObstaclesGenerator::init()
 {
-    scan_sub_ = nh_.subscribe("/scan", 10, &ObstaclesGenerator::laserScanCallback, this);
+    scan_sub_ = nh_.subscribe("/lidar/scan", 10, &ObstaclesGenerator::laserScanCallback, this);
     pnh_.getParam("max_range",max_range_);
     pnh_.getParam("min_range",min_range_);
     pnh_.getParam("line_search_max_range_difference",line_search_max_range_difference_);
