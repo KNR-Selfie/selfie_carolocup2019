@@ -17,14 +17,15 @@
 #include <std_msgs/Bool.h>
 
 #define ODOM_TO_FRONT 0.18
-#define ODOM_TO_BACK -0.33
+#define ODOM_TO_BACK -0.30
 #define ODOM_TO_LASER -0.03
 #define CAR_WIDTH 0.22
-#define PARKING_SPEED 0.3
+
 #define MAX_TURN 0.8
 
 class ParkService
 {
+    //
     public:
     ParkService(const ros::NodeHandle &nh, const ros::NodeHandle &pnh);
 
@@ -93,6 +94,7 @@ class ParkService
     float leaving_target;
 
 
+
     enum Move_State
 	{
 		first_phase=0,
@@ -121,4 +123,5 @@ class ParkService
     bool visualize;
     float max_rot;
     float dist_turn;
+    float PARKING_SPEED;
 };
