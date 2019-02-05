@@ -12,6 +12,7 @@ class Intersections
 	ros::Subscriber line_sub;
 	ros::Publisher stop_pub;
 	
+	
 
 	void line_callback(const std_msgs::Float64 &msg);
 	void distance_callback(const std_msgs::Float64 &msg);

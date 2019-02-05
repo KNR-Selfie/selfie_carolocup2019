@@ -8,16 +8,16 @@ pnh_(pnh)
 	pnh_.param<float>("min_timeout", min_timeout, 3.0);
 	pnh_.param<bool>("use_scan", use_scan, false);
 	pnh_.param<float>("no_line_distance", no_line_distance, 2.0);
+	line_sub = nh_.subscribe("intersections", 10, &Intersections::line_callback, this);
+	distance_sub = nh_.subscribe("distance", 10, &Intersections::distance_callback, this);
 
 
-	state = line_ahead;
-
-	///
-	min_timeout = 3.0;
+	state = no_intersection;
 }
 
 void Intersections::line_callback(const std_msgs::Float64 &msg)
 {
+	std::cout<<"line_callback"<<std::endl;
 	if(state==no_intersection || state == line_ahead)
 	{
 		last_line_distance = msg.data;
@@ -30,6 +30,7 @@ void Intersections::line_callback(const std_msgs::Float64 &msg)
 }
 void Intersections::distance_callback(const std_msgs::Float64 &msg)
 {
+	std::cout<<"distance_callback"<<std::endl;
 	actual_distance = msg.data;
 }
 void Intersections::iter()
@@ -38,14 +39,18 @@ void Intersections::iter()
 	switch(state)
 	{
 		case no_intersection:
+		//std::cout<<"no_intersection"<<std::endl;
 		send_stop(false);
 		break;
 
 		case line_ahead:
+		
 		send_stop(false);
 		actual_distance_to_line = last_line_distance - (actual_distance - last_line_see_distance);
+		std::cout<<"line_ahead "<<actual_distance_to_line<<std::endl;
 		if(actual_distance_to_line < stop_distance)
 		{
+			
 			state = standing;
 			
 			standing_start_time = ros::Time::now();
