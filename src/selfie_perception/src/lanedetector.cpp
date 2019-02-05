@@ -41,14 +41,14 @@ LaneDetector::LaneDetector(const ros::NodeHandle &nh, const ros::NodeHandle &pnh
 	short_center_line_(false),
 	short_right_line_(false),
 
-	real_window_size_(0.1),
+	real_window_size_(0.13),
 	threshold_c_(-40),
 	intersection_distance_(-1),
 	dist_to_intersection_handle_(0.85),
 	intersection_handler_activated_(false),
 	encoder_probe_(0),
 	actual_encoder_distance_(0),
-	distance_on_intersection_(1.2),
+	distance_on_intersection_(1.45),
 	intersection_detection_count_(0)
 {
 	lanes_pub_ =  nh_.advertise<selfie_msgs::RoadMarkings>("road_markings", 100);
@@ -123,11 +123,9 @@ void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr &msg)
 		return;
 	}
 	homography(current_frame_, homography_frame_);
-	ROS_INFO("homography ok");
 	//removeCar(homography_frame_);
 
 	cv::adaptiveThreshold(homography_frame_, binary_frame_, 255, cv::ADAPTIVE_THRESH_MEAN_C, CV_THRESH_BINARY, treshold_block_size_, threshold_c_);
-	ROS_INFO("adaptiveThreshold ok");
 	
 	if(!init_imageCallback_)
 	{
@@ -135,14 +133,10 @@ void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr &msg)
 		if(debug_mode_)
 			cv::bitwise_and(homography_frame_,dynamic_mask_, homography_frame_);
 
-		ROS_INFO("dynamicMask ok");
 		//remove ROI inside left and right lane
 		ROILaneRight(masked_frame_, masked_frame_);
-		ROS_INFO("ROILaneRight ok");
 		ROILaneLeft(masked_frame_, masked_frame_);
-		ROS_INFO("ROILaneLeft ok");
 		detectStartAndIntersectionLine();
-		ROS_INFO("detectStartAndIntersectionLine ok");
 	}
 	else
 		masked_frame_ = binary_frame_.clone();
@@ -152,7 +146,6 @@ void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr &msg)
 	cv::filter2D(masked_frame_, canny_frame_, -1, kernel_v_, cv::Point(-1, -1), 0, cv::BORDER_DEFAULT);
 
 	detectLines(canny_frame_, lanes_vector_);
-	ROS_INFO("detectLines ok");
 	if(lanes_vector_.empty())
 	{
 		left_line_index_ = -1;
@@ -161,27 +154,22 @@ void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr &msg)
 		return;
 	}
 	convertCoordinates();
-	ROS_INFO("convertCoordinates ok");
 	filterSmallLines();
-	ROS_INFO("filterSmallLines ok");
 	if(!lanes_vector_converted_.empty())
 	{
 		//removeHorizontalLines();
 		mergeMiddleLane();
-		ROS_INFO("mergeMiddleLane ok");
 		
 		if (debug_mode_)
 		{
 			debug_frame_.rows = homography_frame_.rows;
 			debug_frame_.cols = homography_frame_.cols;
 			lanesVectorVisualization(debug_frame_);
-			ROS_INFO("lanesVectorVisualization ok");
 		}
 
 		if(init_imageCallback_)
 		{
 			initRecognizeLines();
-			ROS_INFO("initRecognizeLines ok");
 			int l = 0,c = 0,r = 0;
 			if(left_line_index_ != -1)
 				if(cv::arcLength(lanes_vector_converted_[left_line_index_], false) > min_length_to_aprox_)
@@ -198,29 +186,20 @@ void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr &msg)
 			if((l + r + c) > 1)
 			{
 				linesApproximation(lanes_vector_converted_);
-				ROS_INFO("linesApproximation ok");
 				init_imageCallback_ = false;
 			}
 		}
 		else
 		{
 			recognizeLines();
-			ROS_INFO("recognizeLines ok");
 			//filterPoints();
 			generatePoints();
-			ROS_INFO("generatePoints ok");
 			
 			calcRoadWidth();
-			ROS_INFO("calcRoadWidth ok");
-			ROS_INFO("left_width: %.4f     right_width: %.4f", left_lane_width_, right_lane_width_);
 			addBottomPoint();
-			ROS_INFO("addBottomPoint ok");
 			linesApproximation(lanes_vector_converted_);
-			ROS_INFO("linesApproximation ok");
-			//intersectionHandler();
-			ROS_INFO("intersectionHandler ok");
+			intersectionHandler();
 			publishMarkings();
-			ROS_INFO("publishMarkings ok");
 		}
 	}
 
@@ -230,22 +209,18 @@ void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr &msg)
 		visualization_frame_.cols = homography_frame_.cols;
 
 		convertApproxToFrameCoordinate();
-		ROS_INFO("convertApproxToFrameCoordinate ok");
 		drawPoints(visualization_frame_);
-		ROS_INFO("drawPoints ok");
 
 		openCVVisualization();
-		ROS_INFO("openCVVisualization ok");
 		aproxVisualization();
-		ROS_INFO("aproxVisualization ok");
 		pointsRVIZVisualization();
-		ROS_INFO("pointsRVIZVisualization ok");
 	}
 }
 
 bool LaneDetector::resetVisionCallback(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response)
 {
     init_imageCallback_ = true;
+	ROS_INFO("RESET VISION");
     return true;
 }
 
@@ -1408,28 +1383,18 @@ std::vector<float> LaneDetector::adjust(std::vector<float> good_poly_coeff, std:
 {
     std::vector<float> coeff;
 	float a,b, width;
-	if(line[1].y - line[line.size() / 3].y != 0)
+	if(line[1].y - line[line.size() - 1].y != 0)
 	{
-		a = -1 * (line[1].x - line[line.size() / 3].x) / (line[1].y - line[line.size() / 3].y);
-		b = line[line.size() / 3].y - a * line[line.size() / 3].x;
+		a = -1 * (line[1].x - line[line.size() - 1].x) / (line[1].y - line[line.size() - 1].y);
+		b = line[line.size() - 1].y - a * line[line.size() - 1].x;
 		
 		float delta = ((good_poly_coeff[1] - a) * (good_poly_coeff[1] - a)) - 4 * (good_poly_coeff[2] * (good_poly_coeff[0] - b));
 		float x1 = (-1 * (good_poly_coeff[1] - a) - sqrtf(delta)) / (2 * good_poly_coeff[2]);
 		float x2 = (-1 * (good_poly_coeff[1] - a) + sqrtf(delta)) / (2 * good_poly_coeff[2]);
 		float y1 = a * x1 + b;
 		float y2 = a * x2 + b;
-		float dst1 = getDistance(cv::Point2f(x1,y1), line[line.size() / 2]);
-		float dst2 = getDistance(cv::Point2f(x2,y2), line[line.size() / 2]);
-
-		debug_containter_.clear();
-		cv::Point2f p;
-		p = line[1];
-		debug_containter_.push_back(p);
-			p.x = lanes_vector_converted_[i][0].x + 0.2;
-			p.y = a * p.x + b;
-			debug_containter_.push_back(p);
-			p = lanes_vector_converted_[j][0];
-			debug_containter_.push_back(p);
+		float dst1 = getDistance(cv::Point2f(x1,y1), line[1]);
+		float dst2 = getDistance(cv::Point2f(x2,y2), line[1]);
 
 		//check if nan
 		if(dst1 != dst1)
@@ -1787,7 +1752,7 @@ void LaneDetector::intersectionHandler()
 			intersection_handler_activated_ = true;
 			encoder_probe_ = actual_encoder_distance_;
 		}
-		else
+		else if(intersection_handler_activated_)
 		{
 			distance_covered_ = actual_encoder_distance_ - encoder_probe_;
 
@@ -1821,4 +1786,6 @@ void LaneDetector::intersectionHandler()
 			intersection_detection_count_ = 0;
 		}
 	}
+	else
+		intersection_detection_count_ = 0;
 }
