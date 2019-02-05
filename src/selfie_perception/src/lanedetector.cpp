@@ -140,54 +140,59 @@ void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr &msg)
 	}
 	convertCoordinates();
 	filterSmallLines();
-	if(!lanes_vector_converted_.empty())
+	if(lanes_vector_converted_.empty())
 	{
-		//removeHorizontalLines();
-		mergeMiddleLane();
-		
-		if (debug_mode_)
-		{
-			debug_frame_.rows = homography_frame_.rows;
-			debug_frame_.cols = homography_frame_.cols;
-			lanesVectorVisualization(debug_frame_);
-		}
-
-		if(init_imageCallback_)
-		{
-			initRecognizeLines();
-			int l = 0,c = 0,r = 0;
-			if(left_line_index_ != -1)
-				if(cv::arcLength(lanes_vector_converted_[left_line_index_], false) > min_length_to_aprox_)
-					l = 1;
-
-			if(center_line_index_ != -1)
-				if(cv::arcLength(lanes_vector_converted_[center_line_index_], false) > min_length_to_aprox_)
-					c = 1;
-
-			if(right_line_index_ != -1)
-				if(cv::arcLength(lanes_vector_converted_[right_line_index_], false) > min_length_to_aprox_)
-					r = 1;
-
-			if((l + r + c) > 1)
-			{
-				linesApproximation(lanes_vector_converted_);
-				init_imageCallback_ = false;
-			}
-		}
-		else
-		{
-			recognizeLines();
-			//filterPoints();
-			generatePoints();
-			
-			calcRoadWidth();
-			addBottomPoint();
-			linesApproximation(lanes_vector_converted_);
-			publishMarkings();
-		}
+		left_line_index_ = -1;
+		center_line_index_ = -1;
+		right_line_index_ = -1;
+		return;
 	}
 
-	if (debug_mode_)
+	//removeHorizontalLines();
+	mergeMiddleLane();
+
+	if(debug_mode_)
+	{
+		debug_frame_.rows = homography_frame_.rows;
+		debug_frame_.cols = homography_frame_.cols;
+		lanesVectorVisualization(debug_frame_);
+	}
+
+	if(init_imageCallback_)
+	{
+		initRecognizeLines();
+		int l = 0, c = 0, r = 0;
+		if (left_line_index_ != -1)
+			if(cv::arcLength(lanes_vector_converted_[left_line_index_], false) > min_length_to_aprox_)
+				l = 1;
+
+		if (center_line_index_ != -1)
+			if(cv::arcLength(lanes_vector_converted_[center_line_index_], false) > min_length_to_aprox_)
+				c = 1;
+
+		if (right_line_index_ != -1)
+			if(cv::arcLength(lanes_vector_converted_[right_line_index_], false) > min_length_to_aprox_)
+				r = 1;
+
+		if((l + r + c) > 1)
+		{
+			linesApproximation(lanes_vector_converted_);
+			init_imageCallback_ = false;
+		}
+	}
+	else
+	{
+		recognizeLines();
+		//filterPoints();
+		generatePoints();
+
+		calcRoadWidth();
+		addBottomPoint();
+		linesApproximation(lanes_vector_converted_);
+		publishMarkings();
+	}
+
+	if(debug_mode_)
 	{
 		visualization_frame_.rows = homography_frame_.rows;
 		visualization_frame_.cols = homography_frame_.cols;
