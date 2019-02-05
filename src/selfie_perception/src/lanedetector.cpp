@@ -224,6 +224,7 @@ void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr &msg)
 bool LaneDetector::resetVisionCallback(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response)
 {
     init_imageCallback_ = true;
+	ROS_INFO("RESET VISION");
     return true;
 }
 
