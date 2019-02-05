@@ -111,7 +111,7 @@ void LaneDetector::distanceCallback(const std_msgs::Float32 &msg)
 }
 
 void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr &msg)
-{	
+{
 	try
 	{
 		current_frame_ = cv_bridge::toCvCopy(msg, sensor_msgs::image_encodings::TYPE_8UC1)->image;
@@ -125,7 +125,7 @@ void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr &msg)
 	//removeCar(homography_frame_);
 
 	cv::adaptiveThreshold(homography_frame_, binary_frame_, 255, cv::ADAPTIVE_THRESH_MEAN_C, CV_THRESH_BINARY, treshold_block_size_, threshold_c_);
-	
+
 	if(!init_imageCallback_)
 	{
 		dynamicMask(binary_frame_, masked_frame_);
@@ -139,7 +139,7 @@ void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr &msg)
 	}
 	else
 		masked_frame_ = binary_frame_.clone();
-	
+
 
 	cv::medianBlur(masked_frame_, masked_frame_, 5);
 	cv::filter2D(masked_frame_, canny_frame_, -1, kernel_v_, cv::Point(-1, -1), 0, cv::BORDER_DEFAULT);
@@ -224,6 +224,7 @@ void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr &msg)
 bool LaneDetector::resetVisionCallback(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response)
 {
     init_imageCallback_ = true;
+	intersection_handler_activated_ = false;
 	ROS_INFO("RESET VISION");
     return true;
 }
@@ -1223,7 +1224,7 @@ void LaneDetector::linesApproximation(std::vector<std::vector<cv::Point2f> > lan
 			middle_coeff_ = last_middle_coeff_;
 		break;
 	}
-	
+
 	last_left_coeff_.clear();
 	last_middle_coeff_.clear();
 	last_right_coeff_.clear();
@@ -1258,7 +1259,7 @@ void LaneDetector::lanesVectorVisualization(cv::Mat &visualization_frame)
 		cv::Mat(line2f).copyTo(line);
 		lanes_vector_.push_back(line);
 	}
-	
+
 	visualization_frame = cv::Mat::zeros(visualization_frame.size(), CV_8UC3);
 	if(lanes_vector_.empty())
 		return;
@@ -1395,7 +1396,7 @@ std::vector<float> LaneDetector::adjust(std::vector<float> good_poly_coeff, std:
 	{
 		a = -1 * (line[1].x - line[line.size() - 1].x) / (line[1].y - line[line.size() - 1].y);
 		b = line[line.size() / 2].y - a * line[line.size() / 2].x;
-		
+
 		float delta = ((good_poly_coeff[1] - a) * (good_poly_coeff[1] - a)) - 4 * (good_poly_coeff[2] * (good_poly_coeff[0] - b));
 		float x1 = (-1 * (good_poly_coeff[1] - a) - sqrtf(delta)) / (2 * good_poly_coeff[2]);
 		float x2 = (-1 * (good_poly_coeff[1] - a) + sqrtf(delta)) / (2 * good_poly_coeff[2]);
@@ -1424,7 +1425,7 @@ std::vector<float> LaneDetector::adjust(std::vector<float> good_poly_coeff, std:
 		coeff = good_poly_coeff;
 		good_poly_coeff[0] -= width;
 	}
-	
+
 }
 
 void LaneDetector::calcRoadWidth()
@@ -1776,7 +1777,7 @@ void LaneDetector::intersectionHandler()
 				intersection_detection_count_ = 0;
 			}
 		}
-		
+
 	}
 	else if(intersection_handler_activated_)
 	{
