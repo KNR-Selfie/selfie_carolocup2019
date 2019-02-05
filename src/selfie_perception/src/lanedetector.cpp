@@ -224,6 +224,7 @@ void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr &msg)
 bool LaneDetector::resetVisionCallback(std_srvs::Empty::Request& request, std_srvs::Empty::Response& response)
 {
     init_imageCallback_ = true;
+	intersection_handler_activated_ = false;
 	ROS_INFO("RESET VISION");
     return true;
 }
@@ -1758,6 +1759,7 @@ void LaneDetector::intersectionHandler()
 			intersection_right_coeff_ = right_coeff_;
 
 			intersection_handler_activated_ = true;
+			ROS_INFO("intersection_handler_activated_");
 			encoder_probe_ = actual_encoder_distance_;
 		}
 		else if(intersection_handler_activated_)
