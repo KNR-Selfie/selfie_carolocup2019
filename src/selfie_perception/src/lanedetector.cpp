@@ -192,8 +192,6 @@ void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr &msg)
 		if((l + r + c) > 1)
 		{
 			linesApproximation(lanes_vector_converted_);
-			intersectionHandler();
-			publishMarkings();
 		}
 	}
 	else
@@ -205,6 +203,7 @@ void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr &msg)
 		calcRoadWidth();
 		addBottomPoint();
 		linesApproximation(lanes_vector_converted_);
+		intersectionHandler();
 		publishMarkings();
 	}
 
