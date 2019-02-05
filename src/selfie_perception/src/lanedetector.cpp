@@ -203,7 +203,7 @@ void LaneDetector::imageCallback(const sensor_msgs::ImageConstPtr &msg)
 		calcRoadWidth();
 		addBottomPoint();
 		linesApproximation(lanes_vector_converted_);
-		intersectionHandler();
+		//intersectionHandler();
 		publishMarkings();
 	}
 
