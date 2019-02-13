@@ -10,7 +10,7 @@ The project is targetting [ROS Kinetic Kame](http://wiki.ros.org/kinetic) distri
 First, clone the repository to a convenient location using:
 
 ```bash
-git clone https://github.com/KNR-Selfie/selfie_carolocup2019
+git clone --recurse-submodules https://github.com/KNR-Selfie/selfie_carolocup2019
 ```
 
 Navigate to the main directory with:
@@ -30,5 +30,6 @@ source ./devel/setup.bash
 ## Running
 
 ```bash
-roslaunch selfie_launch free_drive.launch homography_file:={path}
+roslaunch selfie initialization.launch
 ```
+Remember to put an appropriate `homography_export.yaml` file generated from [this program](https://github.com/tum-phoenix/drive_ros_camera_homography) in your `ROS_HOME` directory.
